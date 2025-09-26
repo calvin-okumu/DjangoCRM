@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User, Group
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 class Organization(models.Model):
@@ -91,7 +91,7 @@ class Milestone(models.Model):
         related_name="milestones",
     )
     progress = models.PositiveIntegerField(
-        default=0, validators=[MinValueValidator(0)]
+        default=0, validators=[MinValueValidator(0), MaxValueValidator(100)]
     )  # 0-100
     project = models.ForeignKey(
         Project, on_delete=models.CASCADE, related_name="milestones"
@@ -163,7 +163,7 @@ class Invoice(models.Model):
     paid = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Invoice {self.id} - {self.client.name}"
+        return f"Invoice {self.id or 'Unsaved'} - {self.client.name}"
 
 
 class Payment(models.Model):
@@ -176,5 +176,5 @@ class Payment(models.Model):
     paid_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Payment {self.id} for Invoice {self.invoice.id}"
+        return f"Payment {self.id or 'Unsaved'} for Invoice {self.invoice.id or 'Unsaved'}"
 
