@@ -1,0 +1,8 @@
+asgiref==3.9.1
+Django==5.2.6
+sqlparse==0.5.3
+psycopg2-binary==2.9.9
+djangorestframework==3.15.1
+django-filter==24.2
+djangorestframework-authtoken==1.0.0
+factory-boy==3.3.0
