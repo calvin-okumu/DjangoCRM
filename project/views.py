@@ -132,3 +132,32 @@ def login_view(request):
         })
     return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def auth_methods_view(request):
+    """
+    Returns available authentication methods
+    """
+    auth_methods = {
+        'traditional': {
+            'endpoint': '/api/login/',
+            'method': 'POST',
+            'description': 'Username and password authentication',
+            'fields': ['username', 'password']
+        },
+        'oauth': {
+            'providers': {
+                'google': {
+                    'login_url': '/accounts/google/login/',
+                    'description': 'Login with Google account'
+                },
+                'github': {
+                    'login_url': '/accounts/github/login/',
+                    'description': 'Login with GitHub account'
+                }
+            }
+        }
+    }
+    return Response(auth_methods)
+

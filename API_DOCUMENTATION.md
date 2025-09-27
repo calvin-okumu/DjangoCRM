@@ -9,9 +9,38 @@ http://127.0.0.1:8000/api
 
 ## Authentication
 
-The API uses token-based authentication. Include the token in the Authorization header for all requests except login.
+The API supports multiple authentication methods: traditional token-based authentication and OAuth authentication through Google and GitHub.
 
-### Login
+### Authentication Methods
+**Endpoint:** `GET /api/auth-methods/`
+
+Returns information about available authentication methods. **Public endpoint** - no authentication required.
+
+**Response:**
+```json
+{
+  "traditional": {
+    "endpoint": "/api/login/",
+    "method": "POST",
+    "description": "Username and password authentication",
+    "fields": ["username", "password"]
+  },
+  "oauth": {
+    "providers": {
+      "google": {
+        "login_url": "/accounts/google/login/",
+        "description": "Login with Google account"
+      },
+      "github": {
+        "login_url": "/accounts/github/login/",
+        "description": "Login with GitHub account"
+      }
+    }
+  }
+}
+```
+
+### Traditional Login
 **Endpoint:** `POST /api/login/`
 
 **Request Body:**
@@ -27,7 +56,8 @@ The API uses token-based authentication. Include the token in the Authorization 
 {
   "token": "your_auth_token",
   "user_id": 1,
-  "username": "your_username"
+  "username": "your_username",
+  "message": "Login successful"
 }
 ```
 
@@ -48,11 +78,122 @@ login('admin', 'password123')
   });
 ```
 
+### OAuth Authentication
+
+The API supports OAuth authentication through Google and GitHub using django-allauth.
+
+#### Google OAuth
+**Login URL:** `GET /accounts/google/login/`
+
+**Setup Requirements:**
+1. Create a Google OAuth application at [Google Cloud Console](https://console.cloud.google.com/)
+2. Configure the client ID and secret in Django settings
+3. Add authorized redirect URIs: `http://127.0.0.1:8000/accounts/google/login/callback/`
+
+#### GitHub OAuth
+**Login URL:** `GET /accounts/github/login/`
+
+**Setup Requirements:**
+1. Create a GitHub OAuth App in GitHub Settings → Developer settings
+2. Configure the client ID and secret in Django settings
+3. Set Authorization callback URL: `http://127.0.0.1:8000/accounts/github/login/callback/`
+
+#### OAuth Configuration
+Update your Django settings with OAuth credentials:
+
+```python
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'APP': {
+            'client_id': 'your-google-client-id',
+            'secret': 'your-google-client-secret',
+            'key': ''
+        }
+    },
+    'github': {
+        'APP': {
+            'client_id': 'your-github-client-id',
+            'secret': 'your-github-client-secret',
+            'key': ''
+        }
+    }
+}
+```
+
+#### OAuth Flow
+1. User clicks OAuth login button → redirects to provider
+2. User authorizes application → provider redirects back
+3. django-allauth creates/updates user account
+4. User gets Django session for web access
+5. For API access, user can obtain token via traditional login or API token endpoint
+
+**Note:** OAuth users can optionally set passwords for traditional login fallback.
+
+### OAuth Setup Guide
+
+#### 1. Google OAuth Setup
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing one
+3. Enable the Google+ API
+4. Go to "Credentials" → "Create Credentials" → "OAuth 2.0 Client IDs"
+5. Set application type to "Web application"
+6. Add authorized redirect URIs:
+   - `http://127.0.0.1:8000/accounts/google/login/callback/` (development)
+   - `https://yourdomain.com/accounts/google/login/callback/` (production)
+7. Copy Client ID and Client Secret to your Django settings
+
+#### 2. GitHub OAuth Setup
+1. Go to GitHub → Settings → Developer settings → OAuth Apps
+2. Click "New OAuth App"
+3. Fill in application details:
+   - **Homepage URL**: `http://127.0.0.1:8000` (development)
+   - **Authorization callback URL**: `http://127.0.0.1:8000/accounts/github/login/callback/`
+4. Copy Client ID and Client Secret to your Django settings
+
+#### 3. Environment Configuration
+Add your OAuth credentials to the `.env` file in your project root:
+
+```bash
+GOOGLE_CLIENT_ID=your-actual-google-client-id
+GOOGLE_CLIENT_SECRET=your-actual-google-client-secret
+GITHUB_CLIENT_ID=your-actual-github-client-id
+GITHUB_CLIENT_SECRET=your-actual-github-client-secret
+```
+
+The Django settings automatically load these values from the environment variables.
+
+**Note:** Use the `check_env.py` script to validate your environment configuration:
+```bash
+python check_env.py
+```
+
+#### 4. Frontend Integration
+Add OAuth login buttons to your frontend:
+
+```html
+<!-- Google Login -->
+<a href="/accounts/google/login/" class="btn btn-google">
+  <i class="fab fa-google"></i> Login with Google
+</a>
+
+<!-- GitHub Login -->
+<a href="/accounts/github/login/" class="btn btn-github">
+  <i class="fab fa-github"></i> Login with GitHub
+</a>
+```
+
 ## API Endpoints
 
-All endpoints require authentication except login. Include the token in the Authorization header:
+All endpoints require authentication. You can authenticate using either:
+
+1. **Token Authentication** (for API clients):
 ```
 Authorization: Token your_auth_token
+```
+
+2. **Session Authentication** (for web users, including OAuth users):
+```
+# Handled automatically by Django for logged-in users
 ```
 
 ### Organizations
@@ -374,8 +515,18 @@ Error responses include a JSON object with error details:
 }
 ```
 
+### OAuth-Specific Errors
+
+OAuth authentication may return additional error types:
+- `400 Bad Request` - Invalid OAuth callback or missing parameters
+- `401 Unauthorized` - OAuth provider authentication failed
+- `403 Forbidden` - User account disabled or OAuth provider access denied
+
+OAuth errors are typically handled by redirecting users back to the login page with error messages.
+
 ## Permissions
 
+- **Authentication Methods** (`/api/auth-methods/`): Public (no authentication required)
 - **Organizations**: Authenticated users
 - **Clients**: Authenticated users with client manager permissions
 - **Projects**: Authenticated users with project manager permissions
