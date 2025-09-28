@@ -191,20 +191,30 @@ def signup_view(request):
     first_name = request.data.get('first_name', '')
     last_name = request.data.get('last_name', '')
     company_name = request.data.get('company_name')
+    address = request.data.get('address', '')
     invitation_token = request.data.get('invitation_token')
 
     if not email or not password:
         return Response({'error': 'Email and password are required'}, status=status.HTTP_400_BAD_REQUEST)
 
-    if not company_name:
-        return Response({'error': 'Company name required'}, status=status.HTTP_400_BAD_REQUEST)
-
     domain = email.split('@')[1]
-    if Tenant.objects.filter(domain=domain).exists():
-        return Response({'error': 'Domain already in use'}, status=status.HTTP_400_BAD_REQUEST)
 
-    tenant = Tenant.objects.create(name=company_name, domain=domain)
-    role = 'Tenant Owner'
+    if invitation_token:
+        try:
+            invitation = Invitation.objects.get(token=invitation_token, is_used=False, expires_at__gt=timezone.now())
+            tenant = invitation.tenant
+            role = invitation.role
+            invitation.is_used = True
+            invitation.save()
+        except Invitation.DoesNotExist:
+            return Response({'error': 'Invalid or expired invitation'}, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        if not company_name:
+            return Response({'error': 'Company name required for new tenant'}, status=status.HTTP_400_BAD_REQUEST)
+        if Tenant.objects.filter(domain=domain).exists():
+            return Response({'error': 'Domain already in use'}, status=status.HTTP_400_BAD_REQUEST)
+        tenant = Tenant.objects.create(name=company_name, domain=domain, address=address)
+        role = 'Tenant Owner'
 
     user = CustomUser.objects.create_user(email=email, password=password)
     user.first_name = first_name

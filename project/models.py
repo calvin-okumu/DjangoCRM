@@ -47,18 +47,18 @@ class UserTenant(models.Model):
         return f"{self.user.email} - {self.tenant.name}"
 
 
-# class Invitation(models.Model):
-#     email = models.EmailField()
-#     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
-#     token = models.CharField(max_length=64, unique=True)
-#     role = models.CharField(max_length=100, default='Employee')  # e.g., 'Employee', 'Manager'
-#     invited_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-#     created_at = models.DateTimeField(auto_now_add=True)
-#     expires_at = models.DateTimeField()
-#     is_used = models.BooleanField(default=False)
+class Invitation(models.Model):
+    email = models.EmailField()
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
+    token = models.CharField(max_length=64, unique=True)
+    role = models.CharField(max_length=100, default='Employee')  # e.g., 'Employee', 'Manager'
+    invited_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
 
-#     def __str__(self):
-#         return f"Invite {self.email} to {self.tenant.name}"
+    def __str__(self):
+        return f"Invite {self.email} to {self.tenant.name}"
 
 
 class Client(models.Model):

@@ -85,11 +85,18 @@ curl -X POST http://127.0.0.1:8001/api/login/ \
 {
   "email": "your_email@example.com",
   "password": "your_password",
-  "first_name": "Your",
-  "last_name": "Name",
-  "company_name": "Your Company"
+  "first_name": "Your",  // optional
+  "last_name": "Name",   // optional
+  "company_name": "Your Company",  // required for new tenants
+  "address": "Company Address",    // optional for new tenants
+  "invitation_token": "token_here" // optional, for joining existing tenant
 }
 ```
+
+**Notes:**
+- If `invitation_token` is provided, the user joins the tenant from the invitation, and `company_name`/`address` are ignored.
+- If no `invitation_token`, a new tenant is created with the provided `company_name` and optional `address`.
+- `first_name` and `last_name` are optional and default to empty strings.
 
 **Response:**
 ```json
@@ -104,11 +111,18 @@ curl -X POST http://127.0.0.1:8001/api/login/ \
 }
 ```
 
-**Example (curl):**
+**Example (curl) - New Tenant:**
 ```bash
 curl -X POST http://127.0.0.1:8001/api/signup/ \
   -H "Content-Type: application/json" \
-  -d '{"email": "newuser@example.com", "password": "password123", "first_name": "John", "last_name": "Doe", "company_name": "Acme Corp"}'
+  -d '{"email": "newuser@example.com", "password": "password123", "first_name": "John", "last_name": "Doe", "company_name": "Acme Corp", "address": "123 Main St"}'
+```
+
+**Example (curl) - Join via Invitation:**
+```bash
+curl -X POST http://127.0.0.1:8001/api/signup/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "invited@example.com", "password": "password123", "invitation_token": "abc123"}'
 ```
 
 **Sample Users (created by generate_sample_data):**
