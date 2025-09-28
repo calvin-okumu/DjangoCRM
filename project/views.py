@@ -188,14 +188,14 @@ def login_view(request):
 def signup_view(request):
     email = request.data.get('email')
     password = request.data.get('password')
-    first_name = request.data.get('first_name', '')
-    last_name = request.data.get('last_name', '')
+    first_name = request.data.get('first_name')
+    last_name = request.data.get('last_name')
     company_name = request.data.get('company_name')
     address = request.data.get('address', '')
     invitation_token = request.data.get('invitation_token')
 
-    if not email or not password:
-        return Response({'error': 'Email and password are required'}, status=status.HTTP_400_BAD_REQUEST)
+    if not email or not password or not first_name or not last_name:
+        return Response({'error': 'Email, password, first_name, and last_name are required'}, status=status.HTTP_400_BAD_REQUEST)
 
     domain = email.split('@')[1]
 

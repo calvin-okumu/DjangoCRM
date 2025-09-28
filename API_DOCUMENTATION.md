@@ -83,20 +83,20 @@ curl -X POST http://127.0.0.1:8001/api/login/ \
 **Request Body:**
 ```json
 {
-  "email": "your_email@example.com",
-  "password": "your_password",
-  "first_name": "Your",  // optional
-  "last_name": "Name",   // optional
-  "company_name": "Your Company",  // required for new tenants
-  "address": "Company Address",    // optional for new tenants
-  "invitation_token": "token_here" // optional, for joining existing tenant
+  "email": "your_email@example.com",  // required
+  "password": "your_password",        // required
+  "first_name": "Your",               // required
+  "last_name": "Name",                // required
+  "company_name": "Your Company",     // required for new tenants
+  "address": "Company Address",       // optional for new tenants
+  "invitation_token": "token_here"    // optional, for joining existing tenant
 }
 ```
 
 **Notes:**
+- `email`, `password`, `first_name`, and `last_name` are always required.
 - If `invitation_token` is provided, the user joins the tenant from the invitation, and `company_name`/`address` are ignored.
 - If no `invitation_token`, a new tenant is created with the provided `company_name` and optional `address`.
-- `first_name` and `last_name` are optional and default to empty strings.
 
 **Response:**
 ```json
