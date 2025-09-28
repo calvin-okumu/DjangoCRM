@@ -8,12 +8,13 @@ from .models import Task, Milestone, Sprint, Project
 def update_milestone_progress(sender, instance, **kwargs):
     """
     Update milestone progress when a task status changes.
+    Only update if progress is 0 (auto-calculate), otherwise respect manual setting.
     """
     if instance.sprint and instance.sprint.milestone:
         milestone = instance.sprint.milestone
-        total_tasks = milestone.sprints.filter(tasks__isnull=False).distinct().count()  # Approximate
-        completed_tasks = milestone.sprints.filter(tasks__status='done').distinct().count()
-        if total_tasks > 0:
+        total_tasks = Task.objects.filter(sprint__milestone=milestone).count()
+        completed_tasks = Task.objects.filter(sprint__milestone=milestone, status='done').count()
+        if total_tasks > 0 and milestone.progress == 0:
             milestone.progress = int((completed_tasks / total_tasks) * 100)
             milestone.save(update_fields=['progress'])
 

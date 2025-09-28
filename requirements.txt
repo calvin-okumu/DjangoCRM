@@ -6,3 +6,8 @@ djangorestframework==3.15.1
 django-filter==24.2
 djangorestframework-authtoken==1.0.0
 factory-boy==3.3.0
+django-allauth==0.63.3
+djangorestframework-oauth==1.1.0
+requests-oauthlib==1.4.0
+django-oauth2-provider==0.2.6.1
+python-dotenv==1.0.0
