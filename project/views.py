@@ -7,7 +7,7 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from django.shortcuts import render
 from .models import (
-    Organization,
+    Tenant,
     Client,
     Project,
     Milestone,
@@ -17,7 +17,7 @@ from .models import (
     Payment,
 )
 from .serializers import (
-    OrganizationSerializer,
+    TenantSerializer,
     ClientSerializer,
     ProjectSerializer,
     MilestoneSerializer,
@@ -26,12 +26,12 @@ from .serializers import (
     InvoiceSerializer,
     PaymentSerializer,
 )
-from .permissions import IsClientManager, IsProjectManager, IsAPIManager
+from .permissions import IsClientManager, IsProjectManager, IsAPIManager, IsTenantOwner
 
 
-class OrganizationViewSet(viewsets.ModelViewSet):
-    queryset = Organization.objects.all()
-    serializer_class = OrganizationSerializer
+class TenantViewSet(viewsets.ModelViewSet):
+    queryset = Tenant.objects.all()
+    serializer_class = TenantSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["name"]
@@ -44,69 +44,111 @@ class ClientViewSet(viewsets.ModelViewSet):
     serializer_class = ClientSerializer
     permission_classes = [permissions.IsAuthenticated, IsClientManager]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ["status", "organization"]
+    filterset_fields = ["status", "tenant"]
     search_fields = ["name", "email"]
     ordering_fields = ["name", "created_at"]
+
+    def get_queryset(self):
+        if self.request.tenant:
+            return Client.objects.filter(tenant=self.request.tenant)
+        else:
+            return Client.objects.all()  # For development
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
-    permission_classes = [permissions.IsAuthenticated, IsProjectManager]
+    permission_classes = [permissions.IsAuthenticated, IsProjectManager, IsTenantOwner]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["status", "priority", "client"]
     search_fields = ["name", "description"]
     ordering_fields = ["name", "created_at"]
 
+    def get_queryset(self):
+        if self.request.tenant:
+            return Project.objects.filter(tenant=self.request.tenant)
+        else:
+            return Project.objects.all()  # For development
+
 
 class MilestoneViewSet(viewsets.ModelViewSet):
     queryset = Milestone.objects.all()
     serializer_class = MilestoneSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsTenantOwner]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["status", "project"]
     search_fields = ["name", "description"]
     ordering_fields = ["name", "due_date"]
 
+    def get_queryset(self):
+        if self.request.tenant:
+            return Milestone.objects.filter(tenant=self.request.tenant)
+        else:
+            return Milestone.objects.all()  # For development
+
 
 class SprintViewSet(viewsets.ModelViewSet):
     queryset = Sprint.objects.all()
     serializer_class = SprintSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsTenantOwner]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["status", "milestone"]
     search_fields = ["name"]
     ordering_fields = ["name", "start_date"]
 
+    def get_queryset(self):
+        if self.request.tenant:
+            return Sprint.objects.filter(tenant=self.request.tenant)
+        else:
+            return Sprint.objects.all()  # For development
+
 
 class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsTenantOwner]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["status", "sprint", "assignee"]
     search_fields = ["title", "description"]
     ordering_fields = ["title", "created_at"]
 
+    def get_queryset(self):
+        if self.request.tenant:
+            return Task.objects.filter(tenant=self.request.tenant)
+        else:
+            return Task.objects.all()  # For development
+
 
 class InvoiceViewSet(viewsets.ModelViewSet):
     queryset = Invoice.objects.all()
     serializer_class = InvoiceSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAPIManager]
+    permission_classes = [permissions.IsAuthenticated, IsAPIManager, IsTenantOwner]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["paid", "client", "project"]
     search_fields = ["client__name"]
     ordering_fields = ["issued_at"]
 
+    def get_queryset(self):
+        if self.request.tenant:
+            return Invoice.objects.filter(tenant=self.request.tenant)
+        else:
+            return Invoice.objects.all()  # For development
+
 
 class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAPIManager]
+    permission_classes = [permissions.IsAuthenticated, IsAPIManager, IsTenantOwner]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["invoice"]
     search_fields = ["invoice__id"]
     ordering_fields = ["paid_at"]
+
+    def get_queryset(self):
+        if self.request.tenant:
+            return Payment.objects.filter(tenant=self.request.tenant)
+        else:
+            return Payment.objects.all()  # For development
 
 
 def login_page(request):

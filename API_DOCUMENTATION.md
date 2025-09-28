@@ -1,11 +1,18 @@
 # DjangoCRM API Documentation
 
-This document provides comprehensive documentation for the DjangoCRM API, including authentication, endpoints, and usage examples.
+This document provides comprehensive documentation for the DjangoCRM multi-tenant API, including authentication, endpoints, and usage examples.
 
 ## Base URL
 ```
-http://127.0.0.1:8000/api
+http://127.0.0.1:8001/api
 ```
+
+**Note:** Currently configured for development with multi-tenancy disabled. All data is accessible across tenants. In production, the API will be multi-tenant with subdomain-based routing:
+
+- `http://demo-tenant.localhost:8000/api` for the "Demo Tenant"
+- `http://company.localhost:8000/api` for the "Company" tenant"
+
+All data is automatically scoped to the current tenant based on the subdomain when multi-tenancy is enabled.
 
 ## Authentication
 
@@ -63,10 +70,17 @@ Returns information about available authentication methods. **Public endpoint** 
 
 **Example (curl):**
 ```bash
-curl -X POST http://127.0.0.1:8000/api/login/ \
+curl -X POST http://127.0.0.1:8001/api/login/ \
   -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "password123"}'
+  -d '{"username": "user1", "password": "password123"}'
 ```
+
+**Sample Users (created by generate_sample_data):**
+- user1 (Client Management): Can access clients
+- user2 (Business Strategy): Can access projects, milestones, tasks
+- user3 (API Control): Can access invoices, payments
+- user4 (Product Measurement): Can access projects, milestones, tasks
+- user5 (API Control): Can access invoices, payments
 
 **Example (JavaScript):**
 ```javascript
@@ -88,7 +102,7 @@ The API supports OAuth authentication through Google and GitHub using django-all
 **Setup Requirements:**
 1. Create a Google OAuth application at [Google Cloud Console](https://console.cloud.google.com/)
 2. Configure the client ID and secret in Django settings
-3. Add authorized redirect URIs: `http://127.0.0.1:8000/accounts/google/login/callback/`
+3. Add authorized redirect URIs: `http://tenant-name.localhost:8000/accounts/google/login/callback/`
 
 #### GitHub OAuth
 **Login URL:** `GET /accounts/github/login/`
@@ -96,7 +110,7 @@ The API supports OAuth authentication through Google and GitHub using django-all
 **Setup Requirements:**
 1. Create a GitHub OAuth App in GitHub Settings → Developer settings
 2. Configure the client ID and secret in Django settings
-3. Set Authorization callback URL: `http://127.0.0.1:8000/accounts/github/login/callback/`
+3. Set Authorization callback URL: `http://tenant-name.localhost:8000/accounts/github/login/callback/`
 
 #### OAuth Configuration
 Update your Django settings with OAuth credentials:
@@ -137,17 +151,17 @@ SOCIALACCOUNT_PROVIDERS = {
 3. Enable the Google+ API
 4. Go to "Credentials" → "Create Credentials" → "OAuth 2.0 Client IDs"
 5. Set application type to "Web application"
-6. Add authorized redirect URIs:
-   - `http://127.0.0.1:8000/accounts/google/login/callback/` (development)
-   - `https://yourdomain.com/accounts/google/login/callback/` (production)
+ 6. Add authorized redirect URIs:
+   - `http://127.0.0.1:8001/accounts/google/login/callback/` (development)
+     - `http://tenant-name.localhost:8000/accounts/google/login/callback/` (production with subdomains)
 7. Copy Client ID and Client Secret to your Django settings
 
 #### 2. GitHub OAuth Setup
 1. Go to GitHub → Settings → Developer settings → OAuth Apps
 2. Click "New OAuth App"
-3. Fill in application details:
-   - **Homepage URL**: `http://127.0.0.1:8000` (development)
-   - **Authorization callback URL**: `http://127.0.0.1:8000/accounts/github/login/callback/`
+ 3. Fill in application details:
+   - **Homepage URL**: `http://127.0.0.1:8001` (development)
+     - **Authorization callback URL**: `http://127.0.0.1:8001/accounts/github/login/callback/`
 4. Copy Client ID and Client Secret to your Django settings
 
 #### 3. Environment Configuration
@@ -196,10 +210,10 @@ Authorization: Token your_auth_token
 # Handled automatically by Django for logged-in users
 ```
 
-### Organizations
+### Tenants
 
-#### List Organizations
-**GET /api/organizations/**
+#### List Tenants
+**GET /api/tenants/**
 
 **Query Parameters:**
 - `name` - Filter by name
@@ -209,11 +223,11 @@ Authorization: Token your_auth_token
 **Example:**
 ```bash
 curl -H "Authorization: Token your_token" \
-  http://127.0.0.1:8000/api/organizations/?search=Tech
+  http://127.0.0.1:8001/api/tenants/?search=Tech
 ```
 
-#### Create Organization
-**POST /api/organizations/**
+#### Create Tenant
+**POST /api/tenants/**
 
 **Request Body:**
 ```json
@@ -223,14 +237,14 @@ curl -H "Authorization: Token your_token" \
 }
 ```
 
-#### Get Organization
-**GET /api/organizations/{id}/**
+#### Get Tenant
+**GET /api/tenants/{id}/**
 
-#### Update Organization
-**PUT /api/organizations/{id}/**
+#### Update Tenant
+**PUT /api/tenants/{id}/**
 
-#### Delete Organization
-**DELETE /api/organizations/{id}/**
+#### Delete Tenant
+**DELETE /api/tenants/{id}/**
 
 ### Clients
 
@@ -239,18 +253,18 @@ curl -H "Authorization: Token your_token" \
 
 **Query Parameters:**
 - `status` - Filter by status (active, inactive, prospect)
-- `organization` - Filter by organization ID
+- `tenant` - Filter by tenant ID
 - `search` - Search in name, email
 - `ordering` - Order by: name, created_at
 
 **Response includes:**
-- `organization_name` - Organization name
+- `tenant_name` - Tenant name
 - `projects_count` - Number of projects
 
 **Example:**
 ```bash
 curl -H "Authorization: Token your_token" \
-  http://127.0.0.1:8000/api/clients/?status=active
+  http://127.0.0.1:8001/api/clients/?status=active
 ```
 
 #### Create Client
@@ -263,7 +277,7 @@ curl -H "Authorization: Token your_token" \
   "email": "john@example.com",
   "phone": "+1234567890",
   "status": "active",
-  "organization": 1
+  "tenant": 1
 }
 ```
 
@@ -295,7 +309,7 @@ curl -H "Authorization: Token your_token" \
 **Example:**
 ```bash
 curl -H "Authorization: Token your_token" \
-  http://127.0.0.1:8000/api/projects/?status=active&priority=high
+  http://127.0.0.1:8001/api/projects/?status=active&priority=high
 ```
 
 #### Create Project
@@ -473,7 +487,14 @@ curl -H "Authorization: Token your_token" \
 ```javascript
 import api from './api.js';
 
-// Get all clients
+// Configure API base URL (development mode - no tenant subdomains)
+api.defaults.baseURL = 'http://127.0.0.1:8001/api';
+
+// For production with multi-tenancy enabled:
+// const tenantSubdomain = 'demo-tenant';
+// api.defaults.baseURL = `http://${tenantSubdomain}.localhost:8000/api`;
+
+// Get all clients (in development mode, returns all clients across tenants)
 api.get('/clients/')
   .then(response => console.log(response.data));
 
@@ -524,11 +545,61 @@ OAuth authentication may return additional error types:
 
 OAuth errors are typically handled by redirecting users back to the login page with error messages.
 
+## Multi-Tenant Architecture
+
+DjangoCRM supports a shared-database, schema-per-tenant approach with subdomain-based routing, but is currently configured for development with tenant isolation disabled:
+
+### Current Development Configuration
+- **Tenant Middleware**: Disabled for development, allowing access to all data
+- **Data Access**: All endpoints return data across all tenants
+- **Authentication**: Token-based authentication with role-based permissions
+
+### Production Multi-Tenant Setup
+When multi-tenancy is enabled:
+
+### Tenant Identification
+- **Subdomain Routing**: Each tenant is accessed via a unique subdomain (e.g., `tenant1.example.com`)
+- **Automatic Filtering**: All API endpoints automatically filter data by the current tenant
+- **User Association**: Users can be associated with specific tenants via the UserTenant model
+
+### Data Isolation
+- All models include a `tenant` foreign key
+- Middleware sets `request.tenant` based on the subdomain
+- ViewSets filter querysets by `tenant=self.request.tenant`
+- Permissions ensure users can only access data within their tenant
+
+### User-Tenant Association
+Users can be associated with specific tenants via the UserTenant model:
+- Allows users to access multiple tenants if needed
+- Fallback mechanism when subdomain routing fails
+- Managed through Django admin or custom API endpoints
+
+### Creating Tenants
+Use the management command to create tenants and migrate existing data:
+```bash
+python manage.py migrate_to_tenants --tenant-name="My Company"
+```
+
+### Enabling Multi-Tenancy
+To enable multi-tenancy in production:
+1. Uncomment `TenantMiddleware` in `saasCRM/settings.py`
+2. Configure web server for subdomain routing
+3. Update OAuth redirect URIs to use subdomains
+4. Run `python manage.py migrate_to_tenants` for existing data
+
 ## Permissions
 
 - **Authentication Methods** (`/api/auth-methods/`): Public (no authentication required)
-- **Organizations**: Authenticated users
-- **Clients**: Authenticated users with client manager permissions
-- **Projects**: Authenticated users with project manager permissions
+- **Tenants**: Authenticated users
+- **Clients**: Client Management Administrators group
+- **Projects**: Business Strategy or Product Measurement Administrators groups
 - **Milestones, Sprints, Tasks**: Authenticated users
-- **Invoices, Payments**: Authenticated users with API manager permissions
+- **Invoices, Payments**: API Control Administrators group
+
+**User Groups:**
+- **Client Management Administrators**: Can manage clients
+- **Business Strategy Administrators**: Can manage projects, milestones, tasks
+- **Product Measurement Administrators**: Can manage projects, milestones, tasks
+- **API Control Administrators**: Can manage invoices and payments
+
+**Note:** In development mode, tenant scoping is disabled. In production with multi-tenancy enabled, all permissions are additionally scoped to the current tenant.

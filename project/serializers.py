@@ -1,18 +1,18 @@
 from rest_framework import serializers
-from .models import Organization, Client, Project, Milestone, Sprint, Task, Invoice, Payment
+from .models import Tenant, Client, Project, Milestone, Sprint, Task, Invoice, Payment
 
-class OrganizationSerializer(serializers.ModelSerializer):
+class TenantSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Organization
+        model = Tenant
         fields = '__all__'
 
 class ClientSerializer(serializers.ModelSerializer):
-    organization_name = serializers.CharField(source='organization.name', read_only=True)
+    tenant_name = serializers.CharField(source='tenant.name', read_only=True)
     projects_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Client
-        fields = ['id', 'name', 'email', 'phone', 'status', 'organization', 'organization_name', 'projects_count', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'email', 'phone', 'status', 'tenant', 'tenant_name', 'projects_count', 'created_at', 'updated_at']
 
     def get_projects_count(self, obj):
         return obj.projects.count()

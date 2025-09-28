@@ -1,15 +1,24 @@
 from django.db import models
 from django.contrib.auth.models import User, Group
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.conf import settings
 
 
-class Organization(models.Model):
+class Tenant(models.Model):
     name = models.CharField(max_length=255, unique=True)
     address = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.name
+
+
+class UserTenant(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.tenant.name}"
 
 
 class Client(models.Model):
@@ -22,8 +31,8 @@ class Client(models.Model):
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=20, blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="prospect")
-    organization = models.ForeignKey(
-        Organization, on_delete=models.CASCADE, related_name="clients"
+    tenant = models.ForeignKey(
+        Tenant, on_delete=models.CASCADE, related_name="clients"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -49,6 +58,9 @@ class Project(models.Model):
         ("high", "High"),
     ]
     name = models.CharField(max_length=255)
+    tenant = models.ForeignKey(
+        Tenant, on_delete=models.CASCADE, related_name="projects"
+    )
     client = models.ForeignKey(
         Client, on_delete=models.CASCADE, related_name="projects"
     )
@@ -83,6 +95,9 @@ class Milestone(models.Model):
     planned_start = models.DateField(null=True, blank=True)
     actual_start = models.DateField(null=True, blank=True)
     due_date = models.DateField(null=True, blank=True)
+    tenant = models.ForeignKey(
+        Tenant, on_delete=models.CASCADE, related_name="milestones"
+    )
     assignee = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -113,6 +128,9 @@ class Sprint(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="planned")
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
+    tenant = models.ForeignKey(
+        Tenant, on_delete=models.CASCADE, related_name="sprints"
+    )
     milestone = models.ForeignKey(
         Milestone, on_delete=models.CASCADE, related_name="sprints"
     )
@@ -133,6 +151,9 @@ class Task(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default="backlog")
+    tenant = models.ForeignKey(
+        Tenant, on_delete=models.CASCADE, related_name="tasks"
+    )
     sprint = models.ForeignKey(Sprint, on_delete=models.CASCADE, related_name="tasks")
     assignee = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True, related_name="tasks"
@@ -146,6 +167,9 @@ class Task(models.Model):
 
 # Financial models
 class Invoice(models.Model):
+    tenant = models.ForeignKey(
+        Tenant, on_delete=models.CASCADE, related_name="invoices"
+    )
     client = models.ForeignKey(
         Client, on_delete=models.CASCADE, related_name="invoices"
     )
@@ -167,6 +191,9 @@ class Invoice(models.Model):
 
 
 class Payment(models.Model):
+    tenant = models.ForeignKey(
+        Tenant, on_delete=models.CASCADE, related_name="payments"
+    )
     invoice = models.ForeignKey(
         Invoice, on_delete=models.CASCADE, related_name="payments"
     )

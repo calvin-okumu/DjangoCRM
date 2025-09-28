@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User, Group
-from project.models import Organization, Client, Project, Milestone, Sprint, Task, Invoice, Payment
+from project.models import Tenant, Client, Project, Milestone, Sprint, Task, Invoice, Payment
 from project.factories import (
-    OrganizationFactory, ClientFactory,
+    TenantFactory, ClientFactory,
     ProjectFactory, MilestoneFactory, SprintFactory, TaskFactory,
     InvoiceFactory, PaymentFactory
 )
@@ -40,12 +40,12 @@ class Command(BaseCommand):
             users.append(user)
         self.stdout.write(f'Ensured {len(users)} users exist')
 
-        # Create organizations if not exist
-        if Organization.objects.count() < 3:
-            orgs = OrganizationFactory.create_batch(3 - Organization.objects.count())
-            self.stdout.write(f'Created {len(orgs)} organizations')
+        # Create tenants if not exist
+        if Tenant.objects.count() < 3:
+            tenants = TenantFactory.create_batch(3 - Tenant.objects.count())
+            self.stdout.write(f'Created {len(tenants)} tenants')
         else:
-            self.stdout.write('Organizations already exist')
+            self.stdout.write('Tenants already exist')
 
         # Create clients if not exist
         if Client.objects.count() < 6:

@@ -22,4 +22,12 @@ class IsAPIManager(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user.groups.filter(name='API Control Administrators').exists()
 
+
+class IsTenantOwner(permissions.BasePermission):
+    """
+    Allow access only if the object belongs to the current tenant.
+    """
+    def has_object_permission(self, request, view, obj):
+        return hasattr(obj, 'tenant') and obj.tenant == request.tenant
+
 # Add more as needed for other roles

@@ -2,10 +2,10 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework.authtoken.views import obtain_auth_token
-from project.views import OrganizationViewSet, ClientViewSet, ProjectViewSet, MilestoneViewSet, SprintViewSet, TaskViewSet, InvoiceViewSet, PaymentViewSet, login_view, auth_methods_view
+from project.views import TenantViewSet, ClientViewSet, ProjectViewSet, MilestoneViewSet, SprintViewSet, TaskViewSet, InvoiceViewSet, PaymentViewSet, login_view, auth_methods_view
 
 router = DefaultRouter()
-router.register(r'organizations', OrganizationViewSet)
+router.register(r'tenants', TenantViewSet)
 router.register(r'clients', ClientViewSet)
 router.register(r'projects', ProjectViewSet)
 router.register(r'milestones', MilestoneViewSet)
