@@ -1,10 +1,11 @@
 # DjangoCRM
 
-A comprehensive Customer Relationship Management system built with Django REST Framework and React.
+A comprehensive multi-tenant Customer Relationship Management system built with Django REST Framework and React.
 
 ## 🚀 Features
 
-- **Organization Management**: Create and manage multiple organizations
+- **Multi-Tenant Architecture**: Complete tenant isolation with subdomain-based access
+- **Tenant Management**: Create and manage multiple tenants with isolated data
 - **Client Management**: Track clients with detailed information and project history
 - **Project Tracking**: Full project lifecycle management with milestones and sprints
 - **Task Management**: Agile task tracking with status updates
@@ -20,6 +21,7 @@ A comprehensive Customer Relationship Management system built with Django REST F
 - **Database**: PostgreSQL (production) / SQLite (development)
 - **Frontend**: React
 - **Authentication**: Token-based authentication + OAuth (Google, GitHub) + Session authentication
+- **Multi-Tenancy**: Subdomain-based tenant isolation
 - **API Documentation**: Comprehensive endpoint documentation
 
 ## 📋 Prerequisites
@@ -50,35 +52,46 @@ A comprehensive Customer Relationship Management system built with Django REST F
     # Edit .env with your actual credentials and secrets
     ```
 
-3. **Set up the database**
+4. **Set up the database**
    ```bash
    python manage.py migrate
    python manage.py createsuperuser
    ```
 
-4. **Configure OAuth (optional)**
+5. **Generate sample data (optional)**
+   ```bash
+   python manage.py generate_sample_data
+   # This creates sample tenants, users, clients, projects, etc.
+   ```
+
+6. **Configure OAuth (optional)**
    ```bash
    # For Google OAuth: Get credentials from Google Cloud Console
    # For GitHub OAuth: Get credentials from GitHub Developer Settings
    # Add credentials to your .env file
    ```
 
-5. **Verify configuration**
+7. **Verify configuration**
    ```bash
    python check_env.py  # Check that all required variables are set
    ```
 
-5. **Run the development server**
+8. **Run the development server**
    ```bash
-   python manage.py runserver
+   python manage.py runserver 127.0.0.1:8001
    ```
 
-6. **Set up frontend (optional)**
-   ```bash
-   cd frontend
-   npm install
-   npm start
-   ```
+9. **Access the application**
+   - **API**: http://127.0.0.1:8001/api/
+   - **Admin Interface**: http://127.0.0.1:8001/admin/
+   - **Authentication**: POST to http://127.0.0.1:8001/api/login/
+
+10. **Set up frontend (optional)**
+    ```bash
+    cd frontend
+    npm install
+    npm start
+    ```
 
 ## 📖 API Documentation
 
@@ -88,34 +101,70 @@ Complete API documentation is available in [API_DOCUMENTATION.md](API_DOCUMENTAT
 
 **Authentication Methods:**
 ```bash
-# Traditional login
-curl -X POST http://127.0.0.1:8000/api/login/ \
+# Traditional login (development mode - no tenant isolation)
+curl -X POST http://127.0.0.1:8001/api/login/ \
   -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "password123"}'
+  -d '{"username": "user1", "password": "password123"}'
 
 # Get available auth methods
-curl http://127.0.0.1:8000/api/auth-methods/
+curl http://127.0.0.1:8001/api/auth-methods/
 
 # OAuth login (redirects to provider)
-curl -L http://127.0.0.1:8000/accounts/google/login/
+curl -L http://127.0.0.1:8001/accounts/google/login/
 ```
 
 **Get Clients:**
 ```bash
 curl -H "Authorization: Token YOUR_TOKEN" \
-  http://127.0.0.1:8000/api/clients/
+  http://127.0.0.1:8001/api/clients/
 ```
+
+**Sample Users (created by generate_sample_data):**
+- user1 (Client Management): Can access clients
+- user2 (Business Strategy): Can access projects, milestones, tasks
+- user3 (API Control): Can access invoices, payments
+- user4 (Product Measurement): Can access projects, milestones, tasks
+- user5 (API Control): Can access invoices, payments
+
+## 📊 Current Development Status
+
+The DjangoCRM application is currently in active development with the following features implemented and tested:
+
+### ✅ Working Features
+- **Authentication**: Token-based login with role-based permissions
+- **Multi-Tenant Data Model**: Database schema supports tenant isolation (middleware disabled for development)
+- **API Endpoints**: All CRUD operations for tenants, clients, projects, milestones, tasks
+- **Sample Data**: Generate realistic test data with `python manage.py generate_sample_data`
+- **Admin Interface**: Django admin panel for data management
+- **OAuth Integration**: Google and GitHub OAuth configured (requires browser testing)
+
+### 🔧 Development Configuration
+- **Server**: Runs on `http://127.0.0.1:8001`
+- **Multi-Tenancy**: Disabled for development (all data accessible)
+- **Database**: PostgreSQL with sample data populated
+- **Authentication**: Token-based with 5 sample users across different permission groups
+
+### 📈 Sample Data Overview
+Running `python manage.py generate_sample_data` creates:
+- **51 Tenants** with realistic company names and addresses
+- **44 Clients** distributed across tenants
+- **35 Projects** with various statuses and priorities
+- **26 Milestones** linked to projects
+- **19 Tasks** organized in sprints
+- **5 Users** with different permission levels
 
 ## 🏗️ Project Structure
 
 ```
 DjangoCRM/
 ├── project/                 # Main Django app
-│   ├── models.py           # Database models
-│   ├── views.py            # API views
+│   ├── models.py           # Database models (Tenant, Client, Project, etc.)
+│   ├── views.py            # API views with tenant filtering
 │   ├── serializers.py      # DRF serializers
-│   ├── permissions.py      # Custom permissions
-│   └── migrations/         # Database migrations
+│   ├── permissions.py      # Custom permissions (tenant ownership)
+│   ├── middleware.py       # Tenant middleware for subdomain routing
+│   ├── migrations/         # Database migrations
+│   └── management/commands/# Management commands (migrate_to_tenants)
 ├── saasCRM/                # Django project settings
 │   └── settings.py         # Django settings (includes OAuth config)
 ├── frontend/               # React frontend
@@ -142,10 +191,38 @@ python check_env.py  # Validate your .env configuration
 python manage.py test
 ```
 
+### Testing the API
+```bash
+# 1. Start the server
+python manage.py runserver 127.0.0.1:8001
+
+# 2. Login with a sample user (in another terminal)
+curl -X POST http://127.0.0.1:8001/api/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"username": "user2", "password": "password123"}'
+
+# 3. Use the returned token to access endpoints
+curl -H "Authorization: Token YOUR_TOKEN_HERE" \
+  http://127.0.0.1:8001/api/projects/
+
+# 4. Access admin interface
+# Open http://127.0.0.1:8001/admin/ in browser
+# Login with admin/admin123 (or your superuser credentials)
+```
+
 ### Creating Migrations
 ```bash
 python manage.py makemigrations
 python manage.py migrate
+```
+
+### Multi-Tenant Management
+```bash
+# Create a new tenant and migrate existing data
+python manage.py migrate_to_tenants --tenant-name="New Tenant"
+
+# List all tenants
+python manage.py shell -c "from project.models import Tenant; print([t.name for t in Tenant.objects.all()])"
 ```
 
 ### OAuth Configuration
@@ -173,13 +250,35 @@ To enable OAuth authentication:
 
    The Django settings will automatically load these values from the environment.
 
+### Multi-Tenant Setup
+
+The application supports subdomain-based multi-tenancy, but is currently configured for development with tenant isolation disabled:
+
+- **Development Mode**: Tenant middleware is disabled, allowing access to all data across tenants
+- **Production Mode**: Enable tenant middleware for proper data isolation
+- **Tenant Identification**: Each tenant is accessed via subdomain (e.g., `tenant1.example.com`)
+- **Data Isolation**: All data is automatically filtered by the current tenant when enabled
+- **User Association**: Users can be associated with specific tenants via the UserTenant model
+- **Migration**: Use `python manage.py migrate_to_tenants` to assign existing data to tenants
+
+**To enable multi-tenancy in production:**
+1. Uncomment the `TenantMiddleware` in `saasCRM/settings.py`
+2. Configure your web server for subdomain routing
+3. Update OAuth redirect URIs to use subdomains
+
 ### API Permissions
 
-- **Organizations**: All authenticated users
-- **Clients**: Client managers only
-- **Projects**: Project managers only
-- **Tasks/Milestones/Sprints**: All authenticated users
-- **Invoices/Payments**: API managers only
+- **Tenants**: All authenticated users
+- **Clients**: Client Management Administrators group (currently tenant-scoped in development)
+- **Projects**: Business Strategy or Product Measurement Administrators groups
+- **Tasks/Milestones/Sprints**: All authenticated users (currently tenant-scoped in development)
+- **Invoices/Payments**: API Control Administrators group
+
+**User Groups:**
+- **Client Management Administrators**: Can manage clients
+- **Business Strategy Administrators**: Can manage projects, milestones, tasks
+- **Product Measurement Administrators**: Can manage projects, milestones, tasks
+- **API Control Administrators**: Can manage invoices and payments
 
 ## 🤝 Contributing
 

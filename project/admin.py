@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    Organization,
+    Tenant,
     Client,
     Project,
     Milestone,
@@ -11,16 +11,16 @@ from .models import (
 )
 
 
-@admin.register(Organization)
-class OrganizationAdmin(admin.ModelAdmin):
+@admin.register(Tenant)
+class TenantAdmin(admin.ModelAdmin):
     list_display = ("name", "address", "created_at")
     search_fields = ("name",)
 
 
 @admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):
-    list_display = ("name", "email", "status", "organization", "created_at")
-    list_filter = ("status", "organization")
+    list_display = ("name", "email", "status", "tenant", "created_at")
+    list_filter = ("status", "tenant")
     search_fields = ("name", "email")
 
 

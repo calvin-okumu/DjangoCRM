@@ -6,7 +6,7 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 from decimal import Decimal
 from .models import (
-    Organization, Client, Project, Milestone, Sprint, Task,
+    Tenant, Client, Project, Milestone, Sprint, Task,
     Invoice, Payment
 )
 
@@ -15,16 +15,17 @@ class ModelTests(TestCase):
     """Test model creation, relationships, and validation"""
 
     def setUp(self):
-        self.org = Organization.objects.create(name="Test Organization", address="123 Test St")
+        self.org = Tenant.objects.create(name="Test Organization", address="123 Test St")
         self.client_obj = Client.objects.create(
             name="Test Client",
             email="test@example.com",
             phone="+1234567890",
             status="active",
-            organization=self.org
+            tenant=self.org
         )
         self.project = Project.objects.create(
             name="Test Project",
+            tenant=self.org,
             client=self.client_obj,
             status="active",
             priority="high",
@@ -33,26 +34,31 @@ class ModelTests(TestCase):
         )
         self.milestone = Milestone.objects.create(
             name="Test Milestone",
+            tenant=self.org,
             project=self.project,
             status="active",
             progress=75
         )
         self.sprint = Sprint.objects.create(
             name="Test Sprint",
+            tenant=self.org,
             milestone=self.milestone,
             status="active"
         )
         self.task = Task.objects.create(
             title="Test Task",
+            tenant=self.org,
             sprint=self.sprint,
             status="in_progress"
         )
         self.invoice = Invoice.objects.create(
+            tenant=self.org,
             client=self.client_obj,
             project=self.project,
             amount=Decimal('15000.00')
         )
         self.payment = Payment.objects.create(
+            tenant=self.org,
             invoice=self.invoice,
             amount=Decimal('15000.00')
         )
@@ -66,7 +72,7 @@ class ModelTests(TestCase):
         """Test client model creation and relationships"""
         self.assertEqual(self.client_obj.name, "Test Client")
         self.assertEqual(self.client_obj.email, "test@example.com")
-        self.assertEqual(self.client_obj.organization, self.org)
+        self.assertEqual(self.client_obj.tenant, self.org)
         self.assertEqual(str(self.client_obj), "Test Client")
         self.assertEqual(self.client_obj.status, "active")
 
@@ -120,7 +126,7 @@ class ModelTests(TestCase):
 
     def test_relationships(self):
         """Test all model relationships"""
-        # Organization -> Client
+        # Tenant -> Client
         self.assertIn(self.client_obj, self.org.clients.all())
 
         # Client -> Project
@@ -144,9 +150,9 @@ class ModelTests(TestCase):
 
     def test_unique_constraints(self):
         """Test unique constraints"""
-        # Organization name unique
+        # Tenant name unique
         with self.assertRaises(Exception):
-            Organization.objects.create(name="Test Organization")
+            Tenant.objects.create(name="Test Organization")
 
         # Client email unique
         with self.assertRaises(Exception):
@@ -202,63 +208,63 @@ class AuthenticationTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
-class OrganizationAPITests(APITestCase):
-    """Test Organization API endpoints"""
+class TenantAPITests(APITestCase):
+    """Test Tenant API endpoints"""
 
     def setUp(self):
         self.user = User.objects.create_user(username='testuser', password='testpass')
         self.client.force_authenticate(user=self.user)
 
-        self.org1 = Organization.objects.create(name="Org 1", address="Address 1")
-        self.org2 = Organization.objects.create(name="Org 2", address="Address 2")
+        self.org1 = Tenant.objects.create(name="Org 1", address="Address 1")
+        self.org2 = Tenant.objects.create(name="Org 2", address="Address 2")
 
-    def test_list_organizations(self):
-        """Test listing organizations"""
-        response = self.client.get('/api/organizations/')
+    def test_list_tenants(self):
+        """Test listing tenants"""
+        response = self.client.get('/api/tenants/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 2)
 
-    def test_create_organization(self):
-        """Test creating organization"""
+    def test_create_tenant(self):
+        """Test creating tenant"""
         data = {
-            'name': 'New Organization',
+            'name': 'New Tenant',
             'address': 'New Address'
         }
-        response = self.client.post('/api/organizations/', data, format='json')
+        response = self.client.post('/api/tenants/', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data['name'], 'New Organization')
+        self.assertEqual(response.data['name'], 'New Tenant')
 
-    def test_retrieve_organization(self):
-        """Test retrieving single organization"""
-        response = self.client.get(f'/api/organizations/{self.org1.id}/')
+    def test_retrieve_tenant(self):
+        """Test retrieving single tenant"""
+        response = self.client.get(f'/api/tenants/{self.org1.id}/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['name'], 'Org 1')
 
-    def test_update_organization(self):
-        """Test updating organization"""
-        data = {'name': 'Updated Org', 'address': 'Updated Address'}
-        response = self.client.put(f'/api/organizations/{self.org1.id}/', data, format='json')
+    def test_update_tenant(self):
+        """Test updating tenant"""
+        data = {'name': 'Updated Tenant', 'address': 'Updated Address'}
+        response = self.client.put(f'/api/tenants/{self.org1.id}/', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['name'], 'Updated Org')
+        self.assertEqual(response.data['name'], 'Updated Tenant')
 
-    def test_delete_organization(self):
-        """Test deleting organization"""
-        response = self.client.delete(f'/api/organizations/{self.org1.id}/')
+    def test_delete_tenant(self):
+        """Test deleting tenant"""
+        response = self.client.delete(f'/api/tenants/{self.org1.id}/')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
         # Verify deletion
-        response = self.client.get(f'/api/organizations/{self.org1.id}/')
+        response = self.client.get(f'/api/tenants/{self.org1.id}/')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_organization_filtering(self):
-        """Test organization filtering and searching"""
+    def test_tenant_filtering(self):
+        """Test tenant filtering and searching"""
         # Search by name
-        response = self.client.get('/api/organizations/?search=Org 1')
+        response = self.client.get('/api/tenants/?search=Org 1')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
 
         # Ordering
-        response = self.client.get('/api/organizations/?ordering=name')
+        response = self.client.get('/api/tenants/?ordering=name')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
@@ -272,7 +278,7 @@ class ClientAPITests(APITestCase):
         self.user.groups.add(self.group)
         self.client.force_authenticate(user=self.user)
 
-        self.org = Organization.objects.create(name="Test Org")
+        self.org = Tenant.objects.create(name="Test Org")
         self.client_obj = Client.objects.create(
             name="Test Client",
             email="test@example.com",
@@ -333,7 +339,7 @@ class ProjectAPITests(APITestCase):
         self.user.groups.add(self.group)
         self.client.force_authenticate(user=self.user)
 
-        self.org = Organization.objects.create(name="Test Org")
+        self.org = Tenant.objects.create(name="Test Org")
         self.client_obj = Client.objects.create(
             name="Test Client",
             email="test@example.com",
@@ -389,7 +395,7 @@ class MilestoneAPITests(APITestCase):
         self.user = User.objects.create_user(username='testuser', password='testpass')
         self.client.force_authenticate(user=self.user)
 
-        self.org = Organization.objects.create(name="Test Org")
+        self.org = Tenant.objects.create(name="Test Org")
         self.client_obj = Client.objects.create(
             name="Test Client",
             email="test@example.com",
@@ -443,7 +449,7 @@ class SprintAPITests(APITestCase):
         self.user = User.objects.create_user(username='testuser', password='testpass')
         self.client.force_authenticate(user=self.user)
 
-        self.org = Organization.objects.create(name="Test Org")
+        self.org = Tenant.objects.create(name="Test Org")
         self.client_obj = Client.objects.create(
             name="Test Client",
             email="test@example.com",
@@ -483,7 +489,7 @@ class TaskAPITests(APITestCase):
         self.user = User.objects.create_user(username='testuser', password='testpass')
         self.client.force_authenticate(user=self.user)
 
-        self.org = Organization.objects.create(name="Test Org")
+        self.org = Tenant.objects.create(name="Test Org")
         self.client_obj = Client.objects.create(
             name="Test Client",
             email="test@example.com",
@@ -533,7 +539,7 @@ class InvoiceAPITests(APITestCase):
         self.user.groups.add(self.group)
         self.client.force_authenticate(user=self.user)
 
-        self.org = Organization.objects.create(name="Test Org")
+        self.org = Tenant.objects.create(name="Test Org")
         self.client_obj = Client.objects.create(
             name="Test Client",
             email="test@example.com",
@@ -580,7 +586,7 @@ class PaymentAPITests(APITestCase):
         self.user.groups.add(self.group)
         self.client.force_authenticate(user=self.user)
 
-        self.org = Organization.objects.create(name="Test Org")
+        self.org = Tenant.objects.create(name="Test Org")
         self.client_obj = Client.objects.create(
             name="Test Client",
             email="test@example.com",
@@ -634,7 +640,7 @@ class PermissionTests(APITestCase):
         self.api_manager.groups.add(api_group, project_group)  # API manager has multiple permissions
 
         # Create test data
-        self.org = Organization.objects.create(name="Test Org")
+        self.org = Tenant.objects.create(name="Test Org")
         self.client_obj = Client.objects.create(
             name="Test Client",
             email="test@example.com",
@@ -683,8 +689,8 @@ class PermissionTests(APITestCase):
         """Test endpoints that don't require special permissions"""
         self.client.force_authenticate(user=self.regular_user)
 
-        # Organizations should be accessible
-        response = self.client.get('/api/organizations/')
+        # Tenants should be accessible
+        response = self.client.get('/api/tenants/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         # Milestones should be accessible
@@ -706,13 +712,13 @@ class ErrorHandlingTests(APITestCase):
 
     def test_invalid_data(self):
         """Test validation errors"""
-        # Try to create organization with invalid data
+        # Try to create tenant with invalid data
         data = {'name': ''}  # Empty name
-        response = self.client.post('/api/organizations/', data, format='json')
+        response = self.client.post('/api/tenants/', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_unauthenticated_access(self):
         """Test unauthenticated access"""
         self.client.force_authenticate(user=None)
-        response = self.client.get('/api/organizations/')
+        response = self.client.get('/api/tenants/')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

@@ -51,7 +51,7 @@ def test_traditional_login(username="admin", password="admin123"):
         print(f"❌ Traditional login error: {e}")
         return None
 
-def test_api_with_token(token, endpoint="/api/organizations/"):
+def test_api_with_token(token, endpoint="/api/tenants/"):
     """Test API endpoint with token authentication"""
     print(f"\n📡 Testing API endpoint: {endpoint}")
     try:
