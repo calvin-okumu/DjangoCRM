@@ -4,7 +4,7 @@ This document provides comprehensive documentation for the DjangoCRM multi-tenan
 
 ## Base URL
 ```
-http://127.0.0.1:8001/api
+http://127.0.0.1:8000/api
 ```
 
 **Note:** Currently configured for development with multi-tenancy disabled. All data is accessible across tenants. In production, the API will be multi-tenant with subdomain-based routing:
@@ -113,14 +113,14 @@ curl -X POST http://127.0.0.1:8001/api/login/ \
 
 **Example (curl) - New Tenant:**
 ```bash
-curl -X POST http://127.0.0.1:8001/api/signup/ \
+curl -X POST http://127.0.0.1:8000/api/signup/ \
   -H "Content-Type: application/json" \
   -d '{"email": "newuser@example.com", "password": "password123", "first_name": "John", "last_name": "Doe", "company_name": "Acme Corp", "address": "123 Main St"}'
 ```
 
 **Example (curl) - Join via Invitation:**
 ```bash
-curl -X POST http://127.0.0.1:8001/api/signup/ \
+curl -X POST http://127.0.0.1:8000/api/signup/ \
   -H "Content-Type: application/json" \
   -d '{"email": "invited@example.com", "password": "password123", "first_name": "John", "last_name": "Doe", "invitation_token": "abc123"}'
 ```
@@ -148,7 +148,7 @@ curl -X POST http://127.0.0.1:8001/api/signup/ \
 
 **Example (curl):**
 ```bash
-curl -X POST http://127.0.0.1:8001/api/approve-member/ \
+curl -X POST http://127.0.0.1:8000/api/approve-member/ \
   -H "Authorization: Token your_token" \
   -H "Content-Type: application/json" \
   -d '{"user_id": 2}'
@@ -302,7 +302,7 @@ Authorization: Token your_auth_token
 **Example:**
 ```bash
 curl -H "Authorization: Token your_token" \
-  http://127.0.0.1:8001/api/tenants/?search=Tech
+  http://127.0.0.1:8000/api/tenants/?search=Tech
 ```
 
 #### Create Tenant
@@ -343,7 +343,7 @@ curl -H "Authorization: Token your_token" \
 **Example:**
 ```bash
 curl -H "Authorization: Token your_token" \
-  http://127.0.0.1:8001/api/clients/?status=active
+  http://127.0.0.1:8000/api/clients/?status=active
 ```
 
 #### Create Client
@@ -384,11 +384,12 @@ curl -H "Authorization: Token your_token" \
 **Response includes:**
 - `client_name` - Client name
 - `milestones_count` - Number of milestones
+- `progress` - Calculated progress (0-100)
 
 **Example:**
 ```bash
 curl -H "Authorization: Token your_token" \
-  http://127.0.0.1:8001/api/projects/?status=active&priority=high
+  http://127.0.0.1:8000/api/projects/?status=active&priority=high
 ```
 
 #### Create Project
@@ -434,6 +435,7 @@ curl -H "Authorization: Token your_token" \
 **Response includes:**
 - `project_name` - Project name
 - `sprints_count` - Number of sprints
+- `progress` - Calculated progress (0-100)
 
 #### Create Milestone
 **POST /api/milestones/**
@@ -447,7 +449,6 @@ curl -H "Authorization: Token your_token" \
   "planned_start": "2024-01-15",
   "due_date": "2024-02-15",
   "assignee": 1,
-  "progress": 0,
   "project": 1
 }
 ```
@@ -466,6 +467,7 @@ curl -H "Authorization: Token your_token" \
 **Response includes:**
 - `milestone_name` - Milestone name
 - `tasks_count` - Number of tasks
+- `progress` - Calculated progress (0-100)
 
 #### Create Sprint
 **POST /api/sprints/**
@@ -481,6 +483,50 @@ curl -H "Authorization: Token your_token" \
 }
 ```
 
+#### Sprint Task Management
+
+##### Create Task for Sprint
+**POST /api/sprints/{id}/create_task/**
+
+Creates a new task for the sprint's milestone and assigns it to the sprint.
+
+**Request Body:**
+```json
+{
+  "title": "New Task",
+  "description": "Task description",
+  "status": "to_do",
+  "assignee": 1,
+  "start_date": "2024-01-15",
+  "end_date": "2024-01-20",
+  "estimated_hours": 8
+}
+```
+
+##### Assign Task to Sprint
+**POST /api/sprints/{id}/assign_task/**
+
+Assigns an existing task from the sprint's milestone to the sprint.
+
+**Request Body:**
+```json
+{
+  "task_id": 1
+}
+```
+
+##### Unassign Task from Sprint
+**POST /api/sprints/{id}/unassign_task/**
+
+Removes a task from the sprint (sets sprint to null).
+
+**Request Body:**
+```json
+{
+  "task_id": 1
+}
+```
+
 ### Tasks
 
 #### List Tasks
@@ -488,13 +534,16 @@ curl -H "Authorization: Token your_token" \
 
 **Query Parameters:**
 - `status` - Filter by status (backlog, to_do, in_progress, in_review, done)
+- `milestone` - Filter by milestone ID
 - `sprint` - Filter by sprint ID
 - `assignee` - Filter by assignee ID
 - `search` - Search in title, description
 - `ordering` - Order by: title, created_at
 
 **Response includes:**
+- `milestone_name` - Milestone name
 - `sprint_name` - Sprint name
+- `progress` - Calculated progress (0-100)
 
 #### Create Task
 **POST /api/tasks/**
@@ -505,8 +554,12 @@ curl -H "Authorization: Token your_token" \
   "title": "Implement user authentication",
   "description": "Add login and registration functionality",
   "status": "to_do",
+  "milestone": 1,
   "sprint": 1,
-  "assignee": 1
+  "assignee": 1,
+  "start_date": "2024-01-15",
+  "end_date": "2024-01-20",
+  "estimated_hours": 16
 }
 ```
 
@@ -567,7 +620,7 @@ curl -H "Authorization: Token your_token" \
 import api from './api.js';
 
 // Configure API base URL (development mode - no tenant subdomains)
-api.defaults.baseURL = 'http://127.0.0.1:8001/api';
+api.defaults.baseURL = 'http://127.0.0.1:8000/api';
 
 // For production with multi-tenancy enabled:
 // const tenantSubdomain = 'demo-tenant';

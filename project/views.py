@@ -2,7 +2,7 @@ from rest_framework import viewsets, permissions, status
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from django.shortcuts import render
@@ -108,13 +108,50 @@ class SprintViewSet(viewsets.ModelViewSet):
         else:
             return Sprint.objects.all()  # For development
 
+    @action(detail=True, methods=['post'])
+    def create_task(self, request, pk=None):
+        sprint = self.get_object()
+        data = request.data.copy()
+        data['milestone'] = sprint.milestone.id
+        data['sprint'] = sprint.id
+        data['tenant'] = sprint.tenant.id
+        serializer = TaskSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def assign_task(self, request, pk=None):
+        sprint = self.get_object()
+        task_id = request.data.get('task_id')
+        try:
+            task = Task.objects.get(id=task_id, milestone=sprint.milestone)
+            task.sprint = sprint
+            task.save()
+            return Response({'message': 'Task assigned'}, status=status.HTTP_200_OK)
+        except Task.DoesNotExist:
+            return Response({'error': 'Task not found or invalid'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['post'])
+    def unassign_task(self, request, pk=None):
+        sprint = self.get_object()
+        task_id = request.data.get('task_id')
+        try:
+            task = Task.objects.get(id=task_id, sprint=sprint)
+            task.sprint = None
+            task.save()
+            return Response({'message': 'Task unassigned'}, status=status.HTTP_200_OK)
+        except Task.DoesNotExist:
+            return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
+
 
 class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     permission_classes = [permissions.IsAuthenticated, IsTenantOwner]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ["status", "sprint", "assignee"]
+    filterset_fields = ["status", "milestone", "sprint", "assignee"]
     search_fields = ["title", "description"]
     ordering_fields = ["title", "created_at"]
 
@@ -123,6 +160,14 @@ class TaskViewSet(viewsets.ModelViewSet):
             return Task.objects.filter(tenant=self.request.tenant)
         else:
             return Task.objects.all()  # For development
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        instance.full_clean()
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        instance.full_clean()
 
 
 class InvoiceViewSet(viewsets.ModelViewSet):

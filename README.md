@@ -8,7 +8,10 @@ A comprehensive multi-tenant Customer Relationship Management system built with 
 - **Tenant Management**: Create and manage multiple tenants with isolated data
 - **Client Management**: Track clients with detailed information and project history
 - **Project Tracking**: Full project lifecycle management with milestones and sprints
-- **Task Management**: Agile task tracking with status updates
+- **Task Management**: Agile task tracking with status updates, dates, and estimated hours
+- **Sprint Management**: Create and assign tasks to sprints with progress tracking
+- **Progress Calculation**: Automatic progress aggregation from tasks to projects
+- **Date Validation**: Hierarchical date constraints ensuring logical timelines
 - **Financial Management**: Invoice and payment processing
 - **RESTful API**: Complete API with authentication and permissions
 
@@ -51,10 +54,10 @@ A comprehensive multi-tenant Customer Relationship Management system built with 
     # Edit .env with your actual credentials and secrets
     ```
 
-4. **Set up the database**
+ 4. **Set up the database**
    ```bash
    python manage.py migrate
-   python manage.py createsuperuser
+   python manage.py createsuperuser  # Prompts for email, password, first_name, last_name
    ```
 
 5. **Generate sample data (optional)**
@@ -75,15 +78,15 @@ A comprehensive multi-tenant Customer Relationship Management system built with 
    python check_env.py  # Check that all required variables are set
    ```
 
-8. **Run the development server**
-   ```bash
-   python manage.py runserver 127.0.0.1:8001
-   ```
+ 8. **Run the development server**
+    ```bash
+    python manage.py runserver 127.0.0.1:8000
+    ```
 
-9. **Access the application**
-   - **API**: http://127.0.0.1:8001/api/
-   - **Admin Interface**: http://127.0.0.1:8001/admin/
-   - **Authentication**: POST to http://127.0.0.1:8001/api/login/
+ 9. **Access the application**
+    - **API**: http://127.0.0.1:8000/api/
+    - **Admin Interface**: http://127.0.0.1:8000/admin/
+    - **Authentication**: POST to http://127.0.0.1:8000/api/login/
 
 
 
@@ -96,21 +99,21 @@ Complete API documentation is available in [API_DOCUMENTATION.md](API_DOCUMENTAT
 **Authentication Methods:**
 ```bash
 # Traditional login (development mode - no tenant isolation)
-curl -X POST http://127.0.0.1:8001/api/login/ \
+curl -X POST http://127.0.0.1:8000/api/login/ \
   -H "Content-Type: application/json" \
   -d '{"email": "user1@example.com", "password": "password123"}'
 
 # Get available auth methods
-curl http://127.0.0.1:8001/api/auth-methods/
+curl http://127.0.0.1:8000/api/auth-methods/
 
 # OAuth login (redirects to provider)
-curl -L http://127.0.0.1:8001/accounts/google/login/
+curl -L http://127.0.0.1:8000/accounts/google/login/
 ```
 
 **Get Clients:**
 ```bash
 curl -H "Authorization: Token YOUR_TOKEN" \
-  http://127.0.0.1:8001/api/clients/
+  http://127.0.0.1:8000/api/clients/
 ```
 
 **Sample Users (created by generate_sample_data):**
@@ -125,27 +128,32 @@ curl -H "Authorization: Token YOUR_TOKEN" \
 The DjangoCRM application is currently in active development with the following features implemented and tested:
 
 ### ✅ Working Features
-- **Authentication**: Token-based login with role-based permissions
+- **Authentication**: Token-based login with role-based permissions and superuser creation
 - **Multi-Tenant Data Model**: Database schema supports tenant isolation (middleware disabled for development)
-- **API Endpoints**: All CRUD operations for tenants, clients, projects, milestones, tasks
+- **API Endpoints**: All CRUD operations for tenants, clients, projects, milestones, sprints, tasks
+- **Progress Tracking**: Automatic progress calculation from tasks to projects
+- **Date Management**: Start/end dates with hierarchical validation
+- **Sprint Task Management**: Assign/create tasks via sprint endpoints
 - **Sample Data**: Generate realistic test data with `python manage.py generate_sample_data`
 - **Admin Interface**: Django admin panel for data management
 - **OAuth Integration**: Google and GitHub OAuth configured (requires browser testing)
 
 ### 🔧 Development Configuration
-- **Server**: Runs on `http://127.0.0.1:8001`
+- **Server**: Runs on `http://127.0.0.1:8000`
 - **Multi-Tenancy**: Disabled for development (all data accessible)
 - **Database**: PostgreSQL with sample data populated
 - **Authentication**: Token-based with 5 sample users across different permission groups
 
 ### 📈 Sample Data Overview
 Running `python manage.py generate_sample_data` creates:
-- **51 Tenants** with realistic company names and addresses
-- **44 Clients** distributed across tenants
-- **35 Projects** with various statuses and priorities
-- **26 Milestones** linked to projects
-- **19 Tasks** organized in sprints
+- **24 Tenants** with realistic company names and addresses
+- **Clients** distributed across tenants
+- **Projects** with various statuses, priorities, and progress tracking
+- **Milestones** linked to projects with progress calculation
+- **Sprints** with progress and task management
+- **Tasks** with status-based progress, dates, and estimated hours
 - **5 Users** with different permission levels
+- **1 Superuser** (calvindhmb@gmail.com / password123)
 
 ## 🏗️ Project Structure
 
@@ -184,20 +192,20 @@ python manage.py test
 ### Testing the API
 ```bash
 # 1. Start the server
-python manage.py runserver 127.0.0.1:8001
+python manage.py runserver 127.0.0.1:8000
 
 # 2. Login with a sample user (in another terminal)
-curl -X POST http://127.0.0.1:8001/api/login/ \
+curl -X POST http://127.0.0.1:8000/api/login/ \
   -H "Content-Type: application/json" \
   -d '{"email": "user2@example.com", "password": "password123"}'
 
 # 3. Use the returned token to access endpoints
 curl -H "Authorization: Token YOUR_TOKEN_HERE" \
-  http://127.0.0.1:8001/api/projects/
+  http://127.0.0.1:8000/api/projects/
 
 # 4. Access admin interface
-# Open http://127.0.0.1:8001/admin/ in browser
-# Login with admin/admin123 (or your superuser credentials)
+# Open http://127.0.0.1:8000/admin/ in browser
+# Login with calvindhmb@gmail.com / password123 (superuser)
 ```
 
 ### Creating Migrations

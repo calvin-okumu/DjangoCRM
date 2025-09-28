@@ -48,6 +48,7 @@ class ModelTests(TestCase):
         self.task = Task.objects.create(
             title="Test Task",
             tenant=self.org,
+            milestone=self.milestone,
             sprint=self.sprint,
             status="in_progress"
         )
@@ -499,6 +500,8 @@ class TaskAPITests(APITestCase):
         self.sprint = Sprint.objects.create(name="Test Sprint", milestone=self.milestone)
         self.task = Task.objects.create(
             title="Test Task",
+            tenant=self.org,
+            milestone=self.milestone,
             sprint=self.sprint,
             status="to_do"
         )
@@ -514,6 +517,7 @@ class TaskAPITests(APITestCase):
         """Test creating task"""
         data = {
             'title': 'New Task',
+            'milestone': self.milestone.id,
             'sprint': self.sprint.id,
             'status': 'backlog',
             'description': 'Task description'

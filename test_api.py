@@ -7,7 +7,7 @@ import requests
 import json
 import sys
 
-BASE_URL = "http://127.0.0.1:8001"
+BASE_URL = "http://127.0.0.1:8000"
 
 def test_auth_methods():
     """Test the auth-methods endpoint"""
@@ -121,14 +121,14 @@ def create_test_user():
         os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'saasCRM.settings')
         django.setup()
 
-        if not CustomUser.objects.filter(email='test@example.com').exists():
+        if not CustomUser.objects.filter(email='user1@example.com').exists():
             CustomUser.objects.create_user(
-                username='testuser',
-                email='test@example.com',
-                password='testpass123',
+                username='user1',
+                email='user1@example.com',
+                password='password123',
                 is_staff=True
             )
-            print("✅ Test user created: test@example.com / testpass123")
+            print("✅ Test user created: user1@example.com / password123")
             return True
         else:
             print("ℹ️  Test user already exists")
@@ -152,7 +152,7 @@ def main():
     unauthorized_ok = test_unauthorized_access()
 
     # Test 4: Traditional login
-    token = test_traditional_login()
+    token = test_traditional_login(email="user1@example.com", password="password123")
 
     # Test 6: API access with token
     api_ok = False

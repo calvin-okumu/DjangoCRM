@@ -1,4 +1,5 @@
 import factory
+from datetime import timedelta
 from faker import Faker
 from django.contrib.auth.models import Group
 from .models import CustomUser, Tenant, Client, Project, Milestone, Sprint, Task, Invoice, Payment, UserTenant
@@ -41,18 +42,18 @@ class ClientFactory(factory.django.DjangoModelFactory):
     email = factory.Faker('email')
     phone = factory.LazyFunction(lambda: fake.phone_number()[:20])
     status = factory.Iterator(['active', 'inactive', 'prospect'])
-    tenant = factory.SubFactory(TenantFactory)
+    tenant = factory.Iterator(Tenant.objects.all())
 
 class ProjectFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Project
     name = factory.LazyFunction(lambda: fake.sentence(nb_words=3)[:255])
+    client = factory.Iterator(Client.objects.all())
     tenant = factory.SelfAttribute('client.tenant')
-    client = factory.SubFactory(ClientFactory)
     status = factory.Iterator(['planning', 'active', 'completed'])
     priority = factory.Iterator(['low', 'medium', 'high'])
     start_date = factory.Faker('date_this_year')
-    end_date = factory.Faker('date_this_year')
+    end_date = factory.LazyAttribute(lambda obj: obj.start_date + timedelta(days=30) if obj.start_date else None)
     budget = factory.Faker('random_int', min=10000, max=100000)
     description = factory.LazyFunction(lambda: Faker().text()[:500])
     tags = factory.LazyFunction(lambda: ','.join(fake.words(nb=3))[:500])
@@ -63,11 +64,11 @@ class MilestoneFactory(factory.django.DjangoModelFactory):
     name = factory.LazyFunction(lambda: fake.sentence(nb_words=2)[:255])
     description = factory.LazyFunction(lambda: fake.text(max_nb_chars=200))
     status = factory.Iterator(['planning', 'active', 'completed'])
-    planned_start = factory.Faker('date_this_year')
-    due_date = factory.Faker('date_this_year')
+    planned_start = factory.LazyAttribute(lambda obj: obj.project.start_date + timedelta(days=1) if obj.project.start_date else factory.Faker('date_this_year'))
+    due_date = factory.LazyAttribute(lambda obj: obj.planned_start + timedelta(days=14) if obj.planned_start else None)
     progress = factory.Faker('random_int', min=0, max=100)
+    project = factory.Iterator(Project.objects.all())
     tenant = factory.SelfAttribute('project.tenant')
-    project = factory.SubFactory(ProjectFactory)
     assignee = factory.SubFactory(UserFactory)
 
 class SprintFactory(factory.django.DjangoModelFactory):
@@ -75,10 +76,10 @@ class SprintFactory(factory.django.DjangoModelFactory):
         model = Sprint
     name = factory.LazyFunction(lambda: fake.sentence(nb_words=2)[:255])
     status = factory.Iterator(['planned', 'active', 'completed'])
-    start_date = factory.Faker('date_this_year')
-    end_date = factory.Faker('date_this_year')
+    milestone = factory.Iterator(Milestone.objects.all())
     tenant = factory.SelfAttribute('milestone.tenant')
-    milestone = factory.SubFactory(MilestoneFactory)
+    start_date = factory.LazyAttribute(lambda obj: obj.milestone.planned_start + timedelta(days=1) if obj.milestone.planned_start else factory.Faker('date_this_year'))
+    end_date = factory.LazyAttribute(lambda obj: obj.start_date + timedelta(days=7) if obj.start_date else None)
 
 class TaskFactory(factory.django.DjangoModelFactory):
     class Meta:
@@ -86,9 +87,13 @@ class TaskFactory(factory.django.DjangoModelFactory):
     title = factory.LazyFunction(lambda: fake.sentence(nb_words=4)[:255])
     description = factory.LazyFunction(lambda: fake.text(max_nb_chars=200))
     status = factory.Iterator(['backlog', 'to_do', 'in_progress', 'in_review', 'done'])
-    tenant = factory.SelfAttribute('sprint.tenant')
-    sprint = factory.SubFactory(SprintFactory)
+    milestone = factory.Iterator(Milestone.objects.all())
+    tenant = factory.SelfAttribute('milestone.tenant')
+    sprint = None  # Optional, can be assigned later
     assignee = factory.SubFactory(UserFactory)
+    start_date = factory.LazyAttribute(lambda obj: obj.milestone.planned_start + timedelta(days=1) if obj.milestone.planned_start else factory.Faker('date_this_year'))
+    end_date = factory.LazyAttribute(lambda obj: obj.start_date + timedelta(days=3) if obj.start_date else None)
+    estimated_hours = factory.Faker('random_int', min=1, max=40)
 
 class InvoiceFactory(factory.django.DjangoModelFactory):
     class Meta:
