@@ -114,21 +114,21 @@ def create_test_user():
     """Create a test user for testing"""
     print("\n👤 Creating test user...")
     try:
-        from django.contrib.auth.models import User
+        from project.models import CustomUser
         import os
         import django
 
         os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'saasCRM.settings')
         django.setup()
 
-        if not User.objects.filter(username='testuser').exists():
-            User.objects.create_user(
+        if not CustomUser.objects.filter(email='test@example.com').exists():
+            CustomUser.objects.create_user(
                 username='testuser',
                 email='test@example.com',
                 password='testpass123',
                 is_staff=True
             )
-            print("✅ Test user created: testuser / testpass123")
+            print("✅ Test user created: test@example.com / testpass123")
             return True
         else:
             print("ℹ️  Test user already exists")
