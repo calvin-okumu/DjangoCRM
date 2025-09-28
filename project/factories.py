@@ -1,20 +1,22 @@
 import factory
 from faker import Faker
-from django.contrib.auth.models import User, Group
-from .models import Tenant, Client, Project, Milestone, Sprint, Task, Invoice, Payment
+from django.contrib.auth.models import Group
+from .models import CustomUser, Tenant, Client, Project, Milestone, Sprint, Task, Invoice, Payment, UserTenant
 
 fake = Faker()
 
 class GroupFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Group
-    name = factory.Iterator(['Client Management Administrators', 'Business Strategy Administrators', 'API Control Administrators', 'Product Measurement Administrators'])
+    name = factory.Iterator(['Client Management Administrators', 'Business Strategy Administrators', 'API Control Administrators', 'Product Measurement Administrators', 'Employees', 'Tenant Owners'])
 
 class UserFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = User
-    username = factory.Faker('user_name')
+        model = CustomUser
     email = factory.Faker('email')
+    username = factory.SelfAttribute('email')  # Since USERNAME_FIELD='email'
+    first_name = factory.Faker('first_name')
+    last_name = factory.Faker('last_name')
     password = factory.PostGenerationMethodCall('set_password', 'password123')
 
     @factory.post_generation
@@ -105,3 +107,12 @@ class PaymentFactory(factory.django.DjangoModelFactory):
     invoice = factory.SubFactory(InvoiceFactory)
     amount = factory.SelfAttribute('invoice.amount')
     paid_at = factory.Faker('date_this_year')
+
+class UserTenantFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = UserTenant
+    user = factory.SubFactory(UserFactory)
+    tenant = factory.SubFactory(TenantFactory)
+    is_owner = factory.Faker('boolean')
+    is_approved = factory.LazyAttribute(lambda obj: True if obj.is_owner else factory.Faker('boolean')())
+    role = factory.Iterator(['Employee', 'Manager', 'Tenant Owner'])
