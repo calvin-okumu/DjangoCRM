@@ -53,7 +53,7 @@ Returns information about available authentication methods. **Public endpoint** 
 **Request Body:**
 ```json
 {
-  "username": "your_username",
+  "email": "your_email@example.com",
   "password": "your_password"
 }
 ```
@@ -72,7 +72,7 @@ Returns information about available authentication methods. **Public endpoint** 
 ```bash
 curl -X POST http://127.0.0.1:8001/api/login/ \
   -H "Content-Type: application/json" \
-  -d '{"username": "user1", "password": "password123"}'
+  -d '{"email": "user1@example.com", "password": "password123"}'
 ```
 
 **Sample Users (created by generate_sample_data):**
@@ -86,7 +86,7 @@ curl -X POST http://127.0.0.1:8001/api/login/ \
 ```javascript
 import { login } from './api.js';
 
-login('admin', 'password123')
+login('admin@example.com', 'password123')
   .then(response => {
     localStorage.setItem('token', response.data.token);
   });

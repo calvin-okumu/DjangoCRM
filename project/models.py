@@ -1,11 +1,36 @@
 from django.db import models
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import AbstractUser, Group
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.conf import settings
+from django.utils.translation import gettext_lazy as _
+
+
+class CustomUser(AbstractUser):
+    groups = models.ManyToManyField(
+        'auth.Group',
+        related_name='customuser_set',
+        blank=True,
+        help_text='The groups this user belongs to.',
+        verbose_name='groups',
+    )
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        related_name='customuser_set',
+        blank=True,
+        help_text='Specific permissions for this user.',
+        verbose_name='user permissions',
+    )
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
+
+    def __str__(self):
+        return self.email
 
 
 class Tenant(models.Model):
     name = models.CharField(max_length=255, unique=True)
+    domain = models.CharField(max_length=255, unique=True, default='')
     address = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -16,9 +41,24 @@ class Tenant(models.Model):
 class UserTenant(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
+    is_owner = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.user.username} - {self.tenant.name}"
+        return f"{self.user.email} - {self.tenant.name}"
+
+
+# class Invitation(models.Model):
+#     email = models.EmailField()
+#     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
+#     token = models.CharField(max_length=64, unique=True)
+#     role = models.CharField(max_length=100, default='Employee')  # e.g., 'Employee', 'Manager'
+#     invited_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     expires_at = models.DateTimeField()
+#     is_used = models.BooleanField(default=False)
+
+#     def __str__(self):
+#         return f"Invite {self.email} to {self.tenant.name}"
 
 
 class Client(models.Model):
@@ -75,7 +115,7 @@ class Project(models.Model):
     )
     description = models.TextField(blank=True)
     tags = models.CharField(max_length=500, blank=True)  # Comma-separated
-    team_members = models.ManyToManyField(User, related_name="projects", blank=True)
+    team_members = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="projects", blank=True)
     access_groups = models.ManyToManyField(Group, related_name="projects", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -99,7 +139,7 @@ class Milestone(models.Model):
         Tenant, on_delete=models.CASCADE, related_name="milestones"
     )
     assignee = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -156,7 +196,7 @@ class Task(models.Model):
     )
     sprint = models.ForeignKey(Sprint, on_delete=models.CASCADE, related_name="tasks")
     assignee = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="tasks"
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="tasks"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

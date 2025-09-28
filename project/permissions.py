@@ -1,4 +1,5 @@
 from rest_framework import permissions
+from .models import UserTenant
 
 class IsClientManager(permissions.BasePermission):
     """
@@ -25,8 +26,13 @@ class IsAPIManager(permissions.BasePermission):
 
 class IsTenantOwner(permissions.BasePermission):
     """
-    Allow access only if the object belongs to the current tenant.
+    Allow access only if the user is the owner of the current tenant.
     """
+    def has_permission(self, request, view):
+        if not hasattr(request, 'tenant') or not request.tenant:
+            return False
+        return UserTenant.objects.filter(user=request.user, tenant=request.tenant, is_owner=True).exists()
+
     def has_object_permission(self, request, view, obj):
         return hasattr(obj, 'tenant') and obj.tenant == request.tenant
 

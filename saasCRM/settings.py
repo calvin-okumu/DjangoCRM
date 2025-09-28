@@ -53,6 +53,8 @@ INSTALLED_APPS = [
     "allauth.socialaccount.providers.github",
 ]
 
+AUTH_USER_MODEL = 'project.CustomUser'
+
 # Authentication backends
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
@@ -126,8 +128,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Allauth settings
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_USERNAME_REQUIRED = True
-ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_EMAIL_VERIFICATION = 'optional'
 SOCIALACCOUNT_QUERY_EMAIL = True
 

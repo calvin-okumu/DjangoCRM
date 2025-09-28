@@ -29,6 +29,7 @@ class TenantFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Tenant
     name = factory.Faker('company')
+    domain = factory.Sequence(lambda n: f'tenant{n}.example.com')
     address = factory.Faker('address')
 
 class ClientFactory(factory.django.DjangoModelFactory):

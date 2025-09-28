@@ -6,8 +6,14 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from django.shortcuts import render
+from django.utils import timezone
+from datetime import timedelta
+import uuid
 from .models import (
     Tenant,
+    UserTenant,
+    # Invitation,
+    CustomUser,
     Client,
     Project,
     Milestone,
@@ -157,22 +163,104 @@ def login_page(request):
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def login_view(request):
-    username = request.data.get('username')
+    email = request.data.get('email')
     password = request.data.get('password')
 
-    if not username or not password:
-        return Response({'error': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
+    if not email or not password:
+        return Response({'error': 'Email and password are required'}, status=status.HTTP_400_BAD_REQUEST)
 
-    user = authenticate(username=username, password=password)
+    user = authenticate(username=email, password=password)
     if user and user.is_active:
         token, created = Token.objects.get_or_create(user=user)
         return Response({
             'token': token.key,
             'user_id': user.id,
-            'username': user.username,
+            'email': user.email,
             'message': 'Login successful'
         })
     return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def signup_view(request):
+    email = request.data.get('email')
+    password = request.data.get('password')
+    company_name = request.data.get('company_name')
+    invitation_token = request.data.get('invitation_token')
+
+    if not email or not password:
+        return Response({'error': 'Email and password are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    domain = email.split('@')[1]
+    if Tenant.objects.filter(domain=domain).exists():
+        return Response({'error': 'Domain already in use'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if invitation_token:
+        try:
+            invitation = Invitation.objects.get(token=invitation_token, is_used=False, expires_at__gt=timezone.now())
+            tenant = invitation.tenant
+            role = invitation.role
+            invitation.is_used = True
+            invitation.save()
+        except Invitation.DoesNotExist:
+            return Response({'error': 'Invalid or expired invitation'}, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        if not company_name:
+            return Response({'error': 'Company name required for new tenant'}, status=status.HTTP_400_BAD_REQUEST)
+        tenant = Tenant.objects.create(name=company_name, domain=domain)
+        role = 'Tenant Owner'
+
+    user = CustomUser.objects.create_user(email=email, password=password)
+    UserTenant.objects.create(user=user, tenant=tenant, is_owner=(role == 'Tenant Owner'))
+
+    # Assign group
+    from django.contrib.auth.models import Group
+    group, _ = Group.objects.get_or_create(name=role)
+    user.groups.add(group)
+
+    token, _ = Token.objects.get_or_create(user=user)
+    return Response({
+        'token': token.key,
+        'user_id': user.id,
+        'email': user.email,
+        'tenant': tenant.name,
+        'message': 'Signup successful'
+    })
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def invite_member_view(request):
+    if not hasattr(request, 'tenant') or not request.tenant:
+        return Response({'error': 'Tenant context required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Check if user is owner
+    try:
+        user_tenant = UserTenant.objects.get(user=request.user, tenant=request.tenant, is_owner=True)
+    except UserTenant.DoesNotExist:
+        return Response({'error': 'Only owners can invite members'}, status=status.HTTP_403_FORBIDDEN)
+
+    email = request.data.get('email')
+    role = request.data.get('role', 'Employee')
+
+    if not email:
+        return Response({'error': 'Email required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    token = str(uuid.uuid4())
+    expires_at = timezone.now() + timedelta(days=7)
+
+    invitation = Invitation.objects.create(
+        email=email,
+        tenant=request.tenant,
+        token=token,
+        role=role,
+        invited_by=request.user,
+        expires_at=expires_at
+    )
+
+    # TODO: Send email with invitation link
+    return Response({'message': 'Invitation sent', 'token': token})
 
 
 @api_view(['GET'])
@@ -185,8 +273,8 @@ def auth_methods_view(request):
         'traditional': {
             'endpoint': '/api/login/',
             'method': 'POST',
-            'description': 'Username and password authentication',
-            'fields': ['username', 'password']
+            'description': 'Email and password authentication',
+            'fields': ['email', 'password']
         },
         'oauth': {
             'providers': {

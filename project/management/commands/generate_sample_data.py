@@ -14,7 +14,7 @@ class Command(BaseCommand):
         self.stdout.write('Generating sample data...')
 
         # Create or get groups
-        group_names = ['Client Management Administrators', 'Business Strategy Administrators', 'API Control Administrators', 'Product Measurement Administrators']
+        group_names = ['Client Management Administrators', 'Business Strategy Administrators', 'API Control Administrators', 'Product Measurement Administrators', 'Employees', 'Tenant Owners']
         groups = []
         for name in group_names:
             group, created = Group.objects.get_or_create(name=name)

@@ -11,7 +11,7 @@ A comprehensive multi-tenant Customer Relationship Management system built with 
 - **Task Management**: Agile task tracking with status updates
 - **Financial Management**: Invoice and payment processing
 - **RESTful API**: Complete API with authentication and permissions
-- **React Frontend**: Modern web interface for CRM operations
+
 - **Role-based Access**: Different permission levels for various user types
 - **Multiple Authentication**: Support for both traditional login and OAuth (Google, GitHub)
 
@@ -19,7 +19,6 @@ A comprehensive multi-tenant Customer Relationship Management system built with 
 
 - **Backend**: Django 5.2, Django REST Framework
 - **Database**: PostgreSQL (production) / SQLite (development)
-- **Frontend**: React
 - **Authentication**: Token-based authentication + OAuth (Google, GitHub) + Session authentication
 - **Multi-Tenancy**: Subdomain-based tenant isolation
 - **API Documentation**: Comprehensive endpoint documentation
@@ -86,12 +85,7 @@ A comprehensive multi-tenant Customer Relationship Management system built with 
    - **Admin Interface**: http://127.0.0.1:8001/admin/
    - **Authentication**: POST to http://127.0.0.1:8001/api/login/
 
-10. **Set up frontend (optional)**
-    ```bash
-    cd frontend
-    npm install
-    npm start
-    ```
+
 
 ## 📖 API Documentation
 
@@ -104,7 +98,7 @@ Complete API documentation is available in [API_DOCUMENTATION.md](API_DOCUMENTAT
 # Traditional login (development mode - no tenant isolation)
 curl -X POST http://127.0.0.1:8001/api/login/ \
   -H "Content-Type: application/json" \
-  -d '{"username": "user1", "password": "password123"}'
+  -d '{"email": "user1@example.com", "password": "password123"}'
 
 # Get available auth methods
 curl http://127.0.0.1:8001/api/auth-methods/
@@ -167,10 +161,6 @@ DjangoCRM/
 │   └── management/commands/# Management commands (migrate_to_tenants)
 ├── saasCRM/                # Django project settings
 │   └── settings.py         # Django settings (includes OAuth config)
-├── frontend/               # React frontend
-│   ├── src/
-│   │   ├── components/     # React components
-│   │   └── api.js         # API client
 ├── .env.example            # Environment variables template
 ├── .env                    # Environment variables (not committed)
 ├── check_env.py            # Environment configuration checker
@@ -199,7 +189,7 @@ python manage.py runserver 127.0.0.1:8001
 # 2. Login with a sample user (in another terminal)
 curl -X POST http://127.0.0.1:8001/api/login/ \
   -H "Content-Type: application/json" \
-  -d '{"username": "user2", "password": "password123"}'
+  -d '{"email": "user2@example.com", "password": "password123"}'
 
 # 3. Use the returned token to access endpoints
 curl -H "Authorization: Token YOUR_TOKEN_HERE" \

@@ -1,13 +1,13 @@
 import json
 from django.test import TestCase
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from rest_framework.test import APITestCase
 from rest_framework import status
 from decimal import Decimal
 from .models import (
     Tenant, Client, Project, Milestone, Sprint, Task,
-    Invoice, Payment
+    Invoice, Payment, CustomUser
 )
 
 
@@ -167,28 +167,27 @@ class AuthenticationTests(APITestCase):
     """Test authentication endpoints"""
 
     def setUp(self):
-        self.user = User.objects.create_user(
-            username='testuser',
-            password='testpass123',
-            email='test@example.com'
+        self.user = CustomUser.objects.create_user(
+            'test@example.com',
+            'testpass123'
         )
 
     def test_login_success(self):
         """Test successful login"""
         data = {
-            'username': 'testuser',
+            'email': 'test@example.com',
             'password': 'testpass123'
         }
         response = self.client.post('/api/login/', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('token', response.data)
         self.assertIn('user_id', response.data)
-        self.assertEqual(response.data['username'], 'testuser')
+        self.assertEqual(response.data['email'], 'test@example.com')
 
     def test_login_invalid_credentials(self):
         """Test login with invalid credentials"""
         data = {
-            'username': 'testuser',
+            'email': 'test@example.com',
             'password': 'wrongpassword'
         }
         response = self.client.post('/api/login/', data, format='json')
@@ -198,11 +197,11 @@ class AuthenticationTests(APITestCase):
     def test_login_missing_fields(self):
         """Test login with missing fields"""
         # Missing password
-        data = {'username': 'testuser'}
+        data = {'email': 'test@example.com'}
         response = self.client.post('/api/login/', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-        # Missing username
+        # Missing email
         data = {'password': 'testpass123'}
         response = self.client.post('/api/login/', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -212,7 +211,7 @@ class TenantAPITests(APITestCase):
     """Test Tenant API endpoints"""
 
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.user = CustomUser.objects.create_user(username='testuser', password='testpass')
         self.client.force_authenticate(user=self.user)
 
         self.org1 = Tenant.objects.create(name="Org 1", address="Address 1")
@@ -273,7 +272,7 @@ class ClientAPITests(APITestCase):
 
     def setUp(self):
         # Create user with proper permissions
-        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.user = CustomUser.objects.create_user(username='testuser', password='testpass')
         self.group = Group.objects.create(name='Client Management Administrators')
         self.user.groups.add(self.group)
         self.client.force_authenticate(user=self.user)
@@ -282,7 +281,7 @@ class ClientAPITests(APITestCase):
         self.client_obj = Client.objects.create(
             name="Test Client",
             email="test@example.com",
-            organization=self.org,
+            tenant=self.org,
             status="active"
         )
 
@@ -291,7 +290,7 @@ class ClientAPITests(APITestCase):
         response = self.client.get('/api/clients/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
-        self.assertIn('organization_name', response.data[0])
+        self.assertIn('tenant_name', response.data[0])
         self.assertIn('projects_count', response.data[0])
 
     def test_create_client(self):
@@ -299,7 +298,7 @@ class ClientAPITests(APITestCase):
         data = {
             'name': 'New Client',
             'email': 'new@example.com',
-            'organization': self.org.id,
+            'tenant': self.org.id,
             'status': 'prospect'
         }
         response = self.client.post('/api/clients/', data, format='json')
@@ -312,7 +311,7 @@ class ClientAPITests(APITestCase):
         data = {
             'name': 'Another Client',
             'email': 'test@example.com',  # Duplicate
-            'organization': self.org.id
+            'tenant': self.org.id
         }
         response = self.client.post('/api/clients/', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -334,7 +333,7 @@ class ProjectAPITests(APITestCase):
     """Test Project API endpoints"""
 
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.user = CustomUser.objects.create_user(username='testuser', password='testpass')
         self.group = Group.objects.create(name='Business Strategy Administrators')
         self.user.groups.add(self.group)
         self.client.force_authenticate(user=self.user)
@@ -392,7 +391,7 @@ class MilestoneAPITests(APITestCase):
     """Test Milestone API endpoints"""
 
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.user = CustomUser.objects.create_user(username='testuser', password='testpass')
         self.client.force_authenticate(user=self.user)
 
         self.org = Tenant.objects.create(name="Test Org")
@@ -446,7 +445,7 @@ class SprintAPITests(APITestCase):
     """Test Sprint API endpoints"""
 
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.user = CustomUser.objects.create_user(username='testuser', password='testpass')
         self.client.force_authenticate(user=self.user)
 
         self.org = Tenant.objects.create(name="Test Org")
@@ -486,7 +485,7 @@ class TaskAPITests(APITestCase):
     """Test Task API endpoints"""
 
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.user = CustomUser.objects.create_user(username='testuser', password='testpass')
         self.client.force_authenticate(user=self.user)
 
         self.org = Tenant.objects.create(name="Test Org")
@@ -534,7 +533,7 @@ class InvoiceAPITests(APITestCase):
     """Test Invoice API endpoints"""
 
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.user = CustomUser.objects.create_user(username='testuser', password='testpass')
         self.group = Group.objects.create(name='API Control Administrators')
         self.user.groups.add(self.group)
         self.client.force_authenticate(user=self.user)
@@ -581,7 +580,7 @@ class PaymentAPITests(APITestCase):
     """Test Payment API endpoints"""
 
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.user = CustomUser.objects.create_user(username='testuser', password='testpass')
         self.group = Group.objects.create(name='API Control Administrators')
         self.user.groups.add(self.group)
         self.client.force_authenticate(user=self.user)
@@ -625,10 +624,10 @@ class PermissionTests(APITestCase):
 
     def setUp(self):
         # Create users with different permissions
-        self.regular_user = User.objects.create_user(username='regular', password='pass')
-        self.client_manager = User.objects.create_user(username='client_mgr', password='pass')
-        self.project_manager = User.objects.create_user(username='project_mgr', password='pass')
-        self.api_manager = User.objects.create_user(username='api_mgr', password='pass')
+        self.regular_user = CustomUser.objects.create_user(username='regular', password='pass')
+        self.client_manager = CustomUser.objects.create_user(username='client_mgr', password='pass')
+        self.project_manager = CustomUser.objects.create_user(username='project_mgr', password='pass')
+        self.api_manager = CustomUser.objects.create_user(username='api_mgr', password='pass')
 
         # Create groups
         client_group = Group.objects.create(name='Client Management Administrators')
@@ -702,7 +701,7 @@ class ErrorHandlingTests(APITestCase):
     """Test error handling and edge cases"""
 
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.user = CustomUser.objects.create_user(username='testuser', password='testpass')
         self.client.force_authenticate(user=self.user)
 
     def test_not_found(self):

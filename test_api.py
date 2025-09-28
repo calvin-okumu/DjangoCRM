@@ -27,13 +27,13 @@ def test_auth_methods():
         print(f"❌ Auth methods error: {e}")
         return False
 
-def test_traditional_login(username="admin", password="admin123"):
-    """Test traditional username/password login"""
-    print(f"\n🔐 Testing traditional login for user: {username}")
+def test_traditional_login(email="admin@example.com", password="admin123"):
+    """Test traditional email/password login"""
+    print(f"\n🔐 Testing traditional login for user: {email}")
     try:
         response = requests.post(
             f"{BASE_URL}/api/login/",
-            json={"username": username, "password": password},
+            json={"email": email, "password": password},
             headers={"Content-Type": "application/json"}
         )
 
@@ -79,7 +79,7 @@ def test_api_with_token(token, endpoint="/api/tenants/"):
         print(f"❌ API test error: {e}")
         return False
 
-def test_unauthorized_access(endpoint="/api/organizations/"):
+def test_unauthorized_access(endpoint="/api/tenants/"):
     """Test that unauthorized access is properly blocked"""
     print(f"\n🚫 Testing unauthorized access to: {endpoint}")
     try:
@@ -151,13 +151,8 @@ def main():
     # Test 3: Unauthorized access
     unauthorized_ok = test_unauthorized_access()
 
-    # Test 4: Create test user
-    user_created = create_test_user()
-
-    # Test 5: Traditional login
-    token = None
-    if user_created:
-        token = test_traditional_login("testuser", "testpass123")
+    # Test 4: Traditional login
+    token = test_traditional_login()
 
     # Test 6: API access with token
     api_ok = False
