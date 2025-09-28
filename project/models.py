@@ -42,6 +42,8 @@ class UserTenant(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
     is_owner = models.BooleanField(default=False)
+    is_approved = models.BooleanField(default=True)  # Default True for owners, False for invited members
+    role = models.CharField(max_length=100, default='Employee')
 
     def __str__(self):
         return f"{self.user.email} - {self.tenant.name}"

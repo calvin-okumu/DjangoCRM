@@ -220,12 +220,14 @@ def signup_view(request):
     user.first_name = first_name
     user.last_name = last_name
     user.save()
-    UserTenant.objects.create(user=user, tenant=tenant, is_owner=(role == 'Tenant Owner'))
+    is_approved = True if role == 'Tenant Owner' else False
+    UserTenant.objects.create(user=user, tenant=tenant, is_owner=(role == 'Tenant Owner'), is_approved=is_approved, role=role)
 
-    # Assign group
-    from django.contrib.auth.models import Group
-    group, _ = Group.objects.get_or_create(name=role)
-    user.groups.add(group)
+    # Assign group only if approved
+    if is_approved:
+        from django.contrib.auth.models import Group
+        group, _ = Group.objects.get_or_create(name=role)
+        user.groups.add(group)
 
     token, _ = Token.objects.get_or_create(user=user)
     return Response({
@@ -237,6 +239,38 @@ def signup_view(request):
         'tenant': tenant.name,
         'message': 'Signup successful'
     })
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def approve_member_view(request):
+    if not hasattr(request, 'tenant') or not request.tenant:
+        return Response({'error': 'Tenant context required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Check if user is owner
+    try:
+        user_tenant = UserTenant.objects.get(user=request.user, tenant=request.tenant, is_owner=True)
+    except UserTenant.DoesNotExist:
+        return Response({'error': 'Only owners can approve members'}, status=status.HTTP_403_FORBIDDEN)
+
+    user_id = request.data.get('user_id')
+    if not user_id:
+        return Response({'error': 'User ID required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        member_user_tenant = UserTenant.objects.get(user_id=user_id, tenant=request.tenant, is_owner=False, is_approved=False)
+    except UserTenant.DoesNotExist:
+        return Response({'error': 'Pending member not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    member_user_tenant.is_approved = True
+    member_user_tenant.save()
+
+    # Assign group
+    from django.contrib.auth.models import Group
+    group, _ = Group.objects.get_or_create(name=member_user_tenant.role)
+    member_user_tenant.user.groups.add(group)
+
+    return Response({'message': 'Member approved and added to group'})
 
 
 @api_view(['POST'])

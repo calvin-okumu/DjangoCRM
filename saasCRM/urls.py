@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework.authtoken.views import obtain_auth_token
-from project.views import TenantViewSet, ClientViewSet, ProjectViewSet, MilestoneViewSet, SprintViewSet, TaskViewSet, InvoiceViewSet, PaymentViewSet, login_view, auth_methods_view
+from project.views import TenantViewSet, ClientViewSet, ProjectViewSet, MilestoneViewSet, SprintViewSet, TaskViewSet, InvoiceViewSet, PaymentViewSet, login_view, auth_methods_view, approve_member_view
 
 router = DefaultRouter()
 router.register(r'tenants', TenantViewSet)
@@ -21,5 +21,6 @@ urlpatterns = [
     path('api-token-auth/', obtain_auth_token),
     path('api/login/', login_view, name='api_login'),
     path('api/auth-methods/', auth_methods_view, name='auth_methods'),
+    path('api/approve-member/', approve_member_view, name='approve_member'),
     path('accounts/', include('allauth.urls')),
 ]

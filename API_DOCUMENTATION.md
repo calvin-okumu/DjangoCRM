@@ -122,7 +122,36 @@ curl -X POST http://127.0.0.1:8001/api/signup/ \
 ```bash
 curl -X POST http://127.0.0.1:8001/api/signup/ \
   -H "Content-Type: application/json" \
-  -d '{"email": "invited@example.com", "password": "password123", "invitation_token": "abc123"}'
+  -d '{"email": "invited@example.com", "password": "password123", "first_name": "John", "last_name": "Doe", "invitation_token": "abc123"}'
+```
+
+### Approve Member
+**Endpoint:** `POST /api/approve-member/`
+
+**Request Body:**
+```json
+{
+  "user_id": 2
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Member approved and added to group"
+}
+```
+
+**Notes:**
+- Only tenant owners can approve pending members.
+- Approves the member and assigns them to the appropriate group based on their role.
+
+**Example (curl):**
+```bash
+curl -X POST http://127.0.0.1:8001/api/approve-member/ \
+  -H "Authorization: Token your_token" \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": 2}'
 ```
 
 **Sample Users (created by generate_sample_data):**
