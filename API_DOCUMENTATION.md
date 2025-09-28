@@ -63,7 +63,9 @@ Returns information about available authentication methods. **Public endpoint** 
 {
   "token": "your_auth_token",
   "user_id": 1,
-  "username": "your_username",
+  "email": "your_email@example.com",
+  "first_name": "Your",
+  "last_name": "Name",
   "message": "Login successful"
 }
 ```
@@ -73,6 +75,40 @@ Returns information about available authentication methods. **Public endpoint** 
 curl -X POST http://127.0.0.1:8001/api/login/ \
   -H "Content-Type: application/json" \
   -d '{"email": "user1@example.com", "password": "password123"}'
+```
+
+### Signup
+**Endpoint:** `POST /api/signup/`
+
+**Request Body:**
+```json
+{
+  "email": "your_email@example.com",
+  "password": "your_password",
+  "first_name": "Your",
+  "last_name": "Name",
+  "company_name": "Your Company"
+}
+```
+
+**Response:**
+```json
+{
+  "token": "your_auth_token",
+  "user_id": 1,
+  "email": "your_email@example.com",
+  "first_name": "Your",
+  "last_name": "Name",
+  "tenant": "Your Company",
+  "message": "Signup successful"
+}
+```
+
+**Example (curl):**
+```bash
+curl -X POST http://127.0.0.1:8001/api/signup/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "newuser@example.com", "password": "password123", "first_name": "John", "last_name": "Doe", "company_name": "Acme Corp"}'
 ```
 
 **Sample Users (created by generate_sample_data):**
