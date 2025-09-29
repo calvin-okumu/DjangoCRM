@@ -1,26 +1,13 @@
 from django.contrib import admin
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from rest_framework.authtoken.views import obtain_auth_token
-from project.views import TenantViewSet, ClientViewSet, ProjectViewSet, MilestoneViewSet, SprintViewSet, TaskViewSet, InvoiceViewSet, PaymentViewSet, login_view, auth_methods_view, approve_member_view
-
-router = DefaultRouter()
-router.register(r'tenants', TenantViewSet)
-router.register(r'clients', ClientViewSet)
-router.register(r'projects', ProjectViewSet)
-router.register(r'milestones', MilestoneViewSet)
-router.register(r'sprints', SprintViewSet)
-router.register(r'tasks', TaskViewSet)
-router.register(r'invoices', InvoiceViewSet)
-router.register(r'payments', PaymentViewSet)
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include(router.urls)),
-    path('api-auth/', include('rest_framework.urls')),
-    path('api-token-auth/', obtain_auth_token),
-    path('api/login/', login_view, name='api_login'),
-    path('api/auth-methods/', auth_methods_view, name='auth_methods'),
-    path('api/approve-member/', approve_member_view, name='approve_member'),
+    path('api/', include('project.urls')),
     path('accounts/', include('allauth.urls')),
+    # API Documentation
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]

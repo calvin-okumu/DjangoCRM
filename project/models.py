@@ -1,94 +1,9 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser, Group, BaseUserManager
+from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.conf import settings
-from django.utils.translation import gettext_lazy as _
-
-
-class CustomUserManager(BaseUserManager):
-    def create_user(self, email, password=None, **extra_fields):
-        if not email:
-            raise ValueError('The Email must be set')
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
-
-    def create_superuser(self, email, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('is_active', True)
-
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError('Superuser must have is_staff=True.')
-        if extra_fields.get('is_superuser') is not True:
-            raise ValueError('Superuser must have is_superuser=True.')
-
-        return self.create_user(email, password, **extra_fields)
-
-
-class CustomUser(AbstractUser):
-    email = models.EmailField(_('email address'), unique=True)
-
-    groups = models.ManyToManyField(
-        'auth.Group',
-        related_name='customuser_set',
-        blank=True,
-        help_text='The groups this user belongs to.',
-        verbose_name='groups',
-    )
-    user_permissions = models.ManyToManyField(
-        'auth.Permission',
-        related_name='customuser_set',
-        blank=True,
-        help_text='Specific permissions for this user.',
-        verbose_name='user permissions',
-    )
-
-    objects = CustomUserManager()
-
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['first_name', 'last_name']
-
-    def __str__(self):
-        return self.email
-
-
-class Tenant(models.Model):
-    name = models.CharField(max_length=255, unique=True)
-    domain = models.CharField(max_length=255, unique=True, default='')
-    address = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.name
-
-
-class UserTenant(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
-    is_owner = models.BooleanField(default=False)
-    is_approved = models.BooleanField(default=True)  # Default True for owners, False for invited members
-    role = models.CharField(max_length=100, default='Employee')
-
-    def __str__(self):
-        return f"{self.user.email} - {self.tenant.name}"
-
-
-class Invitation(models.Model):
-    email = models.EmailField()
-    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
-    token = models.CharField(max_length=64, unique=True)
-    role = models.CharField(max_length=100, default='Employee')  # e.g., 'Employee', 'Manager'
-    invited_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField()
-    is_used = models.BooleanField(default=False)
-
-    def __str__(self):
-        return f"Invite {self.email} to {self.tenant.name}"
+from django.db import models
 
 
 class Client(models.Model):
@@ -102,7 +17,7 @@ class Client(models.Model):
     phone = models.CharField(max_length=20, blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="prospect")
     tenant = models.ForeignKey(
-        Tenant, on_delete=models.CASCADE, related_name="clients"
+        'accounts.Tenant', on_delete=models.CASCADE, related_name="clients"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -129,7 +44,7 @@ class Project(models.Model):
     ]
     name = models.CharField(max_length=255)
     tenant = models.ForeignKey(
-        Tenant, on_delete=models.CASCADE, related_name="projects"
+        'accounts.Tenant', on_delete=models.CASCADE, related_name="projects"
     )
     client = models.ForeignKey(
         Client, on_delete=models.CASCADE, related_name="projects"
@@ -179,7 +94,7 @@ class Milestone(models.Model):
     actual_start = models.DateField(null=True, blank=True)
     due_date = models.DateField(null=True, blank=True)
     tenant = models.ForeignKey(
-        Tenant, on_delete=models.CASCADE, related_name="milestones"
+        'accounts.Tenant', on_delete=models.CASCADE, related_name="milestones"
     )
     assignee = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -227,7 +142,7 @@ class Sprint(models.Model):
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     tenant = models.ForeignKey(
-        Tenant, on_delete=models.CASCADE, related_name="sprints"
+        'accounts.Tenant', on_delete=models.CASCADE, related_name="sprints"
     )
     milestone = models.ForeignKey(
         Milestone, on_delete=models.CASCADE, related_name="sprints"
@@ -268,7 +183,7 @@ class Task(models.Model):
     description = models.TextField(blank=True)
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default="backlog")
     tenant = models.ForeignKey(
-        Tenant, on_delete=models.CASCADE, related_name="tasks"
+        'accounts.Tenant', on_delete=models.CASCADE, related_name="tasks"
     )
     milestone = models.ForeignKey(
         Milestone, on_delete=models.CASCADE, related_name="tasks"
@@ -312,7 +227,7 @@ class Task(models.Model):
 # Financial models
 class Invoice(models.Model):
     tenant = models.ForeignKey(
-        Tenant, on_delete=models.CASCADE, related_name="invoices"
+        'accounts.Tenant', on_delete=models.CASCADE, related_name="invoices"
     )
     client = models.ForeignKey(
         Client, on_delete=models.CASCADE, related_name="invoices"
@@ -336,7 +251,7 @@ class Invoice(models.Model):
 
 class Payment(models.Model):
     tenant = models.ForeignKey(
-        Tenant, on_delete=models.CASCADE, related_name="payments"
+        'accounts.Tenant', on_delete=models.CASCADE, related_name="payments"
     )
     invoice = models.ForeignKey(
         Invoice, on_delete=models.CASCADE, related_name="payments"

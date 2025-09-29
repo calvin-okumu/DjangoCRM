@@ -2,7 +2,8 @@ import factory
 from datetime import timedelta
 from faker import Faker
 from django.contrib.auth.models import Group
-from .models import CustomUser, Tenant, Client, Project, Milestone, Sprint, Task, Invoice, Payment, UserTenant
+from .models import CustomUser, Client, Project, Milestone, Sprint, Task, Invoice, Payment
+from accounts.models import Tenant, UserTenant
 
 fake = Faker()
 

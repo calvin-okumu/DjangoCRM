@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Tenant, Client, Project, Milestone, Sprint, Task, Invoice, Payment
+from .models import Client, Project, Milestone, Sprint, Task, Invoice, Payment
+from accounts.models import Tenant, CustomUser, UserTenant, Invitation
 
 class TenantSerializer(serializers.ModelSerializer):
     class Meta:
@@ -81,3 +82,30 @@ class PaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Payment
         fields = ['id', 'invoice', 'invoice_id', 'amount', 'paid_at']
+
+
+class CustomUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'email', 'first_name', 'last_name', 'is_active', 'date_joined']
+        read_only_fields = ['id', 'date_joined']
+
+
+class UserTenantSerializer(serializers.ModelSerializer):
+    user_email = serializers.CharField(source='user.email', read_only=True)
+    user_first_name = serializers.CharField(source='user.first_name', read_only=True)
+    user_last_name = serializers.CharField(source='user.last_name', read_only=True)
+    tenant_name = serializers.CharField(source='tenant.name', read_only=True)
+
+    class Meta:
+        model = UserTenant
+        fields = ['id', 'user', 'user_email', 'user_first_name', 'user_last_name', 'tenant', 'tenant_name', 'is_owner', 'is_approved', 'role']
+
+
+class InvitationSerializer(serializers.ModelSerializer):
+    tenant_name = serializers.CharField(source='tenant.name', read_only=True)
+    invited_by_email = serializers.CharField(source='invited_by.email', read_only=True)
+
+    class Meta:
+        model = Invitation
+        fields = ['id', 'email', 'tenant', 'tenant_name', 'token', 'role', 'invited_by', 'invited_by_email', 'created_at', 'expires_at', 'is_used']

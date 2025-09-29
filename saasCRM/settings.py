@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+import sys
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -28,9 +29,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
+DEBUG = True
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+
+# Site URL for generating absolute URLs
+SITE_URL = os.getenv('SITE_URL', 'http://127.0.0.1:8000')
+
+# Custom user model
+AUTH_USER_MODEL = 'accounts.CustomUser'
+
+# Multi-tenancy configuration
+MULTI_TENANCY_ENABLED = os.getenv('MULTI_TENANCY_ENABLED', 'False').lower() == 'true'
 
 
 # Application definition
@@ -42,6 +52,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "accounts",
     "project",
     "rest_framework",
     "django_filters",
@@ -51,9 +62,9 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "allauth.socialaccount.providers.github",
+    "drf_spectacular",
+    "drf_spectacular_sidecar",
 ]
-
-AUTH_USER_MODEL = 'project.CustomUser'
 
 # Authentication backends
 AUTHENTICATION_BACKENDS = [
@@ -94,18 +105,21 @@ WSGI_APPLICATION = "saasCRM.wsgi.application"
 
 
 # Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv('DB_NAME', 'saasCRM_db'),
+        "NAME": os.getenv('DB_NAME', 'saascrm_db'),
         "USER": os.getenv('DB_USER', 'xorb'),
-        "PASSWORD": os.getenv('DB_PASSWORD', '12345'),
+        "PASSWORD": os.getenv('DB_PASSWORD', 'password123'),
         "HOST": os.getenv('DB_HOST', 'localhost'),
         "PORT": os.getenv('DB_PORT', '5432'),
     }
 }
+
+# Test database configuration
+# Django automatically creates test databases with 'test_' prefix
 
 
 # Password validation
@@ -151,6 +165,15 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
+# Email Configuration
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@example.com')
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
@@ -167,6 +190,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
+STATICFILES_DIRS = []
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -181,4 +206,17 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_VERSION': 'v1',
+    'ALLOWED_VERSIONS': ['v1'],
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'DjangoCRM API',
+    'DESCRIPTION': 'Multi-tenant CRM API for managing clients, projects, milestones, tasks, invoices, and payments.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SWAGGER_UI_DIST': 'SIDECAR',
+    'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
+    'REDOC_DIST': 'SIDECAR',
 }

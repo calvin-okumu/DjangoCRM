@@ -1,5 +1,6 @@
 from rest_framework import viewsets, permissions, status
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import viewsets, permissions, status
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, action
@@ -10,10 +11,6 @@ from django.utils import timezone
 from datetime import timedelta
 import uuid
 from .models import (
-    Tenant,
-    UserTenant,
-    # Invitation,
-    CustomUser,
     Client,
     Project,
     Milestone,
@@ -21,6 +18,12 @@ from .models import (
     Task,
     Invoice,
     Payment,
+)
+from accounts.models import (
+    Tenant,
+    UserTenant,
+    Invitation,
+    CustomUser,
 )
 from .serializers import (
     TenantSerializer,
@@ -31,6 +34,8 @@ from .serializers import (
     TaskSerializer,
     InvoiceSerializer,
     PaymentSerializer,
+    UserTenantSerializer,
+    InvitationSerializer,
 )
 from .permissions import IsClientManager, IsProjectManager, IsAPIManager, IsTenantOwner
 
@@ -202,6 +207,50 @@ class PaymentViewSet(viewsets.ModelViewSet):
             return Payment.objects.all()  # For development
 
 
+class UserTenantViewSet(viewsets.ModelViewSet):
+    queryset = UserTenant.objects.all()
+    serializer_class = UserTenantSerializer
+    permission_classes = [permissions.IsAuthenticated, IsTenantOwner]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ["tenant", "is_owner", "is_approved", "role"]
+    search_fields = ["user__email", "user__first_name", "user__last_name"]
+    ordering_fields = ["role"]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if not hasattr(self.request, 'tenant') or self.request.tenant is None:
+            return queryset  # Dev mode
+        return queryset.filter(tenant=self.request.tenant)
+
+    def perform_create(self, serializer):
+        if not hasattr(self.request, 'tenant') or self.request.tenant is None:
+            serializer.save()  # Dev mode
+        else:
+            serializer.save(tenant=self.request.tenant)
+
+
+class InvitationViewSet(viewsets.ModelViewSet):
+    queryset = Invitation.objects.all()
+    serializer_class = InvitationSerializer
+    permission_classes = [permissions.IsAuthenticated, IsTenantOwner]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ["tenant", "is_used", "role"]
+    search_fields = ["email", "tenant__name"]
+    ordering_fields = ["created_at"]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if not hasattr(self.request, 'tenant') or self.request.tenant is None:
+            return queryset  # Dev mode
+        return queryset.filter(tenant=self.request.tenant)
+
+    def perform_create(self, serializer):
+        if not hasattr(self.request, 'tenant') or self.request.tenant is None:
+            serializer.save(invited_by=self.request.user)  # Dev mode
+        else:
+            serializer.save(tenant=self.request.tenant, invited_by=self.request.user)
+
+
 def login_page(request):
     return render(request, 'login.html')
 
@@ -348,8 +397,36 @@ def invite_member_view(request):
         expires_at=expires_at
     )
 
-    # TODO: Send email with invitation link
-    return Response({'message': 'Invitation sent', 'token': token})
+    # Send invitation email
+    from django.core.mail import send_mail
+    from django.urls import reverse
+    from django.conf import settings
+
+    subject = f"Invitation to join {request.tenant.name}"
+    invitation_url = f"{settings.SITE_URL or 'http://127.0.0.1:8000'}/api/signup/?token={token}"
+    message = f"""
+    You have been invited to join {request.tenant.name} as a {role}.
+
+    Click the link below to accept the invitation and create your account:
+
+    {invitation_url}
+
+    This invitation expires on {expires_at.date()}.
+
+    If you did not expect this invitation, please ignore this email.
+    """
+
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+        return Response({'message': 'Invitation sent successfully', 'token': token})
+    except Exception as e:
+        return Response({'error': f'Failed to send invitation email: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])
@@ -379,4 +456,5 @@ def auth_methods_view(request):
         }
     }
     return Response(auth_methods)
+
 

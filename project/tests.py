@@ -6,9 +6,10 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 from decimal import Decimal
 from .models import (
-    Tenant, Client, Project, Milestone, Sprint, Task,
+    Client, Project, Milestone, Sprint, Task,
     Invoice, Payment, CustomUser
 )
+from accounts.models import Tenant
 
 
 class ModelTests(TestCase):
@@ -36,8 +37,7 @@ class ModelTests(TestCase):
             name="Test Milestone",
             tenant=self.org,
             project=self.project,
-            status="active",
-            progress=75
+            status="active"
         )
         self.sprint = Sprint.objects.create(
             name="Test Sprint",
@@ -90,7 +90,7 @@ class ModelTests(TestCase):
         """Test milestone model creation and validation"""
         self.assertEqual(self.milestone.name, "Test Milestone")
         self.assertEqual(self.milestone.project, self.project)
-        self.assertEqual(self.milestone.progress, 75)
+        self.assertEqual(self.milestone.calculate_progress(), 50)  # One task with in_progress status
         self.assertEqual(str(self.milestone), "Test Milestone (Test Project)")
 
         # Test progress validation
@@ -169,8 +169,8 @@ class AuthenticationTests(APITestCase):
 
     def setUp(self):
         self.user = CustomUser.objects.create_user(
-            'test@example.com',
-            'testpass123'
+            email='test@example.com',
+            password='testpass123'
         )
 
     def test_login_success(self):
@@ -212,7 +212,7 @@ class TenantAPITests(APITestCase):
     """Test Tenant API endpoints"""
 
     def setUp(self):
-        self.user = CustomUser.objects.create_user(username='testuser', password='testpass')
+        self.user = CustomUser.objects.create_user(email='testuser@example.com', password='testpass')
         self.client.force_authenticate(user=self.user)
 
         self.org1 = Tenant.objects.create(name="Org 1", address="Address 1")
@@ -273,7 +273,7 @@ class ClientAPITests(APITestCase):
 
     def setUp(self):
         # Create user with proper permissions
-        self.user = CustomUser.objects.create_user(username='testuser', password='testpass')
+        self.user = CustomUser.objects.create_user(email='testuser@example.com', password='testpass')
         self.group = Group.objects.create(name='Client Management Administrators')
         self.user.groups.add(self.group)
         self.client.force_authenticate(user=self.user)
@@ -334,7 +334,7 @@ class ProjectAPITests(APITestCase):
     """Test Project API endpoints"""
 
     def setUp(self):
-        self.user = CustomUser.objects.create_user(username='testuser', password='testpass')
+        self.user = CustomUser.objects.create_user(email='testuser@example.com', password='testpass')
         self.group = Group.objects.create(name='Business Strategy Administrators')
         self.user.groups.add(self.group)
         self.client.force_authenticate(user=self.user)
@@ -392,7 +392,7 @@ class MilestoneAPITests(APITestCase):
     """Test Milestone API endpoints"""
 
     def setUp(self):
-        self.user = CustomUser.objects.create_user(username='testuser', password='testpass')
+        self.user = CustomUser.objects.create_user(email='testuser@example.com', password='testpass')
         self.client.force_authenticate(user=self.user)
 
         self.org = Tenant.objects.create(name="Test Org")
@@ -446,7 +446,7 @@ class SprintAPITests(APITestCase):
     """Test Sprint API endpoints"""
 
     def setUp(self):
-        self.user = CustomUser.objects.create_user(username='testuser', password='testpass')
+        self.user = CustomUser.objects.create_user(email='testuser@example.com', password='testpass')
         self.client.force_authenticate(user=self.user)
 
         self.org = Tenant.objects.create(name="Test Org")
@@ -486,7 +486,7 @@ class TaskAPITests(APITestCase):
     """Test Task API endpoints"""
 
     def setUp(self):
-        self.user = CustomUser.objects.create_user(username='testuser', password='testpass')
+        self.user = CustomUser.objects.create_user(email='testuser@example.com', password='testpass')
         self.client.force_authenticate(user=self.user)
 
         self.org = Tenant.objects.create(name="Test Org")
@@ -537,7 +537,7 @@ class InvoiceAPITests(APITestCase):
     """Test Invoice API endpoints"""
 
     def setUp(self):
-        self.user = CustomUser.objects.create_user(username='testuser', password='testpass')
+        self.user = CustomUser.objects.create_user(email='testuser@example.com', password='testpass')
         self.group = Group.objects.create(name='API Control Administrators')
         self.user.groups.add(self.group)
         self.client.force_authenticate(user=self.user)
@@ -584,7 +584,7 @@ class PaymentAPITests(APITestCase):
     """Test Payment API endpoints"""
 
     def setUp(self):
-        self.user = CustomUser.objects.create_user(username='testuser', password='testpass')
+        self.user = CustomUser.objects.create_user(email='testuser@example.com', password='testpass')
         self.group = Group.objects.create(name='API Control Administrators')
         self.user.groups.add(self.group)
         self.client.force_authenticate(user=self.user)
@@ -705,7 +705,7 @@ class ErrorHandlingTests(APITestCase):
     """Test error handling and edge cases"""
 
     def setUp(self):
-        self.user = CustomUser.objects.create_user(username='testuser', password='testpass')
+        self.user = CustomUser.objects.create_user(email='testuser@example.com', password='testpass')
         self.client.force_authenticate(user=self.user)
 
     def test_not_found(self):

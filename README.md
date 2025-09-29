@@ -21,7 +21,7 @@ A comprehensive multi-tenant Customer Relationship Management system built with 
 ## 🛠️ Tech Stack
 
 - **Backend**: Django 5.2, Django REST Framework
-- **Database**: PostgreSQL (production) / SQLite (development)
+- **Database**: PostgreSQL
 - **Authentication**: Token-based authentication + OAuth (Google, GitHub) + Session authentication
 - **Multi-Tenancy**: Subdomain-based tenant isolation
 - **API Documentation**: Comprehensive endpoint documentation
@@ -30,7 +30,7 @@ A comprehensive multi-tenant Customer Relationship Management system built with 
 
 - Python 3.8+
 - Node.js 14+ (for frontend development)
-- PostgreSQL (optional, SQLite works for development)
+- PostgreSQL
 - OAuth credentials from Google and/or GitHub (for social authentication)
 
 ## 🚀 Quick Start
@@ -54,10 +54,11 @@ A comprehensive multi-tenant Customer Relationship Management system built with 
     # Edit .env with your actual credentials and secrets
     ```
 
- 4. **Set up the database**
+  4. **Set up the database**
    ```bash
+   # Create PostgreSQL database and user (see .env configuration)
    python manage.py migrate
-   python manage.py createsuperuser  # Prompts for email, password, first_name, last_name
+   # Superuser is created automatically: admin@example.com / admin123
    ```
 
 5. **Generate sample data (optional)**
@@ -140,20 +141,20 @@ The DjangoCRM application is currently in active development with the following 
 
 ### 🔧 Development Configuration
 - **Server**: Runs on `http://127.0.0.1:8000`
-- **Multi-Tenancy**: Disabled for development (all data accessible)
+- **Multi-Tenancy**: Configurable (currently disabled for development)
 - **Database**: PostgreSQL with sample data populated
 - **Authentication**: Token-based with 5 sample users across different permission groups
 
 ### 📈 Sample Data Overview
 Running `python manage.py generate_sample_data` creates:
-- **24 Tenants** with realistic company names and addresses
-- **Clients** distributed across tenants
-- **Projects** with various statuses, priorities, and progress tracking
-- **Milestones** linked to projects with progress calculation
-- **Sprints** with progress and task management
-- **Tasks** with status-based progress, dates, and estimated hours
+- **3 Tenants** with realistic company names and addresses
+- **6 Clients** distributed across tenants
+- **6 Projects** with various statuses, priorities, and progress tracking
+- **10 Milestones** linked to projects with progress calculation
+- **15 Sprints** with progress and task management
+- **50 Tasks** with status-based progress, dates, and estimated hours
 - **5 Users** with different permission levels
-- **1 Superuser** (calvindhmb@gmail.com / password123)
+- **1 Superuser** (admin@example.com / admin123)
 
 ## 🏗️ Project Structure
 
@@ -205,7 +206,7 @@ curl -H "Authorization: Token YOUR_TOKEN_HERE" \
 
 # 4. Access admin interface
 # Open http://127.0.0.1:8000/admin/ in browser
-# Login with calvindhmb@gmail.com / password123 (superuser)
+# Login with admin@example.com / admin123 (superuser)
 ```
 
 ### Creating Migrations
