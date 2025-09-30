@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
-from django.contrib.auth.models import User, Group
-from project.models import Tenant, Client, Project, Milestone, Sprint, Task, Invoice, Payment
+from django.contrib.auth.models import Group
+from project.models import CustomUser, Tenant, Client, Project, Milestone, Sprint, Task, Invoice, Payment
 from project.factories import (
     TenantFactory, ClientFactory,
     ProjectFactory, MilestoneFactory, SprintFactory, TaskFactory,
@@ -14,7 +14,7 @@ class Command(BaseCommand):
         self.stdout.write('Generating sample data...')
 
         # Create or get groups
-        group_names = ['Client Management Administrators', 'Business Strategy Administrators', 'API Control Administrators', 'Product Measurement Administrators']
+        group_names = ['Client Management Administrators', 'Business Strategy Administrators', 'API Control Administrators', 'Product Measurement Administrators', 'Employees', 'Tenant Owners']
         groups = []
         for name in group_names:
             group, created = Group.objects.get_or_create(name=name)
@@ -24,11 +24,11 @@ class Command(BaseCommand):
         # Create users with groups
         users = []
         for i in range(5):
-            username = f'user{i+1}'
-            user, created = User.objects.get_or_create(
-                username=username,
+            email = f'user{i+1}@example.com'
+            user, created = CustomUser.objects.get_or_create(
+                email=email,
                 defaults={
-                    'email': f'user{i+1}@example.com',
+                    'username': f'user{i+1}',
                     'first_name': f'User{i+1}',
                     'last_name': 'Test'
                 }

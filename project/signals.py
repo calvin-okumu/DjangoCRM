@@ -1,22 +1,26 @@
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from django.core.mail import send_mail
 from django.conf import settings
 from .models import Task, Milestone, Sprint, Project
 
-@receiver(post_save, sender=Task)
-def update_milestone_progress(sender, instance, **kwargs):
+@receiver([post_save, post_delete], sender=Task)
+def update_progress_on_task_change(sender, instance, **kwargs):
     """
-    Update milestone progress when a task status changes.
-    Only update if progress is 0 (auto-calculate), otherwise respect manual setting.
+    Update progress for sprint, milestone, and project when task changes.
     """
-    if instance.sprint and instance.sprint.milestone:
-        milestone = instance.sprint.milestone
-        total_tasks = Task.objects.filter(sprint__milestone=milestone).count()
-        completed_tasks = Task.objects.filter(sprint__milestone=milestone, status='done').count()
-        if total_tasks > 0 and milestone.progress == 0:
-            milestone.progress = int((completed_tasks / total_tasks) * 100)
-            milestone.save(update_fields=['progress'])
+    # Update sprint progress
+    if instance.sprint:
+        instance.sprint.progress = instance.sprint.calculate_progress()
+        instance.sprint.save(update_fields=['progress'])
+
+    # Update milestone progress
+    instance.milestone.progress = instance.milestone.calculate_progress()
+    instance.milestone.save(update_fields=['progress'])
+
+    # Update project progress
+    instance.milestone.project.progress = instance.milestone.project.calculate_progress()
+    instance.milestone.project.save(update_fields=['progress'])
 
 @receiver(pre_save, sender=Sprint)
 def notify_sprint_status_change(sender, instance, **kwargs):

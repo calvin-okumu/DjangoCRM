@@ -7,7 +7,7 @@ import requests
 import json
 import sys
 
-BASE_URL = "http://127.0.0.1:8001"
+BASE_URL = "http://127.0.0.1:8000"
 
 def test_auth_methods():
     """Test the auth-methods endpoint"""
@@ -27,13 +27,13 @@ def test_auth_methods():
         print(f"❌ Auth methods error: {e}")
         return False
 
-def test_traditional_login(username="admin", password="admin123"):
-    """Test traditional username/password login"""
-    print(f"\n🔐 Testing traditional login for user: {username}")
+def test_traditional_login(email="admin@example.com", password="admin123"):
+    """Test traditional email/password login"""
+    print(f"\n🔐 Testing traditional login for user: {email}")
     try:
         response = requests.post(
             f"{BASE_URL}/api/login/",
-            json={"username": username, "password": password},
+            json={"email": email, "password": password},
             headers={"Content-Type": "application/json"}
         )
 
@@ -79,7 +79,7 @@ def test_api_with_token(token, endpoint="/api/tenants/"):
         print(f"❌ API test error: {e}")
         return False
 
-def test_unauthorized_access(endpoint="/api/organizations/"):
+def test_unauthorized_access(endpoint="/api/tenants/"):
     """Test that unauthorized access is properly blocked"""
     print(f"\n🚫 Testing unauthorized access to: {endpoint}")
     try:
@@ -114,21 +114,21 @@ def create_test_user():
     """Create a test user for testing"""
     print("\n👤 Creating test user...")
     try:
-        from django.contrib.auth.models import User
+        from project.models import CustomUser
         import os
         import django
 
         os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'saasCRM.settings')
         django.setup()
 
-        if not User.objects.filter(username='testuser').exists():
-            User.objects.create_user(
-                username='testuser',
-                email='test@example.com',
-                password='testpass123',
+        if not CustomUser.objects.filter(email='user1@example.com').exists():
+            CustomUser.objects.create_user(
+                username='user1',
+                email='user1@example.com',
+                password='password123',
                 is_staff=True
             )
-            print("✅ Test user created: testuser / testpass123")
+            print("✅ Test user created: user1@example.com / password123")
             return True
         else:
             print("ℹ️  Test user already exists")
@@ -151,13 +151,8 @@ def main():
     # Test 3: Unauthorized access
     unauthorized_ok = test_unauthorized_access()
 
-    # Test 4: Create test user
-    user_created = create_test_user()
-
-    # Test 5: Traditional login
-    token = None
-    if user_created:
-        token = test_traditional_login("testuser", "testpass123")
+    # Test 4: Traditional login
+    token = test_traditional_login(email="user1@example.com", password="password123")
 
     # Test 6: API access with token
     api_ok = False

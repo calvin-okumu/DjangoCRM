@@ -1,24 +1,9 @@
 from django.db import models
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import Group
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.conf import settings
-
-
-class Tenant(models.Model):
-    name = models.CharField(max_length=255, unique=True)
-    address = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.name
-
-
-class UserTenant(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return f"{self.user.username} - {self.tenant.name}"
+from django.db import models
 
 
 class Client(models.Model):
@@ -32,7 +17,7 @@ class Client(models.Model):
     phone = models.CharField(max_length=20, blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="prospect")
     tenant = models.ForeignKey(
-        Tenant, on_delete=models.CASCADE, related_name="clients"
+        'accounts.Tenant', on_delete=models.CASCADE, related_name="clients"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -59,7 +44,7 @@ class Project(models.Model):
     ]
     name = models.CharField(max_length=255)
     tenant = models.ForeignKey(
-        Tenant, on_delete=models.CASCADE, related_name="projects"
+        'accounts.Tenant', on_delete=models.CASCADE, related_name="projects"
     )
     client = models.ForeignKey(
         Client, on_delete=models.CASCADE, related_name="projects"
@@ -75,9 +60,22 @@ class Project(models.Model):
     )
     description = models.TextField(blank=True)
     tags = models.CharField(max_length=500, blank=True)  # Comma-separated
-    team_members = models.ManyToManyField(User, related_name="projects", blank=True)
+    team_members = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="projects", blank=True)
     access_groups = models.ManyToManyField(Group, related_name="projects", blank=True)
+    progress = models.PositiveIntegerField(
+        default=0, validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def clean(self):
+        if self.start_date and self.end_date and self.start_date >= self.end_date:
+            raise ValidationError('End date must be after start date.')
+
+    def calculate_progress(self):
+        milestones = self.milestones.all()
+        if not milestones:
+            return 0
+        return sum(milestone.calculate_progress() for milestone in milestones) // len(milestones)
 
     def __str__(self):
         return self.name
@@ -96,10 +94,10 @@ class Milestone(models.Model):
     actual_start = models.DateField(null=True, blank=True)
     due_date = models.DateField(null=True, blank=True)
     tenant = models.ForeignKey(
-        Tenant, on_delete=models.CASCADE, related_name="milestones"
+        'accounts.Tenant', on_delete=models.CASCADE, related_name="milestones"
     )
     assignee = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -112,6 +110,21 @@ class Milestone(models.Model):
         Project, on_delete=models.CASCADE, related_name="milestones"
     )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def clean(self):
+        if self.planned_start and self.due_date and self.planned_start >= self.due_date:
+            raise ValidationError('Due date must be after planned start date.')
+        # Validate dates within project
+        if self.project and self.planned_start and self.project.start_date and self.planned_start < self.project.start_date:
+            raise ValidationError('Milestone start date must be after project start date.')
+        if self.project and self.due_date and self.project.end_date and self.due_date > self.project.end_date:
+            raise ValidationError('Milestone end date must be before project end date.')
+
+    def calculate_progress(self):
+        tasks = self.tasks.all()
+        if not tasks:
+            return 0
+        return sum(task.progress for task in tasks) // len(tasks)
 
     def __str__(self):
         return f"{self.name} ({self.project.name})"
@@ -129,12 +142,30 @@ class Sprint(models.Model):
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     tenant = models.ForeignKey(
-        Tenant, on_delete=models.CASCADE, related_name="sprints"
+        'accounts.Tenant', on_delete=models.CASCADE, related_name="sprints"
     )
     milestone = models.ForeignKey(
         Milestone, on_delete=models.CASCADE, related_name="sprints"
     )
+    progress = models.PositiveIntegerField(
+        default=0, validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def clean(self):
+        if self.start_date and self.end_date and self.start_date >= self.end_date:
+            raise ValidationError('End date must be after start date.')
+        # Validate dates within milestone
+        if self.milestone and self.start_date and self.milestone.planned_start and self.start_date < self.milestone.planned_start:
+            raise ValidationError('Sprint start date must be after milestone start date.')
+        if self.milestone and self.end_date and self.milestone.due_date and self.end_date > self.milestone.due_date:
+            raise ValidationError('Sprint end date must be before milestone end date.')
+
+    def calculate_progress(self):
+        tasks = self.tasks.all()
+        if not tasks:
+            return 0
+        return sum(task.progress for task in tasks) // len(tasks)
 
     def __str__(self):
         return f"{self.name} ({self.milestone.name})"
@@ -152,14 +183,42 @@ class Task(models.Model):
     description = models.TextField(blank=True)
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default="backlog")
     tenant = models.ForeignKey(
-        Tenant, on_delete=models.CASCADE, related_name="tasks"
+        'accounts.Tenant', on_delete=models.CASCADE, related_name="tasks"
     )
-    sprint = models.ForeignKey(Sprint, on_delete=models.CASCADE, related_name="tasks")
+    milestone = models.ForeignKey(
+        Milestone, on_delete=models.CASCADE, related_name="tasks"
+    )
+    sprint = models.ForeignKey(Sprint, on_delete=models.SET_NULL, null=True, blank=True, related_name="tasks")
     assignee = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="tasks"
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="tasks"
     )
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    estimated_hours = models.PositiveIntegerField(null=True, blank=True, help_text="Approximate hours expected")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def clean(self):
+        if self.start_date and self.end_date and self.start_date >= self.end_date:
+            raise ValidationError('End date must be after start date.')
+        if self.sprint and self.sprint.milestone != self.milestone:
+            raise ValidationError('Task milestone must match sprint milestone.')
+        # Validate dates within milestone
+        if self.milestone and self.start_date and self.milestone.planned_start and self.start_date < self.milestone.planned_start:
+            raise ValidationError('Task start date must be after milestone start date.')
+        if self.milestone and self.end_date and self.milestone.due_date and self.end_date > self.milestone.due_date:
+            raise ValidationError('Task end date must be before milestone end date.')
+
+    @property
+    def progress(self):
+        status_weights = {
+            'backlog': 0,
+            'to_do': 10,
+            'in_progress': 50,
+            'in_review': 90,
+            'done': 100
+        }
+        return status_weights.get(self.status, 0)
 
     def __str__(self):
         return self.title
@@ -168,7 +227,7 @@ class Task(models.Model):
 # Financial models
 class Invoice(models.Model):
     tenant = models.ForeignKey(
-        Tenant, on_delete=models.CASCADE, related_name="invoices"
+        'accounts.Tenant', on_delete=models.CASCADE, related_name="invoices"
     )
     client = models.ForeignKey(
         Client, on_delete=models.CASCADE, related_name="invoices"
@@ -192,7 +251,7 @@ class Invoice(models.Model):
 
 class Payment(models.Model):
     tenant = models.ForeignKey(
-        Tenant, on_delete=models.CASCADE, related_name="payments"
+        'accounts.Tenant', on_delete=models.CASCADE, related_name="payments"
     )
     invoice = models.ForeignKey(
         Invoice, on_delete=models.CASCADE, related_name="payments"

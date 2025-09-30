@@ -1,6 +1,5 @@
 from django.contrib import admin
 from .models import (
-    Tenant,
     Client,
     Project,
     Milestone,
@@ -9,12 +8,6 @@ from .models import (
     Invoice,
     Payment,
 )
-
-
-@admin.register(Tenant)
-class TenantAdmin(admin.ModelAdmin):
-    list_display = ("name", "address", "created_at")
-    search_fields = ("name",)
 
 
 @admin.register(Client)

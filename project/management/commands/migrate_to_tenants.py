@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
-from project.models import Tenant, Client, Project, Milestone, Sprint, Task, Invoice, Payment
+from accounts.models import Tenant
+from project.models import Client, Project, Milestone, Sprint, Task, Invoice, Payment
 
 
 class Command(BaseCommand):

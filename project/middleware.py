@@ -1,7 +1,9 @@
 from django.utils.deprecation import MiddlewareMixin
 from django.core.exceptions import ImproperlyConfigured
-from .models import Tenant, UserTenant
+from django.conf import settings
+from accounts.models import Tenant, UserTenant
 from django.http import Http404
+from django.shortcuts import redirect
 
 
 class TenantMiddleware(MiddlewareMixin):
@@ -10,5 +12,22 @@ class TenantMiddleware(MiddlewareMixin):
         if not hasattr(request, 'get_host'):
             return
 
-        # For development, set tenant to None (will be handled by views)
-        request.tenant = None
+        # If multi-tenancy is disabled, set tenant to None
+        if not getattr(settings, 'MULTI_TENANCY_ENABLED', False):
+            request.tenant = None
+            return
+
+        host = request.get_host().split(':')[0]  # Remove port
+
+        subdomain = host.split('.')[0] if '.' in host else None
+
+        if subdomain:
+            try:
+                tenant = Tenant.objects.get(domain=subdomain)
+                request.tenant = tenant
+            except Tenant.DoesNotExist:
+                # Invalid subdomain, redirect to main site or error
+                raise Http404("Tenant not found")
+        else:
+            # No subdomain, perhaps public pages or login
+            request.tenant = None
