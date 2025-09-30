@@ -19,6 +19,11 @@ class TenantMiddleware(MiddlewareMixin):
 
         host = request.get_host().split(':')[0]  # Remove port
 
+        # Allow localhost and 127.0.0.1 for development
+        if host in ['127.0.0.1', 'localhost']:
+            request.tenant = None
+            return
+
         subdomain = host.split('.')[0] if '.' in host else None
 
         if subdomain:
