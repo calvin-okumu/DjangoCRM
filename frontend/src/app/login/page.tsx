@@ -8,7 +8,7 @@ import { login } from "@/api/api";
 import { Eye, EyeOff, CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
-    const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
@@ -23,12 +23,14 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            const data = await login(username, password);
+            const data = await login(email, password);
 
             localStorage.setItem("access_token", data.token);
             localStorage.setItem("user", JSON.stringify({
                 id: data.user_id,
-                username: data.username,
+                email: data.email,
+                first_name: data.first_name,
+                last_name: data.last_name,
             }));
 
             setSuccess("Login successful! Redirecting...");
@@ -47,16 +49,16 @@ export default function LoginPage() {
                 <p className="text-gray-600 mb-8 text-center">Sign in to your account</p>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Username */}
+                    {/* Email */}
                     <div>
-                        <label htmlFor="username" className="block text-sm font-semibold text-gray-700 mb-2">Username</label>
+                        <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
                         <input
-                            id="username"
-                            type="text"
-                            placeholder="Enter your username"
+                            id="email"
+                            type="email"
+                            placeholder="Enter your email"
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                             required
                         />
                     </div>

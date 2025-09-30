@@ -9,10 +9,11 @@ import { CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function SignUpPage() {
     const [form, setForm] = useState({
-        username: "",
         email: "",
-        password1: "",
-        password2: "",
+        password: "",
+        first_name: "",
+        last_name: "",
+        company_name: "",
         agreeToTerms: false,
     });
     const [error, setError] = useState("");
@@ -30,21 +31,17 @@ export default function SignUpPage() {
             return;
         }
 
-        if (form.password1 !== form.password2) {
-            setError("Passwords do not match.");
-            return;
-        }
-
         setLoading(true);
 
         try {
-            const data = await signup(form.username, form.email, form.password1, form.password2);
+            const data = await signup(form.email, form.password, form.first_name, form.last_name, form.company_name);
 
             localStorage.setItem("access_token", data.token);
             localStorage.setItem("user", JSON.stringify({
                 id: data.user_id,
-                username: data.username,
                 email: data.email,
+                first_name: data.first_name,
+                last_name: data.last_name,
             }));
 
             setSuccess("Account created successfully! Redirecting...");
@@ -69,17 +66,33 @@ export default function SignUpPage() {
                 </p>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Username */}
+                    {/* First Name */}
                     <div>
-                        <label htmlFor="username" className="block text-sm font-semibold text-gray-700 mb-2">Username</label>
+                        <label htmlFor="first_name" className="block text-sm font-semibold text-gray-700 mb-2">First Name</label>
                         <input
-                            id="username"
+                            id="first_name"
                             type="text"
-                            placeholder="Choose a username"
+                            placeholder="Enter your first name"
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                            value={form.username}
+                            value={form.first_name}
                             onChange={(e) =>
-                                setForm({ ...form, username: e.target.value })
+                                setForm({ ...form, first_name: e.target.value })
+                            }
+                            required
+                        />
+                    </div>
+
+                    {/* Last Name */}
+                    <div>
+                        <label htmlFor="last_name" className="block text-sm font-semibold text-gray-700 mb-2">Last Name</label>
+                        <input
+                            id="last_name"
+                            type="text"
+                            placeholder="Enter your last name"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                            value={form.last_name}
+                            onChange={(e) =>
+                                setForm({ ...form, last_name: e.target.value })
                             }
                             required
                         />
@@ -101,33 +114,33 @@ export default function SignUpPage() {
                         />
                     </div>
 
-                    {/* Password */}
+                    {/* Company Name */}
                     <div>
-                        <label htmlFor="password1" className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+                        <label htmlFor="company_name" className="block text-sm font-semibold text-gray-700 mb-2">Company Name</label>
                         <input
-                            id="password1"
-                            type="password"
-                            placeholder="Create a strong password"
+                            id="company_name"
+                            type="text"
+                            placeholder="Enter your company name"
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                            value={form.password1}
+                            value={form.company_name}
                             onChange={(e) =>
-                                setForm({ ...form, password1: e.target.value })
+                                setForm({ ...form, company_name: e.target.value })
                             }
                             required
                         />
                     </div>
 
-                    {/* Confirm Password */}
+                    {/* Password */}
                     <div>
-                        <label htmlFor="password2" className="block text-sm font-semibold text-gray-700 mb-2">Confirm Password</label>
+                        <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
                         <input
-                            id="password2"
+                            id="password"
                             type="password"
-                            placeholder="Confirm your password"
+                            placeholder="Create a strong password"
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                            value={form.password2}
+                            value={form.password}
                             onChange={(e) =>
-                                setForm({ ...form, password2: e.target.value })
+                                setForm({ ...form, password: e.target.value })
                             }
                             required
                         />

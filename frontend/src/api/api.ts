@@ -3,15 +3,19 @@ const API_BASE = "http://127.0.0.1:8000/api";
 export interface LoginResponse {
   token: string;
   user_id: number;
-  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
   message: string;
 }
 
 export interface SignupResponse {
   token: string;
   user_id: number;
-  username: string;
   email: string;
+  first_name: string;
+  last_name: string;
+  tenant: string;
   message: string;
 }
 
@@ -26,7 +30,7 @@ export interface Client {
 }
 
 export async function login(
-  username: string,
+  email: string,
   password: string,
 ): Promise<LoginResponse> {
   const response = await fetch(`${API_BASE}/login/`, {
@@ -34,7 +38,7 @@ export async function login(
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ email, password }),
   });
 
   const data = await response.json();
@@ -47,17 +51,18 @@ export async function login(
 }
 
 export async function signup(
-  username: string,
   email: string,
-  password1: string,
-  password2: string,
+  password: string,
+  first_name: string,
+  last_name: string,
+  company_name: string,
 ): Promise<SignupResponse> {
   const response = await fetch(`${API_BASE}/signup/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ username, email, password1, password2 }),
+    body: JSON.stringify({ email, password, first_name, last_name, company_name }),
   });
 
   const data = await response.json();

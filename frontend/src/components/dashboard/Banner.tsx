@@ -11,7 +11,7 @@ export default function Banner() {
         const user = localStorage.getItem("user");
         if (user) {
             const parsed = JSON.parse(user);
-            const name = parsed.firstName || (parsed.username ? parsed.username.split('@')[0] : "User");
+            const name = parsed.first_name || (parsed.email ? parsed.email.split('@')[0] : "User");
             setFirstName(name);
         }
     }, []);
