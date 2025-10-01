@@ -81,6 +81,31 @@ class ProjectViewSet(viewsets.ModelViewSet):
         else:
             return Project.objects.all()  # For development
 
+    def perform_create(self, serializer):
+        if hasattr(self.request, 'tenant') and self.request.tenant:
+            serializer.save(tenant=self.request.tenant)
+        else:
+            # Development/Test mode: try to get tenant from user or create default
+            from accounts.models import UserTenant, Tenant
+            try:
+                user_tenant = UserTenant.objects.filter(user=self.request.user, is_owner=True).first()
+                if user_tenant:
+                    serializer.save(tenant=user_tenant.tenant)
+                else:
+                    # Create a default tenant for testing
+                    tenant, created = Tenant.objects.get_or_create(
+                        name="Default Test Tenant",
+                        defaults={'domain': 'test.com'}
+                    )
+                    serializer.save(tenant=tenant)
+            except:
+                # Fallback for any issues
+                tenant, created = Tenant.objects.get_or_create(
+                    name="Default Test Tenant",
+                    defaults={'domain': 'test.com'}
+                )
+                serializer.save(tenant=tenant)
+
 
 class MilestoneViewSet(viewsets.ModelViewSet):
     queryset = Milestone.objects.all()
@@ -280,13 +305,19 @@ def login_view(request):
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def signup_view(request):
-    email = request.data.get('email', '').strip()
-    password = request.data.get('password', '').strip()
-    first_name = request.data.get('first_name', '').strip()
-    last_name = request.data.get('last_name', '').strip()
-    company_name = request.data.get('company_name', '').strip()
-    address = request.data.get('address', '').strip()
-    invitation_token = request.data.get('invitation_token', '').strip()
+
+    email = request.data.get('email')
+    password = request.data.get('password')
+    first_name = request.data.get('first_name')
+    last_name = request.data.get('last_name')
+    company_name = request.data.get('company_name')
+    address = request.data.get('address', '')
+    phone = request.data.get('phone', '')
+    website = request.data.get('website', '')
+    industry = request.data.get('industry', '')
+    company_size = request.data.get('company_size', '')
+    invitation_token = request.data.get('invitation_token')
+
 
     if not email or not password or not first_name or not last_name:
         return Response({'error': 'Email, password, first_name, and last_name are required'}, status=status.HTTP_400_BAD_REQUEST)
@@ -310,7 +341,26 @@ def signup_view(request):
             return Response({'error': 'Company name required for new tenant'}, status=status.HTTP_400_BAD_REQUEST)
         if Tenant.objects.filter(domain=domain).exists():
             return Response({'error': 'Domain already in use'}, status=status.HTTP_400_BAD_REQUEST)
-        tenant = Tenant.objects.create(name=company_name, domain=domain, address=address)
+
+        # Basic validation for optional fields
+        from django.core.validators import URLValidator
+        from django.core.exceptions import ValidationError
+        if website:
+            validate = URLValidator()
+            try:
+                validate(website)
+            except ValidationError:
+                return Response({'error': 'Invalid website URL'}, status=status.HTTP_400_BAD_REQUEST)
+
+        tenant = Tenant.objects.create(
+            name=company_name,
+            domain=domain,
+            address=address,
+            phone=phone,
+            website=website,
+            industry=industry,
+            company_size=company_size
+        )
         role = 'Tenant Owner'
 
     user = CustomUser.objects.create_user(email=email, password=password)
@@ -323,8 +373,19 @@ def signup_view(request):
     # Assign group only if approved
     if is_approved:
         from django.contrib.auth.models import Group
-        group, _ = Group.objects.get_or_create(name=role)
-        user.groups.add(group)
+        group_name = {
+            'Tenant Owner': 'Tenant Owners',
+            'Employee': 'Employees',
+            'Manager': 'Project Managers'
+        }.get(role, 'Employees')
+
+        try:
+            group = Group.objects.get(name=group_name)
+            user.groups.add(group)
+        except Group.DoesNotExist:
+            # Fallback: create group if it doesn't exist (shouldn't happen with migration)
+            group, created = Group.objects.get_or_create(name=group_name)
+            user.groups.add(group)
 
     token, _ = Token.objects.get_or_create(user=user)
     return Response({

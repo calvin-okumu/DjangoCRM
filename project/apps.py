@@ -7,3 +7,4 @@ class ProjectConfig(AppConfig):
 
     def ready(self):
         import project.signals  # Connect signals when app is ready
+        import accounts.signals  # Connect accounts signals

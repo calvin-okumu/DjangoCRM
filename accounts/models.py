@@ -60,6 +60,16 @@ class Tenant(models.Model):
     name = models.CharField(max_length=255, unique=True)
     domain = models.CharField(max_length=255, unique=True, default='')
     address = models.TextField(blank=True)
+    phone = models.CharField(max_length=20, blank=True)
+    website = models.URLField(blank=True)
+    industry = models.CharField(max_length=100, blank=True)
+    company_size = models.CharField(max_length=50, blank=True, choices=[
+        ('1-10', '1-10 employees'),
+        ('11-50', '11-50 employees'),
+        ('51-200', '51-200 employees'),
+        ('201-1000', '201-1000 employees'),
+        ('1000+', '1000+ employees'),
+    ])
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
