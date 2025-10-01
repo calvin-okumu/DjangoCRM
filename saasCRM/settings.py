@@ -219,15 +219,45 @@ REST_FRAMEWORK = {
 }
 
 SPECTACULAR_SETTINGS = {
+    "TITLE": "DjangoCRM API",
+    "DESCRIPTION": """
+    Multi-tenant Customer Relationship Management (CRM) system API.
 
-    "TITLE": "CarlHUB API",
+    This API provides comprehensive tools for managing:
+    - **Tenants**: Multi-tenant organization management
+    - **Clients**: Customer relationship management
+    - **Projects**: Project lifecycle management with milestones and tasks
+    - **Invoices & Payments**: Financial management and billing
+    - **Users & Teams**: User management and role-based access control
 
-    "DESCRIPTION": "Multi-tenant CRM API for managing clients, projects, milestones, tasks, invoices, and payments.",
+    ## Authentication
+    - Use `Authorization: Token <token>` header for API requests
+    - Obtain tokens via `/api/login/` or `/api/signup/` endpoints
+    - Session authentication is also supported for web users
+
+    ## Multi-tenancy
+    In production with multi-tenancy enabled, all data is automatically scoped to the current tenant based on the request context.
+    """,
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SWAGGER_UI_DIST": "SIDECAR",
     "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
     "REDOC_DIST": "SIDECAR",
+    "CONTACT": {"name": "DjangoCRM Support", "email": "support@djangocrm.com"},
+    "LICENSE": {"name": "MIT License"},
+    "TAGS": [
+        {"name": "tenants", "description": "Tenant organization management"},
+        {"name": "clients", "description": "Client/customer management"},
+        {"name": "projects", "description": "Project lifecycle management"},
+        {"name": "milestones", "description": "Project milestone tracking"},
+        {"name": "sprints", "description": "Agile sprint management"},
+        {"name": "tasks", "description": "Individual task management"},
+        {"name": "invoices", "description": "Invoice and billing management"},
+        {"name": "payments", "description": "Payment tracking"},
+        {"name": "users", "description": "User and team management"},
+        {"name": "invitations", "description": "Invitation system"},
+        {"name": "authentication", "description": "User authentication and signup"},
+    ],
 }
 
 # CORS settings
