@@ -15,14 +15,19 @@ DjangoCRM is a multi-tenant Customer Relationship Management (CRM) system built 
 
 ## Overview
 
-DjangoCRM supports multi-tenancy with a shared database architecture. Each tenant has isolated data while sharing the same application instance. The system includes:
+DjangoCRM is a production-ready, multi-tenant Customer Relationship Management system built with Django REST Framework. It supports complete tenant isolation with a shared database architecture, where each tenant has isolated data while sharing the same application instance.
 
-- **User Management**: Custom user model with email authentication, OAuth integration (Google, GitHub)
-- **Tenant Management**: Organizations with user roles and permissions
-- **Client Management**: Customer database with contact information
-- **Project Management**: Full project lifecycle with milestones, sprints, and tasks
-- **Financial Management**: Invoice and payment tracking
-- **API**: RESTful API with comprehensive documentation via Swagger
+The system includes:
+
+- **User Management**: Custom user model with email authentication, OAuth integration (Google, GitHub), and secure token-based authentication
+- **Tenant Management**: Organizations with comprehensive company profiles and user roles/permissions
+- **Enhanced Signup**: Collect detailed company information during tenant creation with validation
+- **Default Groups**: 5 pre-configured user groups for role-based access control with automatic assignment
+- **Client Management**: Customer database with contact information and project history
+- **Project Management**: Complete project lifecycle management with milestones, sprints, tasks, and progress tracking
+- **Financial Management**: Invoice and payment processing with client billing capabilities
+- **API**: Comprehensive RESTful API with full Swagger/OpenAPI documentation and interactive testing
+- **Testing**: Complete test suite with 48 tests covering all functionality
 
 ## Architecture
 
@@ -48,6 +53,18 @@ Manages all project-related entities and business logic.
 - `Task`: Individual work items with status tracking
 - `Invoice`: Billing records
 - `Payment`: Payment tracking
+
+## Default User Groups
+
+The application automatically creates 5 default user groups during database migration. Users are automatically assigned to appropriate groups during signup and invitation processes:
+
+- **Tenant Owners**: Full access to tenant management and all features
+- **Project Managers**: Manage projects, teams, and client relationships
+- **Employees**: Standard employee access to assigned projects
+- **Clients**: Limited read-only access to view project progress and invoices
+- **Administrators**: System-wide administrative access
+
+Groups provide role-based access control while maintaining tenant data isolation.
 
 ## Installation and Setup
 
@@ -144,7 +161,7 @@ The complete API documentation is available through Swagger UI:
 ### Key Endpoints
 
 - `POST /api/login/` - User login
-- `POST /api/signup/` - User registration
+- `POST /api/signup/` - User registration with company information collection
 - `GET /api/tenants/` - List tenants
 - `GET /api/clients/` - List clients
 - `GET /api/projects/` - List projects
@@ -154,6 +171,42 @@ The complete API documentation is available through Swagger UI:
 - `GET /api/payments/` - List payments
 
 All endpoints are fully documented in the Swagger UI with request/response schemas, authentication requirements, and interactive testing capabilities.
+
+### Signup Process
+
+The signup endpoint (`POST /api/signup/`) supports two flows:
+
+1. **New Tenant Creation**: When no `invitation_token` is provided, creates a new tenant with comprehensive company information
+2. **Invitation Acceptance**: When `invitation_token` is provided, joins an existing tenant
+
+**Required Fields for New Tenant:**
+- `email`, `password`, `first_name`, `last_name`, `company_name`
+
+**Optional Fields for New Tenant:**
+- `address`: Physical address of the company
+- `phone`: Contact phone number
+- `website`: Company website URL (validated for proper URL format)
+- `industry`: Industry sector (e.g., Technology, Healthcare, Finance)
+- `company_size`: Company size category (1-10, 11-50, 51-200, 201-1000, 1000+ employees)
+
+**For Invitations:**
+- `invitation_token` (required, valid and unused invitation token)
+
+**Validation Rules:**
+- Email domain is used to create unique tenant subdomain
+- Website URLs are validated for proper format
+- Company name must be unique across all tenants
+- Invitation tokens must be unused and not expired
+
+**Automatic Group Assignment:**
+- New tenant owners are automatically assigned to "Tenant Owners" group
+- Invited users are assigned to groups based on their invitation role:
+  - 'Tenant Owner' → Tenant Owners group
+  - 'Employee' → Employees group
+  - 'Manager' → Project Managers group
+
+**Response:**
+Returns authentication token and user/tenant information on successful signup.
 
 ## Models
 
@@ -166,9 +219,18 @@ All endpoints are fully documented in the Swagger UI with request/response schem
 - `user_permissions`: Many-to-many with Django Permissions
 
 #### Tenant
-- `name`: Tenant name (unique)
-- `domain`: Subdomain for tenant
-- `address`: Physical address
+- `name`: Tenant/company name (unique)
+- `domain`: Subdomain for tenant access (auto-generated from email domain)
+- `address`: Physical address of the company
+- `phone`: Contact phone number
+- `website`: Company website URL (validated)
+- `industry`: Industry sector (e.g., Technology, Healthcare, Finance)
+- `company_size`: Company size category with predefined choices:
+  - '1-10': 1-10 employees
+  - '11-50': 11-50 employees
+  - '51-200': 51-200 employees
+  - '201-1000': 201-1000 employees
+  - '1000+': 1000+ employees
 - `created_at`: Creation timestamp
 
 #### UserTenant
@@ -277,6 +339,59 @@ python manage.py migrate_to_tenants --tenant-name="Company Name"
 ```
 
 Useful for converting single-tenant data to multi-tenant setup.
+
+### setup_groups
+Sets up default user groups with appropriate permissions.
+
+```bash
+python manage.py setup_groups
+```
+
+Creates and configures the 5 default user groups (Tenant Owners, Project Managers, Employees, Clients, Administrators) with appropriate permissions. Run this after migrations to ensure groups are properly configured.
+
+## Testing
+
+The application includes comprehensive test coverage with 48 tests covering all major functionality.
+
+### Running Tests
+
+```bash
+# Run all tests
+python manage.py test
+
+# Run specific test class
+python manage.py test project.tests.ProjectAPITests
+
+# Run with verbose output
+python manage.py test --verbosity=2
+
+# Run tests without recreating database
+python manage.py test --keepdb
+```
+
+### Test Coverage
+
+- **Authentication Tests**: Login, signup, and authentication flows
+- **Tenant API Tests**: CRUD operations for tenants
+- **Client API Tests**: Client management with permissions
+- **Project API Tests**: Project lifecycle management
+- **Milestone/Sprint/Task Tests**: Agile workflow management
+- **Invoice/Payment Tests**: Financial operations
+- **Permission Tests**: Role-based access control
+- **Model Tests**: Data validation and relationships
+- **Group Tests**: Default group creation and assignment
+
+### Test Data
+
+Tests use realistic fixtures and create test data programmatically. All tests are designed to run independently and clean up after execution.
+
+### API Testing
+
+Use the interactive Swagger UI for manual API testing:
+- **Swagger UI**: `http://127.0.0.1:8000/api/schema/swagger-ui/`
+- **ReDoc**: `http://127.0.0.1:8000/api/schema/redoc/`
+
+The Swagger UI provides interactive forms for testing all endpoints with proper authentication.
 
 ## Testing
 
