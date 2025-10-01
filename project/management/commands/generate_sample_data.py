@@ -23,7 +23,7 @@ class Command(BaseCommand):
         # Create users
         users = []
         for i in range(5):
-            email = f'user{i+1}@example.com'
+            email = f'user{i+1}@tenant{i+1}.sample.com'
             user, created = CustomUser.objects.get_or_create(
                 email=email,
                 defaults={
@@ -42,7 +42,8 @@ class Command(BaseCommand):
         if Tenant.objects.count() < 3:
             tenants = []
             for i in range(3 - Tenant.objects.count()):
-                tenant = TenantFactory.create(domain=f'tenant{i+1}.sample.com')
+                domain = f'tenant{i+1}.sample.com'
+                tenant = TenantFactory.create(domain=domain)
                 tenants.append(tenant)
             self.stdout.write(f'Created {len(tenants)} tenants')
         else:
