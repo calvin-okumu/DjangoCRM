@@ -305,6 +305,7 @@ def login_view(request):
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def signup_view(request):
+
     email = request.data.get('email')
     password = request.data.get('password')
     first_name = request.data.get('first_name')
@@ -317,8 +318,12 @@ def signup_view(request):
     company_size = request.data.get('company_size', '')
     invitation_token = request.data.get('invitation_token')
 
+
     if not email or not password or not first_name or not last_name:
         return Response({'error': 'Email, password, first_name, and last_name are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if CustomUser.objects.filter(email=email).exists():
+        return Response({'error': 'Email already exists'}, status=status.HTTP_400_BAD_REQUEST)
 
     domain = email.split('@')[1]
 

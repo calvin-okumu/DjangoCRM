@@ -26,13 +26,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-default-key-change-in-production")
 
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY not set in .env")
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 # Site URL for generating absolute URLs
 SITE_URL = os.getenv("SITE_URL", "http://127.0.0.1:8000")
 
@@ -64,6 +66,7 @@ INSTALLED_APPS = [
     "allauth.socialaccount.providers.github",
     "drf_spectacular",
     "drf_spectacular_sidecar",
+    "corsheaders",
 ]
 
 # Authentication backends
@@ -73,6 +76,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -106,15 +110,16 @@ WSGI_APPLICATION = "saasCRM.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
+
         "NAME": os.getenv("DB_NAME", "saascrm_db"),
         "USER": os.getenv("DB_USER", "xorb"),
         "PASSWORD": os.getenv("DB_PASSWORD", "password123"),
         "HOST": os.getenv("DB_HOST", "localhost"),
         "PORT": os.getenv("DB_PORT", "5432"),
+
     }
 }
 
@@ -214,7 +219,9 @@ REST_FRAMEWORK = {
 }
 
 SPECTACULAR_SETTINGS = {
+
     "TITLE": "CarlHUB API",
+
     "DESCRIPTION": "Multi-tenant CRM API for managing clients, projects, milestones, tasks, invoices, and payments.",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
@@ -222,3 +229,11 @@ SPECTACULAR_SETTINGS = {
     "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
     "REDOC_DIST": "SIDECAR",
 }
+
+# CORS settings
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+CORS_ALLOW_CREDENTIALS = True
