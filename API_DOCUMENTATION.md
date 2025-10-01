@@ -208,6 +208,15 @@ The signup endpoint (`POST /api/signup/`) supports two flows:
 **Response:**
 Returns authentication token and user/tenant information on successful signup.
 
+## CORS Configuration
+
+The API includes CORS headers to allow cross-origin requests from the frontend application. The following origins are allowed by default:
+
+- `http://localhost:3000`
+- `http://127.0.0.1:3000`
+
+To modify allowed origins, update `CORS_ALLOWED_ORIGINS` in `saasCRM/settings.py`. Credentials are allowed for authenticated requests.
+
 ## Models
 
 ### Accounts App Models

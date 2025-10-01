@@ -93,10 +93,37 @@ A comprehensive multi-tenant Customer Relationship Management system built with 
    python check_env.py  # Check that all required variables are set
    ```
 
- 8. **Run the development server**
+  8. **Run the development server**
     ```bash
     python manage.py runserver 127.0.0.1:8000
     ```
+
+## 🏃 Running the Application
+
+### Backend Only
+```bash
+source venv/bin/activate
+python manage.py runserver
+```
+Runs on http://127.0.0.1:8000
+
+### Full Stack (Frontend + Backend)
+1. **Backend** (in main directory):
+   ```bash
+   source venv/bin/activate
+   python manage.py runserver
+   ```
+
+2. **Frontend** (in new terminal):
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+   Runs on http://localhost:3000
+
+The frontend uses Next.js rewrites to proxy `/api/*` to the backend, so no CORS issues in development. For production, configure accordingly.
+
 
  9. **Access the application**
     - **API**: http://127.0.0.1:8000/api/
