@@ -33,7 +33,7 @@ class TenantFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Tenant
     name = factory.Faker('company')
-    domain = factory.Sequence(lambda n: f'tenant{n}.example.com')
+    domain = factory.Sequence(lambda n: f'tenant{n}.sample.com')
     address = factory.Faker('address')
     phone = factory.LazyFunction(lambda: fake.phone_number()[:20])
     website = factory.Faker('url')

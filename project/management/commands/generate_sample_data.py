@@ -42,7 +42,7 @@ class Command(BaseCommand):
         if Tenant.objects.count() < 3:
             tenants = []
             for i in range(3 - Tenant.objects.count()):
-                tenant = TenantFactory.create(domain=f'tenant{i+1}.example.com')
+                tenant = TenantFactory.create(domain=f'tenant{i+1}.sample.com')
                 tenants.append(tenant)
             self.stdout.write(f'Created {len(tenants)} tenants')
         else:
