@@ -2,8 +2,8 @@ import factory
 from datetime import timedelta
 from faker import Faker
 from django.contrib.auth.models import Group
-from .models import CustomUser, Client, Project, Milestone, Sprint, Task, Invoice, Payment
-from accounts.models import Tenant, UserTenant
+from accounts.models import CustomUser, Tenant, UserTenant
+from .models import Client, Project, Milestone, Sprint, Task, Invoice, Payment
 
 fake = Faker()
 
@@ -35,6 +35,10 @@ class TenantFactory(factory.django.DjangoModelFactory):
     name = factory.Faker('company')
     domain = factory.Sequence(lambda n: f'tenant{n}.example.com')
     address = factory.Faker('address')
+    phone = factory.LazyFunction(lambda: fake.phone_number()[:20])
+    website = factory.Faker('url')
+    industry = factory.Iterator(['Technology', 'Healthcare', 'Finance', 'Education', 'Retail'])
+    company_size = factory.Iterator(['1-10', '11-50', '51-200', '201-1000', '1000+'])
 
 class ClientFactory(factory.django.DjangoModelFactory):
     class Meta:

@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import Group
-from project.models import CustomUser, Tenant, Client, Project, Milestone, Sprint, Task, Invoice, Payment
+from accounts.models import CustomUser, Tenant
+from project.models import Client, Project, Milestone, Sprint, Task, Invoice, Payment
 from project.factories import (
     TenantFactory, ClientFactory,
     ProjectFactory, MilestoneFactory, SprintFactory, TaskFactory,
@@ -13,15 +14,13 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write('Generating sample data...')
 
-        # Create or get groups
+        # Create or get groups (let signal handle assignment)
         group_names = ['Client Management Administrators', 'Business Strategy Administrators', 'API Control Administrators', 'Product Measurement Administrators', 'Employees', 'Tenant Owners']
-        groups = []
         for name in group_names:
-            group, created = Group.objects.get_or_create(name=name)
-            groups.append(group)
-        self.stdout.write(f'Ensured {len(groups)} groups exist')
+            Group.objects.get_or_create(name=name)
+        self.stdout.write('Ensured groups exist')
 
-        # Create users with groups
+        # Create users
         users = []
         for i in range(5):
             email = f'user{i+1}@example.com'
@@ -36,16 +35,40 @@ class Command(BaseCommand):
             if created:
                 user.set_password('password123')
                 user.save()
-            user.groups.add(groups[i % len(groups)])  # Cycle through groups
             users.append(user)
         self.stdout.write(f'Ensured {len(users)} users exist')
 
-        # Create tenants if not exist
+        # Create tenants with domains if not exist
         if Tenant.objects.count() < 3:
-            tenants = TenantFactory.create_batch(3 - Tenant.objects.count())
+            tenants = []
+            for i in range(3 - Tenant.objects.count()):
+                tenant = TenantFactory.create(domain=f'tenant{i+1}.example.com')
+                tenants.append(tenant)
             self.stdout.write(f'Created {len(tenants)} tenants')
         else:
             self.stdout.write('Tenants already exist')
+            tenants = list(Tenant.objects.all()[:3])  # Get existing for linking
+
+        # Link users to tenants via UserTenant
+        from accounts.models import UserTenant
+        self.stdout.write(f'Linking {len(users)} users to {len(tenants)} tenants')
+        for i, user in enumerate(users):
+            tenant = tenants[i % len(tenants)]  # Cycle through tenants
+            self.stdout.write(f'Processing user {user.email} with tenant {tenant.name}')
+            user_tenant, created = UserTenant.objects.get_or_create(
+                user=user,
+                tenant=tenant,
+                defaults={
+                    'is_owner': (i % len(tenants) == 0),  # First user per tenant is owner
+                    'is_approved': True,
+                    'role': 'Tenant Owner' if (i % len(tenants) == 0) else 'Employee'
+                }
+            )
+            if created:
+                self.stdout.write(f'Created link: {user.email} to {tenant.name} as {"owner" if user_tenant.is_owner else "employee"}')
+            else:
+                self.stdout.write(f'Link already exists: {user.email} to {tenant.name}')
+        self.stdout.write('User-tenant links established')
 
         # Create clients if not exist
         if Client.objects.count() < 6:
