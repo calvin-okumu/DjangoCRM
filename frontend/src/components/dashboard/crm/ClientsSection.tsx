@@ -1,8 +1,8 @@
 "use client";
 
 import React from 'react';
-import { Plus } from 'lucide-react';
-import { Client } from '../../../api/api';
+import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Client } from '../../../api';
 
 interface FilterOption {
     value: string;
@@ -25,6 +25,8 @@ interface ClientsSectionProps {
     title: string;
     addButtonText: string;
     onAdd: () => void;
+    onEdit?: (client: Client) => void;
+    onDelete?: (clientId: number) => void;
     filters: Filter[];
     emptyState: EmptyState;
     clients?: Client[];
@@ -34,6 +36,8 @@ const ClientsSection: React.FC<ClientsSectionProps> = ({
     title,
     addButtonText,
     onAdd,
+    onEdit,
+    onDelete,
     filters,
     emptyState,
     clients
@@ -85,21 +89,94 @@ const ClientsSection: React.FC<ClientsSectionProps> = ({
                     </button>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {(clients || []).map((client) => (
-                        <div key={client.id} className="bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow duration-200 p-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">{client.name}</h3>
-                            <p className="text-gray-600 mb-1">{client.email}</p>
-                            {client.phone && <p className="text-gray-500 text-sm mb-2">{client.phone}</p>}
-                            <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
-                                client.status === 'active' ? 'bg-green-100 text-green-800' :
-                                client.status === 'inactive' ? 'bg-red-100 text-red-800' :
-                                'bg-yellow-100 text-yellow-800'
-                            }`}>
-                                {client.status}
-                            </span>
-                        </div>
-                    ))}
+                <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Name
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Email
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Phone
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Status
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Projects
+                                    </th>
+                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                         Created
+                                     </th>
+                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                         Actions
+                                     </th>
+                                 </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {(clients || []).map((client) => (
+                                    <tr key={client.id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm font-medium text-gray-900">
+                                                {client.name}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm text-gray-600">
+                                                {client.email}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm text-gray-500">
+                                                {client.phone || '-'}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                                client.status === 'active' ? 'bg-green-100 text-green-800' :
+                                                client.status === 'inactive' ? 'bg-red-100 text-red-800' :
+                                                'bg-yellow-100 text-yellow-800'
+                                            }`}>
+                                                {client.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {client.projects_count}
+                                        </td>
+                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                             {new Date(client.created_at).toLocaleDateString()}
+                                         </td>
+                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                             <div className="flex space-x-2">
+                                                 {onEdit && (
+                                                     <button
+                                                         onClick={() => onEdit(client)}
+                                                         className="text-blue-600 hover:text-blue-900"
+                                                         title="Edit"
+                                                     >
+                                                         <Edit className="h-5 w-5" />
+                                                     </button>
+                                                 )}
+                                                 {onDelete && (
+                                                     <button
+                                                         onClick={() => onDelete(client.id)}
+                                                         className="text-red-600 hover:text-red-900"
+                                                         title="Delete"
+                                                     >
+                                                         <Trash2 className="h-5 w-5" />
+                                                     </button>
+                                                 )}
+                                             </div>
+                                         </td>
+                                     </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>

@@ -3,7 +3,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 interface FormField {
     name: string;
@@ -38,6 +38,14 @@ const AddClientModal = ({
     }, {} as Record<string, string>);
 
     const [formData, setFormData] = useState(initialData);
+
+    useEffect(() => {
+        const newInitialData = fields.reduce((acc, field) => {
+            acc[field.name] = field.defaultValue || "";
+            return acc;
+        }, {} as Record<string, string>);
+        setFormData(newInitialData);
+    }, [fields]);
 
     const handleChange = (
         e: React.ChangeEvent<

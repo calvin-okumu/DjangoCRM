@@ -4,7 +4,7 @@
 import AuthLayout from "@/components/AuthLayout";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { login } from "@/api/api";
+import { login } from "@/api";
 import { Eye, EyeOff, CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {

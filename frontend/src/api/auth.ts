@@ -1,33 +1,5 @@
-const API_BASE = "http://127.0.0.1:8000/api";
-
-export interface LoginResponse {
-  token: string;
-  user_id: number;
-  email: string;
-  first_name: string;
-  last_name: string;
-  message: string;
-}
-
-export interface SignupResponse {
-  token: string;
-  user_id: number;
-  email: string;
-  first_name: string;
-  last_name: string;
-  tenant: string;
-  message: string;
-}
-
-export interface Client {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-}
+import { LoginResponse, SignupResponse } from './types';
+import { API_BASE } from './index';
 
 export async function login(
   email: string,
@@ -79,24 +51,6 @@ export async function signup(
       }
     }
     throw new Error(errorMessage);
-  }
-
-  return data;
-}
-
-export async function getClients(token: string): Promise<Client[]> {
-  const response = await fetch(`${API_BASE}/clients/`, {
-    method: "GET",
-    headers: {
-      Authorization: `Token ${token}`,
-      "Content-Type": "application/json",
-    },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || "Failed to fetch clients");
   }
 
   return data;
