@@ -41,6 +41,16 @@ class ProjectSerializer(serializers.ModelSerializer):
     milestones_count = serializers.SerializerMethodField(help_text='Number of milestones in this project')
     progress = serializers.SerializerMethodField(help_text='Overall project progress percentage (0-100)')
 
+    def validate_budget(self, value):
+        if value is not None:
+            # Ensure budget is a Decimal with 2 decimal places
+            from decimal import Decimal
+            if isinstance(value, (int, float)):
+                value = Decimal(str(value)).quantize(Decimal('0.01'))
+            elif isinstance(value, str):
+                value = Decimal(value).quantize(Decimal('0.01'))
+        return value
+
     class Meta:
         model = Project
         fields = ['id', 'name', 'client', 'client_name', 'status', 'priority', 'start_date', 'end_date', 'budget', 'description', 'tags', 'team_members', 'access_groups', 'milestones_count', 'progress', 'created_at']
