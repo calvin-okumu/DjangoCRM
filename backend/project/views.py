@@ -128,8 +128,15 @@ class ClientViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.tenant:
             return Client.objects.filter(tenant=self.request.tenant)
+        elif self.request.user.is_authenticated:
+            # In dev mode, filter by user's tenants
+            user_tenants = UserTenant.objects.filter(user=self.request.user).values_list('tenant', flat=True)
+            if user_tenants:
+                return Client.objects.filter(tenant__in=user_tenants)
+            else:
+                return Client.objects.none()  # No tenants, no clients
         else:
-            return Client.objects.all()  # For development
+            return Client.objects.none()  # Unauthenticated, no access
 
 
 @extend_schema_view(
@@ -177,8 +184,15 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.tenant:
             return Project.objects.filter(tenant=self.request.tenant)
+        elif self.request.user.is_authenticated:
+            # In dev mode, filter by user's tenants
+            user_tenants = UserTenant.objects.filter(user=self.request.user).values_list('tenant', flat=True)
+            if user_tenants:
+                return Project.objects.filter(tenant__in=user_tenants)
+            else:
+                return Project.objects.none()  # No tenants, no projects
         else:
-            return Project.objects.all()  # For development
+            return Project.objects.none()  # Unauthenticated, no access
 
     def perform_create(self, serializer):
         if hasattr(self.request, 'tenant') and self.request.tenant:
@@ -259,8 +273,15 @@ class MilestoneViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.tenant:
             return Milestone.objects.filter(tenant=self.request.tenant)
+        elif self.request.user.is_authenticated:
+            # In dev mode, filter by user's tenants
+            user_tenants = UserTenant.objects.filter(user=self.request.user).values_list('tenant', flat=True)
+            if user_tenants:
+                return Milestone.objects.filter(tenant__in=user_tenants)
+            else:
+                return Milestone.objects.none()  # No tenants, no milestones
         else:
-            return Milestone.objects.all()  # For development
+            return Milestone.objects.none()  # Unauthenticated, no access
 
 
 @extend_schema_view(
@@ -320,8 +341,15 @@ class SprintViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.tenant:
             return Sprint.objects.filter(tenant=self.request.tenant)
+        elif self.request.user.is_authenticated:
+            # In dev mode, filter by user's tenants
+            user_tenants = UserTenant.objects.filter(user=self.request.user).values_list('tenant', flat=True)
+            if user_tenants:
+                return Sprint.objects.filter(tenant__in=user_tenants)
+            else:
+                return Sprint.objects.none()  # No tenants, no sprints
         else:
-            return Sprint.objects.all()  # For development
+            return Sprint.objects.none()  # Unauthenticated, no access
 
     @action(detail=True, methods=['post'])
     def create_task(self, request, pk=None):
@@ -405,8 +433,15 @@ class TaskViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.tenant:
             return Task.objects.filter(tenant=self.request.tenant)
+        elif self.request.user.is_authenticated:
+            # In dev mode, filter by user's tenants
+            user_tenants = UserTenant.objects.filter(user=self.request.user).values_list('tenant', flat=True)
+            if user_tenants:
+                return Task.objects.filter(tenant__in=user_tenants)
+            else:
+                return Task.objects.none()  # No tenants, no tasks
         else:
-            return Task.objects.all()  # For development
+            return Task.objects.none()  # Unauthenticated, no access
 
     def perform_create(self, serializer):
         instance = serializer.save()
@@ -461,8 +496,15 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.tenant:
             return Invoice.objects.filter(tenant=self.request.tenant)
+        elif self.request.user.is_authenticated:
+            # In dev mode, filter by user's tenants
+            user_tenants = UserTenant.objects.filter(user=self.request.user).values_list('tenant', flat=True)
+            if user_tenants:
+                return Invoice.objects.filter(tenant__in=user_tenants)
+            else:
+                return Invoice.objects.none()  # No tenants, no invoices
         else:
-            return Invoice.objects.all()  # For development
+            return Invoice.objects.none()  # Unauthenticated, no access
 
 
 @extend_schema_view(
@@ -509,8 +551,15 @@ class PaymentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if self.request.tenant:
             return Payment.objects.filter(tenant=self.request.tenant)
+        elif self.request.user.is_authenticated:
+            # In dev mode, filter by user's tenants
+            user_tenants = UserTenant.objects.filter(user=self.request.user).values_list('tenant', flat=True)
+            if user_tenants:
+                return Payment.objects.filter(tenant__in=user_tenants)
+            else:
+                return Payment.objects.none()  # No tenants, no payments
         else:
-            return Payment.objects.all()  # For development
+            return Payment.objects.none()  # Unauthenticated, no access
 
 
 @extend_schema_view(
