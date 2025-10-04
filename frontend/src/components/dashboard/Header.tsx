@@ -103,7 +103,7 @@ export default function Header() {
                                                 localStorage.removeItem("refresh_token");
                                                 localStorage.removeItem("user");
                                                 setIsProfileMenuOpen(false);
-                                                router.push("/");
+                                                router.push("/login");
                                             }}
                                             className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                                         >

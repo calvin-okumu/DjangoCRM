@@ -24,7 +24,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
                         height={32}
                         className="mr-2"
                     />
-                    <h1 className="text-xl font-bold text-gray-900">Carlhub</h1>
+                    <h1 className="text-xl font-bold text-blue-600">Carlhub</h1>
                 </Link>
             </header>
 

@@ -4,7 +4,7 @@
 import AuthLayout from "@/components/AuthLayout";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signup } from "@/api/api";
+import { signup } from "@/api";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function SignUpPage() {

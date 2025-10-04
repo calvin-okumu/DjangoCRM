@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { API_BASE } from "@/api/api";
+import { API_BASE } from "@/api";
 
 export default function AuthCallbackPage() {
     const router = useRouter();

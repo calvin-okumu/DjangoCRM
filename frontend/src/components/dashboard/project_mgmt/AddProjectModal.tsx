@@ -1,49 +1,49 @@
-
-
 "use client";
 
-import { X } from "lucide-react";
+import { X, Plus } from "lucide-react";
 import React, { useState, useEffect } from "react";
 
 interface FormField {
     name: string;
     label: string;
-    type: "text" | "url" | "textarea" | "select";
+    type: "text" | "number" | "date" | "textarea" | "select" | "multiselect" | "boolean";
     required?: boolean;
     placeholder?: string;
     options?: { value: string; label: string }[];
-    defaultValue?: string;
+    defaultValue?: string | string[] | boolean;
 }
 
-interface AddClientModalProps {
+interface AddProjectModalProps {
     isOpen: boolean;
     onClose: () => void;
     title: string;
     fields: FormField[];
-    onSubmit: (data: Record<string, string>) => void;
+    onSubmit: (data: Record<string, any>) => void;
     submitButtonText: string;
+    onAddClient?: () => void;
 }
 
-const AddClientModal = ({
+const AddProjectModal = ({
     isOpen,
     onClose,
     title,
     fields,
     onSubmit,
     submitButtonText,
-}: AddClientModalProps) => {
+    onAddClient,
+}: AddProjectModalProps) => {
     const initialData = fields.reduce((acc, field) => {
-        acc[field.name] = field.defaultValue || "";
+        acc[field.name] = field.defaultValue || (field.type === "multiselect" ? [] : field.type === "boolean" ? false : "");
         return acc;
-    }, {} as Record<string, string>);
+    }, {} as Record<string, any>);
 
     const [formData, setFormData] = useState(initialData);
 
     useEffect(() => {
         const newInitialData = fields.reduce((acc, field) => {
-            acc[field.name] = field.defaultValue || "";
+            acc[field.name] = field.defaultValue || (field.type === "multiselect" ? [] : field.type === "boolean" ? false : "");
             return acc;
-        }, {} as Record<string, string>);
+        }, {} as Record<string, any>);
         setFormData(newInitialData);
     }, [fields]);
 
@@ -52,9 +52,24 @@ const AddClientModal = ({
             HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
         >
     ) => {
+        const { name, value, type } = e.target;
+        if (type === "checkbox") {
+            setFormData({
+                ...formData,
+                [name]: (e.target as HTMLInputElement).checked,
+            });
+        } else {
+            setFormData({
+                ...formData,
+                [name]: value,
+            });
+        }
+    };
+
+    const handleMultiSelectChange = (name: string, values: string[]) => {
         setFormData({
             ...formData,
-            [e.target.name]: e.target.value,
+            [name]: values,
         });
     };
 
@@ -73,7 +88,7 @@ const AddClientModal = ({
 
             {/* Modal */}
             <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-                <div className="bg-white rounded-2xl p-8 w-full max-w-lg shadow-2xl relative animate-scaleIn">
+                <div className="bg-white rounded-2xl p-8 w-full max-w-2xl shadow-2xl relative animate-scaleIn max-h-[90vh] overflow-y-auto">
                     {/* Header */}
                     <div className="flex justify-between items-center mb-6 border-b pb-3">
                         <h3 className="text-xl font-semibold text-gray-900">{title}</h3>
@@ -91,12 +106,22 @@ const AddClientModal = ({
                             {fields.map((field) => (
                                 <div
                                     key={field.name}
-                                    className={field.type === "textarea" ? "md:col-span-2" : ""}
+                                    className={field.type === "textarea" || field.name === "description" ? "md:col-span-2" : ""}
                                 >
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         {field.label}{" "}
                                         {field.required && (
                                             <span className="text-red-500">*</span>
+                                        )}
+                                        {field.name === "client" && onAddClient && (
+                                            <button
+                                                type="button"
+                                                onClick={onAddClient}
+                                                className="text-blue-600 hover:text-blue-800 text-sm ml-2 inline-flex items-center"
+                                            >
+                                                <Plus className="h-4 w-4 mr-1" />
+                                                Add new client
+                                            </button>
                                         )}
                                     </label>
                                     {field.type === "textarea" ? (
@@ -123,6 +148,39 @@ const AddClientModal = ({
                                                 </option>
                                             ))}
                                         </select>
+                                    ) : field.type === "multiselect" ? (
+                                        <div className="relative">
+                                            <select
+                                                multiple
+                                                name={field.name}
+                                                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                                                value={formData[field.name]}
+                                                onChange={(e) => {
+                                                    const selected = Array.from(e.target.selectedOptions, option => option.value);
+                                                    handleMultiSelectChange(field.name, selected);
+                                                }}
+                                            >
+                                                {field.options?.map((option) => (
+                                                    <option key={option.value} value={option.value}>
+                                                        {option.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <div className="mt-2 text-xs text-gray-500">
+                                                Selected: {formData[field.name].join(", ")}
+                                            </div>
+                                        </div>
+                                    ) : field.type === "boolean" ? (
+                                        <label className="flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                name={field.name}
+                                                checked={formData[field.name]}
+                                                onChange={handleChange}
+                                                className="mr-2"
+                                            />
+                                            {field.label}
+                                        </label>
                                     ) : (
                                         <input
                                             type={field.type}
@@ -160,33 +218,33 @@ const AddClientModal = ({
 
             {/* Animations */}
             <style jsx>{`
-        .animate-fadeIn {
-          animation: fadeIn 0.2s ease-out forwards;
-        }
-        .animate-scaleIn {
-          animation: scaleIn 0.25s ease-out forwards;
-        }
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-        @keyframes scaleIn {
-          from {
-            opacity: 0;
-            transform: scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-      `}</style>
+                .animate-fadeIn {
+                    animation: fadeIn 0.2s ease-out forwards;
+                }
+                .animate-scaleIn {
+                    animation: scaleIn 0.25s ease-out forwards;
+                }
+                @keyframes fadeIn {
+                    from {
+                        opacity: 0;
+                    }
+                    to {
+                        opacity: 1;
+                    }
+                }
+                @keyframes scaleIn {
+                    from {
+                        opacity: 0;
+                        transform: scale(0.95);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: scale(1);
+                    }
+                }
+            `}</style>
         </>
     );
 };
 
-export default AddClientModal;
+export default AddProjectModal;
