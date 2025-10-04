@@ -68,16 +68,17 @@ def test_api_with_token(token, endpoint="/api/tenants/"):
             print("✅ API access successful")
             if isinstance(data, list):
                 print(f"   Returned {len(data)} items")
+                return data
             else:
                 print(f"   Response keys: {list(data.keys()) if isinstance(data, dict) else 'N/A'}")
-            return True
+                return data
         else:
             print(f"❌ API access failed: {response.status_code}")
             print(f"   Response: {response.text}")
-            return False
+            return None
     except Exception as e:
         print(f"❌ API test error: {e}")
-        return False
+        return None
 
 def test_unauthorized_access(endpoint="/api/tenants/"):
     """Test that unauthorized access is properly blocked"""
@@ -93,6 +94,52 @@ def test_unauthorized_access(endpoint="/api/tenants/"):
             return False
     except Exception as e:
         print(f"❌ Unauthorized access test error: {e}")
+        return False
+
+def test_post_project(token):
+    """Test posting a new project"""
+    print("\n📝 Testing POST project...")
+
+    # First get a client
+    clients = test_api_with_token(token, "/api/clients/")
+    if not clients or len(clients) == 0:
+        print("❌ No clients found to associate project with")
+        return False
+
+    client_id = clients[0]['id']
+    print(f"   Using client ID: {client_id}")
+
+    project_data = {
+        "name": "Test Project from API",
+        "client": client_id,
+        "status": "planning",
+        "priority": "medium",
+        "description": "A test project created via API",
+        "budget": 5000.00
+    }
+
+    try:
+        response = requests.post(
+            f"{BASE_URL}/api/projects/",
+            json=project_data,
+            headers={
+                "Authorization": f"Token {token}",
+                "Content-Type": "application/json"
+            }
+        )
+
+        if response.status_code == 201:
+            data = response.json()
+            print("✅ Project created successfully")
+            print(f"   Project ID: {data.get('id')}")
+            print(f"   Project name: {data.get('name')}")
+            return True
+        else:
+            print(f"❌ Project creation failed: {response.status_code}")
+            print(f"   Response: {response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Project creation error: {e}")
         return False
 
 def test_oauth_redirects():
@@ -114,25 +161,39 @@ def create_test_user():
     """Create a test user for testing"""
     print("\n👤 Creating test user...")
     try:
-        from project.models import CustomUser
         import os
         import django
 
         os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'saasCRM.settings')
         django.setup()
 
-        if not CustomUser.objects.filter(email='user1@example.com').exists():
-            CustomUser.objects.create_user(
-                username='user1',
-                email='user1@example.com',
-                password='password123',
-                is_staff=True
-            )
-            print("✅ Test user created: user1@example.com / password123")
-            return True
+        from accounts.models import CustomUser
+        from django.contrib.auth.models import Group
+
+        user, created = CustomUser.objects.get_or_create(
+            email='test@example.com',
+            defaults={
+                'username': 'testuser',
+                'is_staff': True,
+                'is_superuser': True
+            }
+        )
+        if created:
+            user.set_password('password123')
+            user.save()
+            print("✅ Test user created: test@example.com / password123")
         else:
             print("ℹ️  Test user already exists")
-            return True
+
+        # Ensure in required groups
+        groups = ['Client Management Administrators', 'Business Strategy Administrators', 'API Control Administrators']
+        for group_name in groups:
+            group, _ = Group.objects.get_or_create(name=group_name)
+            if not user.groups.filter(name=group_name).exists():
+                user.groups.add(group)
+                print(f"   Added to group: {group_name}")
+
+        return True
     except Exception as e:
         print(f"❌ Failed to create test user: {e}")
         return False
@@ -145,6 +206,9 @@ def main():
     # Test 1: Environment and server
     print("🌐 Server should be running on http://127.0.0.1:8001")
 
+    # Test 1: Create test user
+    create_test_user()
+
     # Test 2: Auth methods endpoint
     auth_methods_ok = test_auth_methods()
 
@@ -152,12 +216,17 @@ def main():
     unauthorized_ok = test_unauthorized_access()
 
     # Test 4: Traditional login
-    token = test_traditional_login(email="user1@example.com", password="password123")
+    token = test_traditional_login(email="test@example.com", password="password123")
 
-    # Test 6: API access with token
+    # Test 5: API access with token
     api_ok = False
     if token:
-        api_ok = test_api_with_token(token)
+        api_ok = test_api_with_token(token) is not None
+
+    # Test 6: POST project
+    project_ok = False
+    if token:
+        project_ok = test_post_project(token)
 
     # Test 7: OAuth redirects
     test_oauth_redirects()
@@ -169,9 +238,10 @@ def main():
     print(f"   Unauthorized blocking: {'✅' if unauthorized_ok else '❌'}")
     print(f"   Traditional login: {'✅' if token else '❌'}")
     print(f"   API access: {'✅' if api_ok else '❌'}")
+    print(f"   Project creation: {'✅' if project_ok else '❌'}")
 
-    if auth_methods_ok and unauthorized_ok and token and api_ok:
-        print("\n🎉 All core tests passed! Your API is working correctly.")
+    if auth_methods_ok and unauthorized_ok and token and api_ok and project_ok:
+        print("\n🎉 All tests passed! Your API is working correctly.")
         print("\nNext steps:")
         print("1. Configure real OAuth credentials in .env")
         print("2. Test OAuth login in browser")

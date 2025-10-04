@@ -69,7 +69,12 @@ class ProjectSerializer(serializers.ModelSerializer):
 class MilestoneSerializer(serializers.ModelSerializer):
     project_name = serializers.CharField(source='project.name', read_only=True, help_text='Name of the parent project')
     sprints_count = serializers.SerializerMethodField(help_text='Number of sprints in this milestone')
-    progress = serializers.SerializerMethodField(help_text='Milestone progress percentage (0-100)')
+    progress = serializers.IntegerField(min_value=0, max_value=100, default=0, help_text='Milestone progress percentage (0-100)')
+
+    def validate_progress(self, value):
+        if value < 0 or value > 100:
+            raise serializers.ValidationError("Progress must be between 0 and 100")
+        return value
 
     class Meta:
         model = Milestone
@@ -96,7 +101,7 @@ class MilestoneSerializer(serializers.ModelSerializer):
 class SprintSerializer(serializers.ModelSerializer):
     milestone_name = serializers.CharField(source='milestone.name', read_only=True, help_text='Name of the parent milestone')
     tasks_count = serializers.SerializerMethodField(help_text='Number of tasks in this sprint')
-    progress = serializers.ReadOnlyField(help_text='Sprint progress percentage (0-100)')
+    progress = serializers.IntegerField(min_value=0, max_value=100, default=0, read_only=True, help_text='Sprint progress percentage (0-100)')
 
     class Meta:
         model = Sprint
@@ -116,7 +121,7 @@ class SprintSerializer(serializers.ModelSerializer):
 class TaskSerializer(serializers.ModelSerializer):
     milestone_name = serializers.CharField(source='milestone.name', read_only=True, help_text='Name of the parent milestone')
     sprint_name = serializers.CharField(source='sprint.name', read_only=True, help_text='Name of the assigned sprint (if any)')
-    progress = serializers.ReadOnlyField(help_text='Task progress percentage (0-100)')
+    progress = serializers.IntegerField(min_value=0, max_value=100, default=0, help_text='Task progress percentage (0-100)')
 
     class Meta:
         model = Task

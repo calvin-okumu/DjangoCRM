@@ -216,8 +216,8 @@ class TenantAPITests(APITestCase):
         self.user = CustomUser.objects.create_user(email='testuser@example.com', password='testpass')
         self.client.force_authenticate(user=self.user)
 
-        self.org1 = Tenant.objects.create(name="Org 1", address="Address 1")
-        self.org2 = Tenant.objects.create(name="Org 2", address="Address 2")
+        self.org1 = Tenant.objects.create(name="Org 1", address="Address 1", domain="org1.example.com")
+        self.org2 = Tenant.objects.create(name="Org 2", address="Address 2", domain="org2.example.com")
 
     def test_list_tenants(self):
         """Test listing tenants"""
@@ -454,6 +454,8 @@ class SprintAPITests(APITestCase):
 
     def setUp(self):
         self.user = CustomUser.objects.create_user(email='testuser@example.com', password='testpass')
+        self.group = Group.objects.create(name='API Control Administrators')
+        self.user.groups.add(self.group)
         self.client.force_authenticate(user=self.user)
 
         self.org = Tenant.objects.create(name="Test Org")
@@ -542,10 +544,10 @@ class PermissionTests(APITestCase):
 
     def setUp(self):
         # Create users with different permissions
-        self.regular_user = CustomUser.objects.create_user(username='regular', password='pass')
-        self.client_manager = CustomUser.objects.create_user(username='client_mgr', password='pass')
-        self.project_manager = CustomUser.objects.create_user(username='project_mgr', password='pass')
-        self.api_manager = CustomUser.objects.create_user(username='api_mgr', password='pass')
+        self.regular_user = CustomUser.objects.create_user(email='regular@example.com', password='pass')
+        self.client_manager = CustomUser.objects.create_user(email='client_mgr@example.com', password='pass')
+        self.project_manager = CustomUser.objects.create_user(email='project_mgr@example.com', password='pass')
+        self.api_manager = CustomUser.objects.create_user(email='api_mgr@example.com', password='pass')
 
         # Create groups
         client_group = Group.objects.create(name='Client Management Administrators')
