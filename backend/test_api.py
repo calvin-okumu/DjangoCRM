@@ -114,8 +114,11 @@ def test_post_project(token):
         "client": client_id,
         "status": "planning",
         "priority": "medium",
+        "start_date": "2024-01-01",
+        "end_date": "2024-12-31",
+        "budget": 5000,  # Test without decimal places
         "description": "A test project created via API",
-        "budget": 5000.00
+        "tags": "api,test,automation"
     }
 
     try:
