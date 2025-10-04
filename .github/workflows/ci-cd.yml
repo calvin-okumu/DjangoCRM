@@ -56,6 +56,14 @@ jobs:
         DJANGO_ENV=ci
         EOF
 
+    - name: Wait for PostgreSQL
+      run: |
+        until pg_isready -h localhost -p 5432 -U saascrm_user; do
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+        echo "PostgreSQL is ready!"
+
     - name: Run automated setup
       run: |
         cd backend
