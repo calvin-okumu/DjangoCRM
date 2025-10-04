@@ -218,6 +218,10 @@ class TenantAPITests(APITestCase):
 
         self.org1 = Tenant.objects.create(name="Org 1", address="Address 1", domain="org1.example.com")
         self.org2 = Tenant.objects.create(name="Org 2", address="Address 2", domain="org2.example.com")
+        # Create UserTenant association for all tenants (superuser-like access for tests)
+        from accounts.models import UserTenant
+        UserTenant.objects.create(user=self.user, tenant=self.org1, is_owner=True, is_approved=True)
+        UserTenant.objects.create(user=self.user, tenant=self.org2, is_owner=True, is_approved=True)
 
     def test_list_tenants(self):
         """Test listing tenants"""
@@ -280,6 +284,9 @@ class ClientAPITests(APITestCase):
         self.client.force_authenticate(user=self.user)
 
         self.org = Tenant.objects.create(name="Test Org")
+        # Create UserTenant association
+        from accounts.models import UserTenant
+        UserTenant.objects.create(user=self.user, tenant=self.org, is_owner=True, is_approved=True)
         self.client_obj = Client.objects.create(
             name="Test Client",
             email="test@example.com",
@@ -402,6 +409,9 @@ class MilestoneAPITests(APITestCase):
         self.client.force_authenticate(user=self.user)
 
         self.org = Tenant.objects.create(name="Test Org")
+        # Create UserTenant association
+        from accounts.models import UserTenant
+        UserTenant.objects.create(user=self.user, tenant=self.org, is_owner=True, is_approved=True)
         self.client_obj = Client.objects.create(
             name="Test Client",
             email="test@example.com",
@@ -414,6 +424,7 @@ class MilestoneAPITests(APITestCase):
         )
         self.milestone = Milestone.objects.create(
             name="Test Milestone",
+            tenant=self.org,
             project=self.project,
             status="active",
             progress=50
@@ -459,6 +470,9 @@ class SprintAPITests(APITestCase):
         self.client.force_authenticate(user=self.user)
 
         self.org = Tenant.objects.create(name="Test Org")
+        # Create UserTenant association
+        from accounts.models import UserTenant
+        UserTenant.objects.create(user=self.user, tenant=self.org, is_owner=True, is_approved=True)
         self.client_obj = Client.objects.create(
             name="Test Client",
             email="test@example.com",
@@ -506,6 +520,9 @@ class PaymentAPITests(APITestCase):
         self.client.force_authenticate(user=self.user)
 
         self.org = Tenant.objects.create(name="Test Org")
+        # Create UserTenant association
+        from accounts.models import UserTenant
+        UserTenant.objects.create(user=self.user, tenant=self.org, is_owner=True, is_approved=True)
         self.client_obj = Client.objects.create(
             name="Test Client",
             email="test@example.com",
@@ -513,11 +530,13 @@ class PaymentAPITests(APITestCase):
         )
         self.project = Project.objects.create(name="Test Project", client=self.client_obj, tenant=self.org)
         self.invoice = Invoice.objects.create(
+            tenant=self.org,
             client=self.client_obj,
             project=self.project,
             amount=Decimal('15000.00')
         )
         self.payment = Payment.objects.create(
+            tenant=self.org,
             invoice=self.invoice,
             amount=Decimal('15000.00')
         )

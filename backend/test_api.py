@@ -170,7 +170,7 @@ def create_test_user():
         os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'saasCRM.settings')
         django.setup()
 
-        from accounts.models import CustomUser
+        from accounts.models import CustomUser, Tenant, UserTenant
         from django.contrib.auth.models import Group
 
         user, created = CustomUser.objects.get_or_create(
@@ -195,6 +195,54 @@ def create_test_user():
             if not user.groups.filter(name=group_name).exists():
                 user.groups.add(group)
                 print(f"   Added to group: {group_name}")
+
+        # Create or get a default tenant and link user to it
+        tenant, tenant_created = Tenant.objects.get_or_create(
+            name='Test Tenant',
+            defaults={
+                'domain': 'test.example.com',
+                'address': '123 Test St',
+                'phone': '555-1234',
+                'website': 'https://test.example.com',
+                'industry': 'Technology',
+                'company_size': '11-50'
+            }
+        )
+        if tenant_created:
+            print("✅ Default tenant created: Test Tenant")
+        else:
+            print("ℹ️  Default tenant already exists")
+
+        # Link user to tenant
+        user_tenant, ut_created = UserTenant.objects.get_or_create(
+            user=user,
+            tenant=tenant,
+            defaults={
+                'is_owner': True,
+                'is_approved': True,
+                'role': 'Tenant Owner'
+            }
+        )
+        if ut_created:
+            print("✅ User linked to tenant: Test Tenant")
+        else:
+            print("ℹ️  User already linked to tenant")
+
+        # Create a test client for the tenant
+        from project.models import Client
+        client, client_created = Client.objects.get_or_create(
+            email='testclient@example.com',
+            defaults={
+                'name': 'Test Client',
+                'phone': '555-5678',
+                'status': 'active',
+                'tenant': tenant
+            }
+        )
+        if client_created:
+            print("✅ Test client created: Test Client")
+        else:
+            print("ℹ️  Test client already exists")
 
         return True
     except Exception as e:

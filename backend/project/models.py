@@ -1,9 +1,9 @@
+from decimal import Decimal
 from django.db import models
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.conf import settings
-from django.db import models
 
 
 class Client(models.Model):
@@ -56,7 +56,7 @@ class Project(models.Model):
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     budget = models.DecimalField(
-        max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)]
+        max_digits=12, decimal_places=2, default=Decimal('0'), validators=[MinValueValidator(Decimal('0'))]
     )
     description = models.TextField(blank=True)
     tags = models.CharField(max_length=500, blank=True)  # Comma-separated
@@ -228,6 +228,15 @@ class Task(models.Model):
 class Invoice(models.Model):
     tenant = models.ForeignKey(
         'accounts.Tenant', on_delete=models.CASCADE, related_name="invoices", null=True, blank=True
+    )
+    client = models.ForeignKey(
+        Client, on_delete=models.CASCADE, related_name="invoices"
+    )
+    project = models.ForeignKey(
+        Project, on_delete=models.CASCADE, related_name="invoices"
+    )
+    amount = models.DecimalField(
+        max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal('0'))]
     )
     client = models.ForeignKey(
         Client, on_delete=models.CASCADE, related_name="invoices"
