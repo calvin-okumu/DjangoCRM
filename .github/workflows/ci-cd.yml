@@ -39,12 +39,35 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: Create CI environment file
+      run: |
+        cd backend
+        cat > .env << EOF
+        SECRET_KEY=ci-test-secret-key-not-for-production-use
+        DEBUG=True
+        ALLOWED_HOSTS=localhost,127.0.0.1,testserver
+        SITE_URL=http://127.0.0.1:8000
+        MULTI_TENANCY_ENABLED=False
+        DB_NAME=test_saascrm_db
+        DB_USER=saascrm_user
+        DB_PASSWORD=saascrm_password
+        DB_HOST=localhost
+        DB_PORT=5432
+        DJANGO_ENV=ci
+        EOF
+
     - name: Run automated setup
       run: |
         cd backend
         python manage.py setup_project --skip-sample-data
       env:
+        SECRET_KEY: ci-test-secret-key-not-for-production-use
+        DEBUG: true
+        ALLOWED_HOSTS: localhost,127.0.0.1,testserver
+        SITE_URL: http://127.0.0.1:8000
+        MULTI_TENANCY_ENABLED: false
         DATABASE_URL: postgresql://saascrm_user:saascrm_password@localhost:5432/test_saascrm_db
+        DJANGO_ENV: ci
 
     - name: Run tests
       run: |
