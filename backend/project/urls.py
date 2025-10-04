@@ -13,6 +13,7 @@ router.register(r'invoices', views.InvoiceViewSet)
 router.register(r'payments', views.PaymentViewSet)
 router.register(r'members', views.UserTenantViewSet)
 router.register(r'invitations', views.InvitationViewSet)
+router.register(r'users', views.UserViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -17,7 +17,7 @@ class Client(models.Model):
     phone = models.CharField(max_length=20, blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="prospect")
     tenant = models.ForeignKey(
-        'accounts.Tenant', on_delete=models.CASCADE, related_name="clients"
+        'accounts.Tenant', on_delete=models.CASCADE, related_name="clients", null=True, blank=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -44,7 +44,7 @@ class Project(models.Model):
     ]
     name = models.CharField(max_length=255)
     tenant = models.ForeignKey(
-        'accounts.Tenant', on_delete=models.CASCADE, related_name="projects"
+        'accounts.Tenant', on_delete=models.CASCADE, related_name="projects", null=True, blank=True
     )
     client = models.ForeignKey(
         Client, on_delete=models.CASCADE, related_name="projects"
@@ -94,7 +94,7 @@ class Milestone(models.Model):
     actual_start = models.DateField(null=True, blank=True)
     due_date = models.DateField(null=True, blank=True)
     tenant = models.ForeignKey(
-        'accounts.Tenant', on_delete=models.CASCADE, related_name="milestones"
+        'accounts.Tenant', on_delete=models.CASCADE, related_name="milestones", null=True, blank=True
     )
     assignee = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -142,7 +142,7 @@ class Sprint(models.Model):
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     tenant = models.ForeignKey(
-        'accounts.Tenant', on_delete=models.CASCADE, related_name="sprints"
+        'accounts.Tenant', on_delete=models.CASCADE, related_name="sprints", null=True, blank=True
     )
     milestone = models.ForeignKey(
         Milestone, on_delete=models.CASCADE, related_name="sprints"
@@ -183,7 +183,7 @@ class Task(models.Model):
     description = models.TextField(blank=True)
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default="backlog")
     tenant = models.ForeignKey(
-        'accounts.Tenant', on_delete=models.CASCADE, related_name="tasks"
+        'accounts.Tenant', on_delete=models.CASCADE, related_name="tasks", null=True, blank=True
     )
     milestone = models.ForeignKey(
         Milestone, on_delete=models.CASCADE, related_name="tasks"
@@ -227,7 +227,7 @@ class Task(models.Model):
 # Financial models
 class Invoice(models.Model):
     tenant = models.ForeignKey(
-        'accounts.Tenant', on_delete=models.CASCADE, related_name="invoices"
+        'accounts.Tenant', on_delete=models.CASCADE, related_name="invoices", null=True, blank=True
     )
     client = models.ForeignKey(
         Client, on_delete=models.CASCADE, related_name="invoices"
@@ -251,7 +251,7 @@ class Invoice(models.Model):
 
 class Payment(models.Model):
     tenant = models.ForeignKey(
-        'accounts.Tenant', on_delete=models.CASCADE, related_name="payments"
+        'accounts.Tenant', on_delete=models.CASCADE, related_name="payments", null=True, blank=True
     )
     invoice = models.ForeignKey(
         Invoice, on_delete=models.CASCADE, related_name="payments"
