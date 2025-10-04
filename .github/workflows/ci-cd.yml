@@ -1,0 +1,130 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, feature/automated-setup ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  DJANGO_ENV: ci
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: test_saascrm_db
+          POSTGRES_USER: saascrm_user
+          POSTGRES_PASSWORD: saascrm_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run automated setup
+      run: |
+        cd backend
+        python manage.py setup_project --skip-sample-data
+      env:
+        DATABASE_URL: postgresql://saascrm_user:saascrm_password@localhost:5432/test_saascrm_db
+
+    - name: Run tests
+      run: |
+        cd backend
+        python manage.py test --verbosity=2
+
+    - name: Run API tests
+      run: |
+        cd backend
+        python test_api.py
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and push backend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/saascrm-backend:latest
+          ${{ secrets.DOCKER_USERNAME }}/saascrm-backend:${{ github.sha }}
+
+    - name: Build and push frontend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/saascrm-frontend:latest
+          ${{ secrets.DOCKER_USERNAME }}/saascrm-frontend:${{ github.sha }}
+
+  deploy-staging:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: staging
+
+    steps:
+    - name: Deploy to staging
+      run: |
+        echo "Deploying to staging environment..."
+        # Add your staging deployment commands here
+        # Example: kubectl apply -f k8s/staging/
+
+  deploy-production:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+
+    steps:
+    - name: Deploy to production
+      run: |
+        echo "Deploying to production environment..."
+        # Add your production deployment commands here
+        # Example: kubectl apply -f k8s/production/
+
+  cleanup:
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [test, build-and-push]
+
+    steps:
+    - name: Cleanup
+      run: |
+        echo "Pipeline completed with status: ${{ job.status }}"
+        # Add cleanup commands if needed

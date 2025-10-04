@@ -48,6 +48,39 @@ A comprehensive multi-tenant Customer Relationship Management system built with 
 
 ## 🚀 Quick Start
 
+### Automated Setup (Recommended)
+
+For the fastest setup experience, use the automated setup command:
+
+```bash
+# Clone and enter the repository
+git clone https://github.com/YOUR_USERNAME/DjangoCRM.git
+cd DjangoCRM
+
+# Run automated setup (includes environment setup, database, migrations, groups, sample data, and superuser)
+python manage.py setup_project
+
+# Start the development server
+python manage.py runserver 127.0.0.1:8000
+```
+
+The `setup_project` command automatically:
+- Detects your environment (development/production/CI)
+- Sets up the database and runs migrations
+- Creates default user groups
+- Generates sample data for testing
+- Creates a superuser account
+- Validates the configuration
+
+**Command Options:**
+- `--skip-sample-data`: Skip generating sample data
+- `--production`: Run in production mode (minimal setup)
+- `--skip-db-setup`: Skip database creation (useful if DB already exists)
+
+### Manual Setup (Alternative)
+
+If you prefer manual control over each step:
+
 1. **Clone the repository**
    ```bash
    git clone https://github.com/YOUR_USERNAME/DjangoCRM.git
@@ -124,8 +157,127 @@ Runs on http://127.0.0.1:8000
 
 The frontend uses Next.js rewrites to proxy `/api/*` to the backend, so no CORS issues in development. For production, configure accordingly.
 
+## 🤖 Automated Setup System
 
- 9. **Access the application**
+The DjangoCRM includes a comprehensive automated setup system that handles environment detection, database setup, and configuration validation across different deployment scenarios.
+
+### Setup Command Features
+
+The `python manage.py setup_project` command provides:
+
+- **Environment Detection**: Automatically detects development, production, or CI environments
+- **Database Setup**: Creates database, runs migrations, and sets up user groups
+- **Sample Data Generation**: Creates realistic test data for development
+- **Superuser Creation**: Interactive superuser setup with validation
+- **Configuration Validation**: Ensures all required environment variables are set
+- **Docker Integration**: Works seamlessly with Docker deployments
+- **CI/CD Ready**: Optimized for automated deployment pipelines
+
+### Environment Detection
+
+The setup system uses multiple indicators to determine the environment:
+
+- **DJANGO_ENV variable**: Explicit environment setting
+- **CI variables**: Detects CI/CD pipelines (GITHUB_ACTIONS, CI, etc.)
+- **Git repository**: Development mode when .git directory exists
+- **Docker containers**: Detects containerized environments
+- **Production flags**: Command-line options for production deployment
+
+### Docker Deployment
+
+For containerized deployment:
+
+```bash
+# Start with Docker Compose (includes PostgreSQL)
+docker-compose up -d
+
+# Or build and run manually
+docker build -t djangocrm .
+docker run -p 8000:8000 --env-file .env djangocrm
+```
+
+### CI/CD Integration
+
+The project includes GitHub Actions workflows for automated testing and deployment:
+
+- **Automated Testing**: Runs test suite on every push
+- **Code Quality**: Linting and type checking
+- **Security Scanning**: Dependency vulnerability checks
+- **Multi-Environment Deployment**: Staging and production pipelines
+- **Docker Image Building**: Automated container image creation
+
+### Setup Phases
+
+1. **Phase 1: Unified Command** - Single command orchestrates entire setup
+2. **Phase 2: Environment Detection** - Smart environment recognition
+3. **Phase 3: Docker Integration** - Container-ready deployment
+4. **Phase 4: CI/CD Pipeline** - Automated testing and deployment
+
+## 🐳 Production Deployment
+
+### Docker Compose (Recommended)
+
+For production deployment with Docker Compose:
+
+```yaml
+# docker-compose.yml is configured for production use
+docker-compose up -d
+```
+
+This starts:
+- Django application on port 8000
+- PostgreSQL database with persistent storage
+- Automatic health checks and restart policies
+
+### Manual Docker Deployment
+
+```bash
+# Build the image
+docker build -f backend/Dockerfile -t djangocrm .
+
+# Run with environment file
+docker run -d \
+  --name djangocrm \
+  -p 8000:8000 \
+  --env-file .env \
+  -v django_static:/app/static \
+  djangocrm
+```
+
+### Environment Variables for Production
+
+Ensure your `.env` file includes:
+- `DJANGO_ENV=production`
+- Database credentials for PostgreSQL
+- `SECRET_KEY` (strong, random key)
+- OAuth credentials (if using social auth)
+- `DEBUG=False`
+- `ALLOWED_HOSTS` (your domain)
+
+### CI/CD Deployment
+
+The GitHub Actions workflow automatically:
+- Runs tests on every push
+- Builds Docker images
+- Deploys to staging on main branch pushes
+- Deploys to production on tagged releases
+
+### Troubleshooting
+
+If setup fails:
+```bash
+# Check environment configuration
+python check_env.py
+
+# View detailed setup logs
+python manage.py setup_project --verbosity=2
+
+# Manual database setup
+python manage.py migrate
+python manage.py setup_groups
+```
+
+  9. **Access the application**
     - **API**: http://127.0.0.1:8000/api/
     - **Admin Interface**: http://127.0.0.1:8000/admin/
     - **Authentication**: POST to http://127.0.0.1:8000/api/login/
@@ -183,6 +335,7 @@ The DjangoCRM application is fully implemented and production-ready with compreh
 - **Admin Interface**: Django admin panel for data management
 - **Comprehensive Testing**: 48 tests covering all functionality with 100% pass rate
 - **API Documentation**: Complete Swagger/OpenAPI documentation with interactive testing
+- **Automated Setup System**: One-command setup with environment detection, Docker integration, and CI/CD pipeline
 
 ### 🔧 Production Configuration
 - **Server**: Runs on `http://127.0.0.1:8000` (development) or production domains
@@ -213,6 +366,9 @@ Running `python manage.py generate_sample_data` creates:
 
 ```
 DjangoCRM/
+├── .github/
+│   └── workflows/
+│       └── ci-cd.yml       # CI/CD pipeline configuration
 ├── accounts/               # User authentication and tenant management
 │   ├── models.py           # CustomUser, Tenant, UserTenant, Invitation models
 │   ├── admin.py            # Django admin configuration
@@ -228,7 +384,7 @@ DjangoCRM/
 │   ├── middleware.py       # Tenant middleware for subdomain routing
 │   ├── tests.py            # Comprehensive test suite (48 tests)
 │   ├── migrations/         # Database migrations
-│   ├── management/commands/# Management commands (generate_sample_data, migrate_to_tenants)
+│   ├── management/commands/# Management commands (setup_project, generate_sample_data, migrate_to_tenants)
 │   ├── factories.py        # Test data factories
 │   └── permissions.py      # Permission classes
 ├── saasCRM/                # Django project settings
@@ -236,6 +392,9 @@ DjangoCRM/
 │   ├── urls.py             # URL configuration
 │   ├── db_routers.py       # Database routing for multi-tenancy
 │   └── wsgi.py             # WSGI configuration
+├── backend/
+│   └── Dockerfile          # Docker image for backend deployment
+├── docker-compose.yml      # Docker Compose configuration for development
 ├── .env.example            # Environment variables template
 ├── .env                    # Environment variables (not committed)
 ├── check_env.py            # Environment configuration checker
