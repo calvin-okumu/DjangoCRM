@@ -89,3 +89,4 @@ export async function getUserTenants(token: string): Promise<UserTenant[]> {
 
   return data;
 }
+

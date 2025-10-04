@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader } from 'lucide-react';
 import { Client } from '../../../api';
 
 interface FilterOption {
@@ -30,6 +30,7 @@ interface ClientsSectionProps {
     filters: Filter[];
     emptyState: EmptyState;
     clients?: Client[];
+    loading?: boolean;
 }
 
 const ClientsSection: React.FC<ClientsSectionProps> = ({
@@ -40,7 +41,8 @@ const ClientsSection: React.FC<ClientsSectionProps> = ({
     onDelete,
     filters,
     emptyState,
-    clients
+    clients,
+    loading = false
 }) => {
     return (
         <div>
@@ -75,19 +77,27 @@ const ClientsSection: React.FC<ClientsSectionProps> = ({
             </div>
 
             {(clients || []).length === 0 ? (
-                <div className="bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow duration-200 p-12 text-center">
-                    <emptyState.icon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">{emptyState.title}</h3>
-                    <p className="text-gray-600 mb-6">
-                        {emptyState.description}
-                    </p>
-                <button
-                    onClick={onAdd}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium shadow-md hover:shadow-lg transition-shadow duration-200"
-                >
-                        {emptyState.buttonText}
-                    </button>
-                </div>
+                loading ? (
+                    <div className="bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow duration-200 p-12 text-center">
+                        <Loader className="h-16 w-16 text-blue-400 mx-auto mb-4 animate-spin" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">Loading clients...</h3>
+                        <p className="text-gray-600">Please wait while we fetch your clients.</p>
+                    </div>
+                ) : (
+                    <div className="bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow duration-200 p-12 text-center">
+                        <emptyState.icon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">{emptyState.title}</h3>
+                        <p className="text-gray-600 mb-6">
+                            {emptyState.description}
+                        </p>
+                        <button
+                            onClick={onAdd}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium shadow-md hover:shadow-lg transition-shadow duration-200"
+                        >
+                            {emptyState.buttonText}
+                        </button>
+                    </div>
+                )
             ) : (
                 <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
                     <div className="overflow-x-auto">

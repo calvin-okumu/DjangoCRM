@@ -42,3 +42,20 @@ export interface UserTenant {
   is_approved: boolean;
   role: string;
 }
+
+export interface Project {
+  id: number;
+  name: string;
+  client: number;
+  client_name: string;
+  status: string;
+  priority: string;
+  start_date: string;
+  end_date: string;
+  budget?: string;
+  tags?: string;
+  team_members: number[];
+  access_groups: number[];
+  created_at: string;
+  updated_at: string;
+}

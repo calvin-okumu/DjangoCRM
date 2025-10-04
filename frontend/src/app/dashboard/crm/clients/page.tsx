@@ -11,7 +11,7 @@ import { Client } from '../../../../api';
 export default function ClientsPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingClient, setEditingClient] = useState<Client | null>(null);
-    const { clients, currentTenant, error, addClient, editClient, removeClient, setError } = useClients();
+    const { clients, currentTenant, error, loading, addClient, editClient, removeClient, setError } = useClients();
 
     const totalClients = clients.length;
     const activeClients = clients.filter(c => c.status === 'active').length;
@@ -135,6 +135,7 @@ export default function ClientsPage() {
                 filters={filters}
                 emptyState={emptyState}
                 clients={clients}
+                loading={loading}
             />
             <AddClientModal
                 isOpen={isModalOpen}
