@@ -1,12 +1,12 @@
 
 services:
   backend:
-    image: your-dockerhub-username/saascrm-backend:latest
+    image: ghcr.io/calvin-okumu/carlhub-erp/backend:latest
     restart: always
     environment:
       - DJANGO_ENV=staging
       - DATABASE_URL=postgresql://saascrm_user:saascrm_password@db:5432/saascrm_db
-      - SECRET_KEY=staging-secret-key
+      - SECRET_KEY=WnsR7po8bJyILTfaGI-cDoGR7q82PdSQRmMDpGbc6svaRM9jjzKcUDxU4GQMgUfSBA0
       - RUN_SETUP=false
     command: gunicorn config.wsgi:application --bind 0.0.0.0:8000
     volumes:
@@ -15,11 +15,11 @@ services:
       - "8000:8000"
 
   frontend:
-    image: your-dockerhub-username/saascrm-frontend:latest
+    image: ghcr.io/calvin-okumu/carlhub-erp/frontend:latest
     restart: always
     environment:
       - NODE_ENV=staging
-      - NEXT_PUBLIC_API_URL=https://staging.yourdomain.com/api
+      - NEXT_PUBLIC_API_URL=http://staging.local:8000/api
     command: npm run start
     ports:
       - "80:3000"
