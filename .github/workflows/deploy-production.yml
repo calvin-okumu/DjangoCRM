@@ -6,11 +6,17 @@
 name: 🚀 Deploy to Production (Docker Compose via SSH)
 
 on:
-  workflow_dispatch:  # Manual trigger
+  workflow_run:
+    workflows: ["Smart CI/CD Pipeline"]
+    types:
+      - completed
 
 jobs:
   deploy:
     name: Deploy to Production
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     environment:
       name: production

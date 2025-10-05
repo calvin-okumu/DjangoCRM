@@ -1,4 +1,3 @@
-
 services:
   backend:
     image: ghcr.io/calvin-okumu/carlhub-erp/backend:latest
@@ -14,14 +13,14 @@ services:
     ports:
       - "8000:8000"
 
-   frontend:
-     image: ghcr.io/calvin-okumu/carlhub-erp/frontend:latest
-     restart: always
-     environment:
-       - NODE_ENV=staging
-       - NEXT_PUBLIC_API_URL=http://staging.local:8000/api
-     ports:
-       - "80:3000"
+  frontend:
+    image: ghcr.io/calvin-okumu/carlhub-erp/frontend:latest
+    restart: always
+    environment:
+      - NODE_ENV=staging
+      - NEXT_PUBLIC_API_URL=http://staging.local:8000/api
+    ports:
+      - "80:3000"
 
 volumes:
   static_staging:
