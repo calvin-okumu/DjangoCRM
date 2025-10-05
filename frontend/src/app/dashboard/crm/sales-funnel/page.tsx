@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { Funnel, Users, Target, CheckCircle } from 'lucide-react';
-import MetricsBar from '../../../../components/dashboard/crm/MetricsBar';
-import ClientsSection from '../../../../components/dashboard/crm/ClientsSection';
-import AddClientModal from '../../../../components/dashboard/crm/AddClientModal';
+import MetricsBar from '../components/MetricsBar';
+import ClientsSection from '../components/ClientsSection';
+import AddClientModal from '../components/AddClientModal';
 
 export default function SalesFunnelPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);

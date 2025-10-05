@@ -1,8 +1,9 @@
 "use client";
 
-import React from 'react';
-import { Plus, Edit, Trash2, Loader } from 'lucide-react';
-import { Client } from '../../../api';
+import React, { useState, useMemo } from 'react';
+import { Plus, Edit, Trash2, Loader, Search } from 'lucide-react';
+import { Client } from '../../../../api/types';
+import Pagination from '../../../../components/shared/Pagination';
 
 interface FilterOption {
     value: string;
@@ -27,6 +28,7 @@ interface ClientsSectionProps {
     onAdd: () => void;
     onEdit?: (client: Client) => void;
     onDelete?: (clientId: number) => void;
+    searchPlaceholder?: string;
     filters: Filter[];
     emptyState: EmptyState;
     clients?: Client[];
@@ -39,11 +41,48 @@ const ClientsSection: React.FC<ClientsSectionProps> = ({
     onAdd,
     onEdit,
     onDelete,
+    searchPlaceholder,
     filters,
     emptyState,
     clients,
     loading = false
 }) => {
+    const [currentPage, setCurrentPage] = useState(1);
+    const [searchTerm, setSearchTerm] = useState('');
+    const itemsPerPage = 10;
+
+    const filteredClients = useMemo(() => {
+        if (!clients) return [];
+        let filtered = clients;
+
+        // Apply search filter
+        if (searchTerm) {
+            filtered = filtered.filter(client =>
+                client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                client.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                client.status.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
+
+        // Apply other filters here if needed
+        return filtered;
+    }, [clients, searchTerm]);
+
+    const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
+    const paginatedClients = filteredClients.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+    };
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value);
+        setCurrentPage(1); // Reset to first page when searching
+    };
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
@@ -56,6 +95,21 @@ const ClientsSection: React.FC<ClientsSectionProps> = ({
                     {addButtonText}
                 </button>
             </div>
+
+            {searchPlaceholder && (
+                <div className="flex gap-4 mb-6">
+                    <div className="relative flex-1 max-w-md">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder={searchPlaceholder}
+                            value={searchTerm}
+                            onChange={handleSearchChange}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-md hover:shadow-lg transition-shadow duration-200"
+                        />
+                    </div>
+                </div>
+            )}
 
             <div className="flex flex-wrap gap-4 mb-6">
                 {filters.map((filter, index) => (
@@ -127,8 +181,8 @@ const ClientsSection: React.FC<ClientsSectionProps> = ({
                                      </th>
                                  </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {(clients || []).map((client) => (
+                             <tbody className="bg-white divide-y divide-gray-200">
+                                 {paginatedClients.map((client) => (
                                     <tr key={client.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm font-medium text-gray-900">
@@ -185,12 +239,19 @@ const ClientsSection: React.FC<ClientsSectionProps> = ({
                                      </tr>
                                 ))}
                             </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
+                         </table>
+                     </div>
+                     <Pagination
+                         currentPage={currentPage}
+                         totalPages={totalPages}
+                         onPageChange={handlePageChange}
+                         itemsPerPage={itemsPerPage}
+                         totalItems={filteredClients.length}
+                     />
+                 </div>
+             )}
+         </div>
+     );
 };
 
 export default ClientsSection;
