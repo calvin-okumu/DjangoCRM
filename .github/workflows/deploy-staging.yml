@@ -24,21 +24,21 @@ jobs:
 
       - name: Deploy to Staging Server
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
-            set -e
-            echo "📦 Pulling latest code..."
-            cd /path/to/your/project  # <-- Replace this with your actual path
-            git pull origin main
+           ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
+             set -e
+             echo "📦 Pulling latest code..."
+             cd /opt/DjangoCRM
+             git pull origin main
 
-            echo "💾 Backing up database..."
-            TIMESTAMP=$(date +%Y%m%d%H%M%S)
-            mkdir -p backups
-            # Example with Dockerized Postgres; change container name/db user/db as needed:
-            docker exec -t your_postgres_container pg_dumpall -c -U postgres > backups/db_backup_$TIMESTAMP.sql
+             echo "💾 Backing up database..."
+             TIMESTAMP=$(date +%Y%m%d%H%M%S)
+             mkdir -p backups
+             # Backup PostgreSQL database
+             docker exec -t djangocrm-db pg_dumpall -c -U saascrm_user > backups/db_backup_$TIMESTAMP.sql
 
-            echo "🔄 Updating containers with staging compose files..."
-            docker-compose -f docker-compose.yml -f docker-compose.staging.yml pull
-            docker-compose -f docker-compose.yml -f docker-compose.staging.yml up -d --remove-orphans
+             echo "🔄 Updating containers with staging compose files..."
+             docker compose -f docker-compose.yml -f docker-compose.staging.yml pull
+             docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d --remove-orphans
 
-            echo "✅ Staging deployment complete!"
-          EOF
+             echo "✅ Staging deployment complete!"
+           EOF

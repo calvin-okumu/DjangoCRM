@@ -132,19 +132,23 @@ jobs:
           cd backend
           python test_api.py
 
-      - name: Build & Push Backend Image
-        if: github.ref == 'refs/heads/main'
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/saascrm-backend:latest
-            ${{ secrets.DOCKER_USERNAME }}/saascrm-backend:${{ github.sha }}
-        env:
-          DOCKER_BUILDKIT: 1
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+       - name: Login to GitHub Container Registry
+         if: github.ref == 'refs/heads/main'
+         uses: docker/login-action@v3
+         with:
+           registry: ghcr.io
+           username: ${{ github.actor }}
+           password: ${{ secrets.GITHUB_TOKEN }}
+
+       - name: Build & Push Backend Image
+         if: github.ref == 'refs/heads/main'
+         uses: docker/build-push-action@v5
+         with:
+           context: ./backend
+           push: true
+           tags: |
+             ghcr.io/calvin-okumu/carlhub-erp/backend:latest
+             ghcr.io/calvin-okumu/carlhub-erp/backend:${{ github.sha }}
 
   frontend:
     name: Frontend Tests & Build
@@ -187,19 +191,15 @@ jobs:
           cd frontend
           npm run build
 
-      - name: Build & Push Frontend Image
-        if: github.ref == 'refs/heads/main'
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/saascrm-frontend:latest
-            ${{ secrets.DOCKER_USERNAME }}/saascrm-frontend:${{ github.sha }}
-        env:
-          DOCKER_BUILDKIT: 1
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+       - name: Build & Push Frontend Image
+         if: github.ref == 'refs/heads/main'
+         uses: docker/build-push-action@v5
+         with:
+           context: ./frontend
+           push: true
+           tags: |
+             ghcr.io/calvin-okumu/carlhub-erp/frontend:latest
+             ghcr.io/calvin-okumu/carlhub-erp/frontend:${{ github.sha }}
 
   create-tag:
     name: Create Git Tag for Release
