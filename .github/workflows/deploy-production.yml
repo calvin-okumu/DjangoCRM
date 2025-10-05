@@ -42,10 +42,20 @@ jobs:
             docker exec -t your_postgres_container pg_dumpall -c -U postgres > backups/db_backup_$TIMESTAMP.sql
 
             echo "🔄 Updating containers with production compose files..."
-            docker-compose -f docker-compose.yml -f docker-compose.prod.yml pull
-            docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
+             docker-compose -f docker-compose.yml -f docker-compose.prod.yml pull
+             docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
 
-            echo "✅ Production deployment complete!"
+             echo "✅ Production deployment complete!"
+
+       - name: Post-Deploy Health Check
+         run: |
+           sleep 30
+           if curl -f --max-time 10 ${{ secrets.PRODUCTION_URL }}/health || curl -f --max-time 10 ${{ secrets.PRODUCTION_URL }}; then
+             echo "✅ Production health check passed"
+           else
+             echo "❌ Production health check failed - manual intervention required"
+             exit 1
+           fi
           EOF
 
       # Manual rollback example (uncomment and customize as needed):

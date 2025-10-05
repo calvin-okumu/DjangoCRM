@@ -3,11 +3,11 @@ services:
   backend:
     image: your-dockerhub-username/saascrm-backend:latest
     restart: always
-    environment:
-      - DJANGO_ENV=production
-      - DATABASE_URL=postgresql://saascrm_user:saascrm_password@db:5432/saascrm_db
-      - SECRET_KEY=super-secret-prod-key
-      - RUN_SETUP=false
+     environment:
+       - DJANGO_ENV=production
+       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+       - SECRET_KEY=${SECRET_KEY}
+       - RUN_SETUP=false
     command: gunicorn config.wsgi:application --bind 0.0.0.0:8000
     volumes:
       - static_prod:/app/static

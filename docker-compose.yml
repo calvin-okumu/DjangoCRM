@@ -1,10 +1,10 @@
 services:
-  db:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: saascrm_db
-      POSTGRES_USER: saascrm_user
-      POSTGRES_PASSWORD: saascrm_password
+   db:
+     image: postgres:15
+     environment:
+       POSTGRES_DB: ${DB_NAME}
+       POSTGRES_USER: ${DB_USER}
+       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -19,11 +19,11 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    environment:
-      - DJANGO_ENV=development
-      - DATABASE_URL=postgresql://saascrm_user:saascrm_password@db:5432/saascrm_db
-      - SECRET_KEY=django-insecure-dev-key-change-in-production
-      - RUN_SETUP=true
+     environment:
+       - DJANGO_ENV=development
+       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+       - SECRET_KEY=${SECRET_KEY}
+       - RUN_SETUP=true
     ports:
       - "8000:8000"
     depends_on:

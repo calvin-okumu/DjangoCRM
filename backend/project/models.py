@@ -238,19 +238,6 @@ class Invoice(models.Model):
     amount = models.DecimalField(
         max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal('0'))]
     )
-    client = models.ForeignKey(
-        Client, on_delete=models.CASCADE, related_name="invoices"
-    )
-    project = models.ForeignKey(
-        Project,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="invoices",
-    )
-    amount = models.DecimalField(
-        max_digits=12, decimal_places=2, validators=[MinValueValidator(0)]
-    )
     issued_at = models.DateTimeField(auto_now_add=True)
     paid = models.BooleanField(default=False)
 

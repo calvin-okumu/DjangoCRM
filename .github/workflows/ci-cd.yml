@@ -8,6 +8,36 @@ on:
     branches: [main, dev]
 
 jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: |
+          cd backend
+          python manage.py test --tag=unit --verbosity=2
+
   detect-changes:
     name: Detect Code Changes
     runs-on: ubuntu-latest
@@ -35,7 +65,7 @@ jobs:
 
   backend:
     name: Backend Tests & Build
-    needs: detect-changes
+    needs: [unit-tests, detect-changes]
     if: needs.detect-changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
 
@@ -104,20 +134,25 @@ jobs:
           DJANGO_ENV=${{ env.DJANGO_ENV }}
           EOF
 
-      - name: Wait for PostgreSQL
-        run: |
-          for i in {1..30}; do
-            if PGPASSWORD=${{ env.DB_PASSWORD }} pg_isready -h localhost -p 5432 -U ${{ env.DB_USER }} -d ${{ env.DB_NAME }} > /dev/null; then
-              echo "✅ PostgreSQL is ready!"
-              exit 0
-            fi
-            echo "Waiting for PostgreSQL... ($i/30)"
-            sleep 2
-          done
-          echo "❌ PostgreSQL did not become ready"
-          exit 1
+       - name: Wait for PostgreSQL
+         run: |
+           for i in {1..30}; do
+             if PGPASSWORD=${{ env.DB_PASSWORD }} pg_isready -h localhost -p 5432 -U ${{ env.DB_USER }} -d ${{ env.DB_NAME }} > /dev/null; then
+               echo "✅ PostgreSQL is ready!"
+               exit 0
+             fi
+             echo "Waiting for PostgreSQL... ($i/30)"
+             sleep 2
+           done
+           echo "❌ PostgreSQL did not become ready"
+           exit 1
 
-      - name: Run Django setup
+       - name: Seed test database
+         run: |
+           cd backend
+           PGPASSWORD=${{ env.DB_PASSWORD }} psql -h localhost -p 5432 -U ${{ env.DB_USER }} -d ${{ env.DB_NAME }} -f test_db.sql
+
+       - name: Run Django setup
         run: |
           cd backend
           python manage.py setup_project --skip-sample-data
@@ -127,12 +162,18 @@ jobs:
           cd backend
           python manage.py test --verbosity=2
 
-      - name: Run API tests
-        run: |
-          cd backend
-          python test_api.py
+       - name: Run API tests
+         run: |
+           cd backend
+           python test_api.py
 
-      - name: Build Backend Image (Dev)
+       - name: Run security scan
+         run: |
+           cd backend
+           pip install safety
+           safety check --fail-level high
+
+       - name: Build Backend Image (Dev)
         if: github.ref == 'refs/heads/dev'
         uses: docker/build-push-action@v5
         with:
@@ -140,6 +181,7 @@ jobs:
           push: false
           tags: |
             carlhub-erp/backend:dev
+          cache-from: type=local,src=/tmp/.buildx-cache
 
       - name: Login to GitHub Container Registry
         if: github.ref == 'refs/heads/main'
@@ -158,10 +200,11 @@ jobs:
           tags: |
             ghcr.io/calvin-okumu/carlhub-erp/backend:latest
             ghcr.io/calvin-okumu/carlhub-erp/backend:${{ github.sha }}
+          cache-from: type=registry,ref=ghcr.io/calvin-okumu/carlhub-erp/backend:latest
 
   frontend:
     name: Frontend Tests & Build
-    needs: detect-changes
+    needs: [unit-tests, detect-changes]
     if: needs.detect-changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
 
@@ -195,12 +238,17 @@ jobs:
           cd frontend
           npx tsc --noEmit
 
-      - name: Build frontend
-        run: |
-          cd frontend
-          npm run build
+       - name: Build frontend
+         run: |
+           cd frontend
+           npm run build
 
-      - name: Build Frontend Image (Dev)
+       - name: Run security audit
+         run: |
+           cd frontend
+           npm audit --audit-level=moderate
+
+       - name: Build Frontend Image (Dev)
         if: github.ref == 'refs/heads/dev'
         uses: docker/build-push-action@v5
         with:
@@ -208,6 +256,7 @@ jobs:
           push: false
           tags: |
             carlhub-erp/frontend:dev
+          cache-from: type=local,src=/tmp/.buildx-cache
 
       - name: Build & Push Frontend Image
         if: github.ref == 'refs/heads/main'
@@ -218,6 +267,7 @@ jobs:
           tags: |
             ghcr.io/calvin-okumu/carlhub-erp/frontend:latest
             ghcr.io/calvin-okumu/carlhub-erp/frontend:${{ github.sha }}
+          cache-from: type=registry,ref=ghcr.io/calvin-okumu/carlhub-erp/frontend:latest
 
   create-tag:
     name: Create Git Tag for Release

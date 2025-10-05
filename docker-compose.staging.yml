@@ -2,11 +2,11 @@ services:
   backend:
     image: ghcr.io/calvin-okumu/carlhub-erp/backend:latest
     restart: always
-    environment:
-      - DJANGO_ENV=staging
-      - DATABASE_URL=postgresql://saascrm_user:saascrm_password@db:5432/saascrm_db
-      - SECRET_KEY=WnsR7po8bJyILTfaGI-cDoGR7q82PdSQRmMDpGbc6svaRM9jjzKcUDxU4GQMgUfSBA0
-      - RUN_SETUP=false
+     environment:
+       - DJANGO_ENV=staging
+       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+       - SECRET_KEY=${SECRET_KEY}
+       - RUN_SETUP=false
     command: gunicorn saasCRM.wsgi:application --bind 0.0.0.0:8000
     volumes:
       - static_staging:/app/static
