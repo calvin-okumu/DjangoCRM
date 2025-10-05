@@ -6,7 +6,10 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "setup": "node scripts/setup.mjs",
+    "setup:ci": "node scripts/setup.mjs --ci",
+    "setup:production": "node scripts/setup.mjs --production"
   },
   "dependencies": {
     "lucide-react": "^0.544.0",

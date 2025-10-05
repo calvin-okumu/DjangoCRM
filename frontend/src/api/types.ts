@@ -30,6 +30,22 @@ export interface Client {
   updated_at: string;
 }
 
+export interface CreateClientData {
+  name: string;
+  email: string;
+  phone?: string;
+  status: string;
+  tenant: number;
+}
+
+export interface UpdateClientData {
+  name?: string;
+  email?: string;
+  phone?: string;
+  status?: string;
+  tenant?: number;
+}
+
 export interface UserTenant {
   id: number;
   user: number;
@@ -53,9 +69,12 @@ export interface Project {
   start_date: string;
   end_date: string;
   budget?: string;
+  description?: string;
   tags?: string;
   team_members: number[];
   access_groups: number[];
+  progress: number;
+  milestones_count: number;
   created_at: string;
   updated_at: string;
 }

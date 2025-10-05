@@ -1,4 +1,4 @@
-import { Client, UserTenant } from './types';
+import { Client, CreateClientData, UpdateClientData, UserTenant } from './types';
 import { API_BASE } from './index';
 
 export async function getClients(token: string): Promise<Client[]> {
@@ -19,7 +19,7 @@ export async function getClients(token: string): Promise<Client[]> {
   return data;
 }
 
-export async function createClient(token: string, clientData: { name: string; email: string; phone?: string; status: string; tenant: number }): Promise<Client> {
+export async function createClient(token: string, clientData: CreateClientData): Promise<Client> {
   const response = await fetch(`${API_BASE}/clients/`, {
     method: "POST",
     headers: {
@@ -38,7 +38,7 @@ export async function createClient(token: string, clientData: { name: string; em
   return data;
 }
 
-export async function updateClient(token: string, clientId: number, clientData: Partial<{ name: string; email: string; phone?: string; status: string; tenant: number }>): Promise<Client> {
+export async function updateClient(token: string, clientId: number, clientData: UpdateClientData): Promise<Client> {
   const response = await fetch(`${API_BASE}/clients/${clientId}/`, {
     method: "PUT",
     headers: {

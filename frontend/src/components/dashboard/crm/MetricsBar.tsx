@@ -10,9 +10,7 @@ interface Metric {
     color: string;
 }
 
-interface MetricCardProps extends Metric {}
-
-const MetricCard: React.FC<MetricCardProps> = ({ title, value, label, icon: Icon, color }) => (
+const MetricCard: React.FC<Metric> = ({ title, value, label, icon: Icon, color }) => (
     <div className={`bg-white rounded-lg shadow-md border p-6 hover:shadow-lg transition-shadow duration-200 ${color}`}>
         <div className="flex items-center justify-between">
             <div>

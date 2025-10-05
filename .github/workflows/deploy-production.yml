@@ -1,0 +1,53 @@
+
+# .github/workflows/deploy-production.yml
+
+
+
+name: 🚀 Deploy to Production (Docker Compose via SSH)
+
+on:
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://your-production-domain.com
+
+    steps:
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
+
+      - name: Deploy to Production Server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+            set -e
+            echo "📦 Pulling latest code..."
+            cd /path/to/your/project  # <-- Replace this with your actual path
+            git pull origin main
+
+            echo "💾 Backing up database..."
+            TIMESTAMP=$(date +%Y%m%d%H%M%S)
+            mkdir -p backups
+            docker exec -t your_postgres_container pg_dumpall -c -U postgres > backups/db_backup_$TIMESTAMP.sql
+
+            echo "🔄 Updating containers with production compose files..."
+            docker-compose -f docker-compose.yml -f docker-compose.prod.yml pull
+            docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
+
+            echo "✅ Production deployment complete!"
+          EOF
+
+      # Manual rollback example (uncomment and customize as needed):
+      # - name: Rollback to previous stable release
+      #   run: |
+      #     ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+      #       cd /path/to/your/project
+      #       docker-compose down
+      #       docker-compose -f docker-compose.rollback.yml up -d
+      #     EOF
+

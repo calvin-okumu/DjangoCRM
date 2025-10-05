@@ -1,0 +1,44 @@
+
+name: 🚀 Deploy to Staging (Docker Compose via SSH)
+
+on:
+  workflow_run:
+    workflows: ["Smart CI/CD Pipeline"]
+    types:
+      - completed
+
+jobs:
+  deploy:
+    name: Deploy to Staging
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
+
+      - name: Deploy to Staging Server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
+            set -e
+            echo "📦 Pulling latest code..."
+            cd /path/to/your/project  # <-- Replace this with your actual path
+            git pull origin main
+
+            echo "💾 Backing up database..."
+            TIMESTAMP=$(date +%Y%m%d%H%M%S)
+            mkdir -p backups
+            # Example with Dockerized Postgres; change container name/db user/db as needed:
+            docker exec -t your_postgres_container pg_dumpall -c -U postgres > backups/db_backup_$TIMESTAMP.sql
+
+            echo "🔄 Updating containers with staging compose files..."
+            docker-compose -f docker-compose.yml -f docker-compose.staging.yml pull
+            docker-compose -f docker-compose.yml -f docker-compose.staging.yml up -d --remove-orphans
+
+            echo "✅ Staging deployment complete!"
+          EOF

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import {
     Client,
+    CreateClientData,
+    UpdateClientData,
     createClient,
     deleteClient,
     getClients,
@@ -43,7 +45,7 @@ export function useClients() {
     fetchClients();
   }, [fetchClients]);
 
-  const addClient = async (data: Omit<Client, "id">) => {
+  const addClient = async (data: CreateClientData) => {
     const token = getToken();
     if (!token || !currentTenant) return;
 
@@ -58,7 +60,7 @@ export function useClients() {
     }
   };
 
-  const editClient = async (id: number, data: Partial<Client>) => {
+  const editClient = async (id: number, data: UpdateClientData) => {
     const token = getToken();
     if (!token) return;
 

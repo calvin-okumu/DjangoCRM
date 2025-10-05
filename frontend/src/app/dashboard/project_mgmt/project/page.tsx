@@ -7,12 +7,22 @@ import AddProjectModal from '../../../../components/dashboard/project_mgmt/AddPr
 import { getProjects, createProject, getClients } from '../../../../api';
 import { Project, Client } from '../../../../api/types';
 
+interface FormField {
+    name: string;
+    label: string;
+    type: "text" | "number" | "date" | "textarea" | "select" | "multiselect" | "boolean";
+    required?: boolean;
+    placeholder?: string;
+    options?: { value: string; label: string }[];
+    defaultValue?: string | string[] | boolean;
+}
+
 export default function ProjectPage() {
     const [projects, setProjects] = useState<Project[]>([]);
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [projectFields, setProjectFields] = useState<any[]>([]);
+    const [projectFields, setProjectFields] = useState<FormField[]>([]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -148,7 +158,7 @@ export default function ProjectPage() {
         console.log('Add new client clicked');
     };
 
-    const handleSubmitProject = async (data: Record<string, any>) => {
+    const handleSubmitProject = async (data: Record<string, unknown>) => {
         try {
             const authToken = localStorage.getItem('access_token');
             if (!authToken) {
@@ -157,16 +167,16 @@ export default function ProjectPage() {
             }
             console.log('Using token:', authToken);
             const projectData = {
-                name: data.name,
-                client: parseInt(data.client),
-                status: data.status,
-                priority: data.priority,
-                start_date: data.startDate,
-                end_date: data.endDate,
-                budget: data.budget || undefined,
-                tags: data.description, // Backend uses tags instead of description
-                team_members: data.teamMembers.length > 0 ? data.teamMembers.map((id: string) => parseInt(id)) : [], // Empty array if none
-                access_groups: data.allowedGroups.length > 0 ? data.allowedGroups.map((id: string) => parseInt(id)) : [], // Empty array if none
+                name: String(data.name || ''),
+                client: parseInt(String(data.client || '0')),
+                status: String(data.status || 'planning'),
+                priority: String(data.priority || 'medium'),
+                start_date: String(data.startDate || ''),
+                end_date: String(data.endDate || ''),
+                budget: data.budget ? String(data.budget) : undefined,
+                tags: String(data.description || ''), // Backend uses tags instead of description
+                team_members: Array.isArray(data.teamMembers) && data.teamMembers.length > 0 ? data.teamMembers.map((id: unknown) => parseInt(String(id))) : [], // Empty array if none
+                access_groups: Array.isArray(data.allowedGroups) && data.allowedGroups.length > 0 ? data.allowedGroups.map((id: unknown) => parseInt(String(id))) : [], // Empty array if none
             };
             const newProject = await createProject(authToken, projectData);
             setProjects([...projects, newProject]);

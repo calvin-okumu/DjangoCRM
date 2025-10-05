@@ -18,7 +18,7 @@ interface AddProjectModalProps {
     onClose: () => void;
     title: string;
     fields: FormField[];
-    onSubmit: (data: Record<string, any>) => void;
+    onSubmit: (data: Record<string, unknown>) => void;
     submitButtonText: string;
     onAddClient?: () => void;
 }
@@ -35,7 +35,7 @@ const AddProjectModal = ({
     const initialData = fields.reduce((acc, field) => {
         acc[field.name] = field.defaultValue || (field.type === "multiselect" ? [] : field.type === "boolean" ? false : "");
         return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, unknown>);
 
     const [formData, setFormData] = useState(initialData);
 
@@ -43,7 +43,7 @@ const AddProjectModal = ({
         const newInitialData = fields.reduce((acc, field) => {
             acc[field.name] = field.defaultValue || (field.type === "multiselect" ? [] : field.type === "boolean" ? false : "");
             return acc;
-        }, {} as Record<string, any>);
+        }, {} as Record<string, unknown>);
         setFormData(newInitialData);
     }, [fields]);
 
@@ -127,11 +127,10 @@ const AddProjectModal = ({
                                     {field.type === "textarea" ? (
                                         <textarea
                                             name={field.name}
-                                            required={field.required}
                                             placeholder={field.placeholder}
                                             rows={4}
                                             className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                                            value={formData[field.name]}
+                                            value={String(formData[field.name] || '')}
                                             onChange={handleChange}
                                         />
                                     ) : field.type === "select" ? (
@@ -139,7 +138,7 @@ const AddProjectModal = ({
                                             name={field.name}
                                             required={field.required}
                                             className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                                            value={formData[field.name]}
+                                            value={String(formData[field.name] || '')}
                                             onChange={handleChange}
                                         >
                                             {field.options?.map((option) => (
@@ -154,7 +153,6 @@ const AddProjectModal = ({
                                                 multiple
                                                 name={field.name}
                                                 className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                                                value={formData[field.name]}
                                                 onChange={(e) => {
                                                     const selected = Array.from(e.target.selectedOptions, option => option.value);
                                                     handleMultiSelectChange(field.name, selected);
@@ -166,16 +164,16 @@ const AddProjectModal = ({
                                                     </option>
                                                 ))}
                                             </select>
-                                            <div className="mt-2 text-xs text-gray-500">
-                                                Selected: {formData[field.name].join(", ")}
-                                            </div>
+                                             <div className="mt-2 text-xs text-gray-500">
+                                                 Selected: {Array.isArray(formData[field.name]) ? (formData[field.name] as string[]).join(", ") : ''}
+                                             </div>
                                         </div>
                                     ) : field.type === "boolean" ? (
                                         <label className="flex items-center">
                                             <input
                                                 type="checkbox"
                                                 name={field.name}
-                                                checked={formData[field.name]}
+                                                checked={Boolean(formData[field.name])}
                                                 onChange={handleChange}
                                                 className="mr-2"
                                             />
@@ -188,7 +186,7 @@ const AddProjectModal = ({
                                             required={field.required}
                                             placeholder={field.placeholder}
                                             className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                                            value={formData[field.name]}
+                                            value={String(formData[field.name] || '')}
                                             onChange={handleChange}
                                         />
                                     )}

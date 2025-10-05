@@ -6,7 +6,7 @@ import MetricsBar from '../../../../components/dashboard/crm/MetricsBar';
 import ClientsSection from '../../../../components/dashboard/crm/ClientsSection';
 import AddClientModal from '../../../../components/dashboard/crm/AddClientModal';
 import { useClients } from '../../../../hooks/useClients';
-import { Client } from '../../../../api';
+import { Client, CreateClientData } from '../../../../api';
 
 export default function ClientsPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -99,7 +99,7 @@ export default function ClientsPage() {
             return;
         }
 
-        const clientData = {
+        const clientData: CreateClientData = {
             name: data.name,
             email: data.email,
             phone: data.phone || undefined,

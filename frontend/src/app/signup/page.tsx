@@ -46,9 +46,14 @@ export default function SignUpPage() {
 
             setSuccess("Account created successfully! Redirecting...");
             setTimeout(() => router.push("/dashboard"), 1200);
-        } catch (err: any) {
-            if (err?.response?.status === 400) {
-                setError(err.message || "Signup failed. Please check your details.");
+        } catch (err: unknown) {
+            if (err && typeof err === 'object' && 'response' in err) {
+                const error = err as { response?: { status?: number; data?: { message?: string } } };
+                if (error.response?.status === 400) {
+                    setError(error.response.data?.message || "Signup failed. Please check your details.");
+                } else {
+                    setError("Network error. Please try again.");
+                }
             } else {
                 setError("Network error. Please try again.");
             }
