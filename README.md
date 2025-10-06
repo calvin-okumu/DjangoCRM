@@ -315,6 +315,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 This is a test change to verify the CI/CD workflow is working correctly.
 
+Updated test for YAML fixes.
+
 ---
 
 **Default Superuser**: admin@example.com / admin123
