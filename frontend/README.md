@@ -209,3 +209,7 @@ The frontend is fully integrated with GitHub Actions:
 ## 📄 License
 
 This project is part of the DjangoCRM system. See the main project for licensing information.
+
+## Test Workflow
+
+This is a test change to trigger the CI/CD workflow on push to dev.
