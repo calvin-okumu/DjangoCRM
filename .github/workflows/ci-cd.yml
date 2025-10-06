@@ -17,12 +17,7 @@ jobs:
       ALLOWED_HOSTS: localhost,127.0.0.1,testserver
       SITE_URL: http://127.0.0.1:8000
       MULTI_TENANCY_ENABLED: false
-      DB_NAME: test_saascrm_db
-      DB_USER: saascrm_user
-      DB_PASSWORD: saascrm_password
-      DB_HOST: localhost
-      DB_PORT: 5432
-      DATABASE_URL: postgresql://saascrm_user:saascrm_password@localhost:5432/test_saascrm_db
+      CI: true
     steps:
       - uses: actions/checkout@v4
 
@@ -36,34 +31,29 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-           restore-keys: |
-             ${{ runner.os }}-pip-
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
-       - name: Install dependencies
-         run: |
-           cd backend
-           python -m pip install --upgrade pip
-            pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-       - name: Create environment file
-         run: |
-           cd backend
-           echo "SECRET_KEY=${{ env.SECRET_KEY }}" > .env
-           echo "DEBUG=${{ env.DEBUG }}" >> .env
-           echo "ALLOWED_HOSTS=${{ env.ALLOWED_HOSTS }}" >> .env
-           echo "SITE_URL=${{ env.SITE_URL }}" >> .env
-           echo "MULTI_TENANCY_ENABLED=${{ env.MULTI_TENANCY_ENABLED }}" >> .env
-           echo "DB_NAME=${{ env.DB_NAME }}" >> .env
-           echo "DB_USER=${{ env.DB_USER }}" >> .env
-           echo "DB_PASSWORD=${{ env.DB_PASSWORD }}" >> .env
-           echo "DB_HOST=${{ env.DB_HOST }}" >> .env
-           echo "DB_PORT=${{ env.DB_PORT }}" >> .env
-            echo "DATABASE_URL=${{ env.DATABASE_URL }}" >> .env
+      - name: Create environment file
+        run: |
+          cd backend
+          echo "SECRET_KEY=${{ env.SECRET_KEY }}" > .env
+          echo "DEBUG=${{ env.DEBUG }}" >> .env
+          echo "ALLOWED_HOSTS=${{ env.ALLOWED_HOSTS }}" >> .env
+          echo "SITE_URL=${{ env.SITE_URL }}" >> .env
+          echo "MULTI_TENANCY_ENABLED=${{ env.MULTI_TENANCY_ENABLED }}" >> .env
+          echo "CI=${{ env.CI }}" >> .env
 
-       - name: Run unit tests
-         run: |
-           cd backend
-           python manage.py test --tag=unit --verbosity=2
+      - name: Run unit tests
+        run: |
+          cd backend
+          python manage.py test --tag=unit --verbosity=2
 
   detect-changes:
     name: Detect Code Changes
@@ -144,7 +134,7 @@ jobs:
           echo "DB_PASSWORD=${{ env.DB_PASSWORD }}" >> .env
           echo "DB_HOST=${{ env.DB_HOST }}" >> .env
           echo "DB_PORT=${{ env.DB_PORT }}" >> .env
-          echo "DJANGO_ENV=${{ env.DJANGO_ENV }}" >> .env
+          echo "DATABASE_URL=${{ env.DATABASE_URL }}" >> .env
 
       - name: Build Backend Image (Dev)
         if: github.ref == 'refs/heads/dev'
@@ -263,6 +253,4 @@ jobs:
           echo "Creating tag $TAG"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag $TAG
-          git push origin $TAG
 
