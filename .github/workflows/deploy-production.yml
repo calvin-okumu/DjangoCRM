@@ -23,28 +23,18 @@ jobs:
         uses: actions/checkout@v4
 
       # ---------------------------------------------
-      # 1. Setup Twingate CLI and Connect
+      # 1. Setup Twingate Tunnel
       # ---------------------------------------------
-      - name: Install Twingate CLI
-        run: |
-          curl -fsSL https://binaries.twingate.com/client/linux/install.sh | sh
-
-      - name: Connect to Twingate
-        env:
-          TWINGATE_ACCESS_TOKEN: ${{ secrets.TWINGATE_ACCESS_TOKEN }}
-          TWINGATE_REFRESH_TOKEN: ${{ secrets.TWINGATE_REFRESH_TOKEN }}
-          TWINGATE_NETWORK: ${{ secrets.TWINGATE_NETWORK }}
-        run: |
-          ./twingate setup --headless \
-            --network $TWINGATE_NETWORK \
-            --access-token $TWINGATE_ACCESS_TOKEN \
-            --refresh-token $TWINGATE_REFRESH_TOKEN
-
-          ./twingate start
-          sleep 5  # allow time for connection
+      - name: Connect to Twingate (Service Account)
+        uses: twingate/github-action@v1
+        with:
+          network: ${{ secrets.TWINGATE_NETWORK }}
+          serviceAccountId: ${{ secrets.TWINGATE_SERVICE_ACCOUNT_ID }}
+          keyId: ${{ secrets.TWINGATE_KEY_ID }}
+          privateKey: ${{ secrets.TWINGATE_PRIVATE_KEY }}
 
       # ---------------------------------------------
-      # 2. Run Remote Deployment Commands over Twingate
+      # 2. Run Blue-Green Deployment over Twingate
       # ---------------------------------------------
       - name: Run Blue-Green Deployment via Remote Shell (over Twingate)
         env:
@@ -78,51 +68,4 @@ jobs:
             docker exec -t ${{ secrets.PRODUCTION_DB_CONTAINER }} pg_dumpall -c -U ${{ secrets.PRODUCTION_DB_USER }} > backups/db_backup_$TIMESTAMP.sql
 
             echo "$ACTIVE_COLOR" > previous_color
-            echo "$(git rev-parse HEAD)" > previous_commit
-
-            echo "🔄 Deploying to $TARGET_COLOR..."
-            docker-compose -f docker-compose.yml -f docker-compose.$TARGET_COLOR.yml pull
-            docker-compose -f docker-compose.yml -f docker-compose.$TARGET_COLOR.yml up -d --build --remove-orphans
-
-            echo "$TARGET_COLOR" > active_color
-            echo "$(git rev-parse HEAD)" > deployed_commit
-
-            echo "🎚️ Switching traffic to $TARGET_COLOR..."
-            ./scripts/switch_proxy.sh $TARGET_COLOR
-
-            echo "✅ Deployment to $TARGET_COLOR complete"
-          EOF
-
-      # ---------------------------------------------
-      # 3. Health Check & Rollback
-      # ---------------------------------------------
-      - name: Post-Deploy Health Check & Rollback
-        if: always()
-        run: |
-          echo "⏳ Waiting for service to stabilize..."
-          sleep 30
-
-          if curl -f --max-time 10 ${{ secrets.PRODUCTION_URL }}/health || curl -f --max-time 10 ${{ secrets.PRODUCTION_URL }}; then
-            echo "✅ Health check passed."
-          else
-            echo "❌ Health check failed — Rolling back..."
-            ssh -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
-              set -e
-              cd ${{ secrets.PRODUCTION_PROJECT_PATH }}
-
-              ROLLBACK_COLOR=$(cat previous_color)
-              ROLLBACK_COMMIT=$(cat previous_commit)
-
-              git reset --hard $ROLLBACK_COMMIT
-              ./scripts/switch_proxy.sh $ROLLBACK_COLOR
-              echo "$ROLLBACK_COLOR" > active_color
-              echo "$ROLLBACK_COMMIT" > deployed_commit
-
-              docker-compose -f docker-compose.yml -f docker-compose.$ROLLBACK_COLOR.yml up -d --remove-orphans
-
-              echo "✅ Rolled back to $ROLLBACK_COLOR"
-            EOF
-            exit 1
-          fi
-
 
