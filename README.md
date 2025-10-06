@@ -317,6 +317,8 @@ This is a test change to verify the CI/CD workflow is working correctly.
 
 Updated test for YAML fixes.
 
+Removed services block to fix syntax.
+
 ---
 
 **Default Superuser**: admin@example.com / admin123
