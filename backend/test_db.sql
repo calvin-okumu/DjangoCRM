@@ -3,7 +3,7 @@
 
 -- Insert a test tenant
 INSERT INTO accounts_tenant (id, name, company_size, industry, phone, created_at) VALUES
-(1, 'Test Tenant', 'small', 'tech', '123-456-7890', NOW()) ON CONFLICT DO NOTHING;
+(1, 'Test Tenant', '1-10', 'tech', '123-456-7890', NOW()) ON CONFLICT DO NOTHING;
 
 -- Insert a test user
 INSERT INTO auth_user (id, username, email, password, is_active, date_joined) VALUES
