@@ -2,8 +2,7 @@
 # .github/workflows/deploy-production.yml
 
 
-
-name: 🚀 Deploy to Production (Docker Compose via SSH)
+name: 🚀 Deploy to Production (Blue-Green + Rollback)
 
 on:
   workflow_run:
@@ -14,9 +13,7 @@ on:
 jobs:
   deploy:
     name: Deploy to Production
-    if: >
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_branch == 'main'
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -28,42 +25,88 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
 
-      - name: Deploy to Production Server
+      - name: Deploy Blue-Green
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
             set -e
-            echo "📦 Pulling latest code..."
-            cd /path/to/your/project  # <-- Replace this with your actual path
-            git pull origin main
+
+            cd ${{ secrets.PRODUCTION_PROJECT_PATH }}
+
+            echo "🔍 Detecting active color..."
+            if [ -f active_color ]; then
+              ACTIVE_COLOR=$(cat active_color)
+            else
+              ACTIVE_COLOR=green  # fallback default
+            fi
+
+            echo "🌀 Active color is: \$ACTIVE_COLOR"
+
+            if [ "\$ACTIVE_COLOR" = "blue" ]; then
+              TARGET_COLOR=green
+            else
+              TARGET_COLOR=blue
+            fi
+
+            echo "🚀 Deploying to: \$TARGET_COLOR"
+
+            echo "📦 Fetching latest code..."
+            git fetch origin
+            git reset --hard origin/main
 
             echo "💾 Backing up database..."
-            TIMESTAMP=$(date +%Y%m%d%H%M%S)
+            TIMESTAMP=\$(date +%Y%m%d%H%M%S)
             mkdir -p backups
-            docker exec -t your_postgres_container pg_dumpall -c -U postgres > backups/db_backup_$TIMESTAMP.sql
+            docker exec -t ${{ secrets.PRODUCTION_DB_CONTAINER }} pg_dumpall -c -U ${{ secrets.PRODUCTION_DB_USER }} > backups/db_backup_\$TIMESTAMP.sql
 
-            echo "🔄 Updating containers with production compose files..."
-             docker-compose -f docker-compose.yml -f docker-compose.prod.yml pull
-             docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans
+            echo "💡 Saving current state..."
+            echo "\$ACTIVE_COLOR" > previous_color
+            echo "\$(git rev-parse HEAD)" > previous_commit
 
-             echo "✅ Production deployment complete!"
+            echo "🔄 Spinning up new version (\$TARGET_COLOR)..."
+            docker-compose -f docker-compose.yml -f docker-compose.\$TARGET_COLOR.yml pull
+            docker-compose -f docker-compose.yml -f docker-compose.\$TARGET_COLOR.yml up -d --build --remove-orphans
 
-       - name: Post-Deploy Health Check
-         run: |
-           sleep 30
-           if curl -f --max-time 10 ${{ secrets.PRODUCTION_URL }}/health || curl -f --max-time 10 ${{ secrets.PRODUCTION_URL }}; then
-             echo "✅ Production health check passed"
-           else
-             echo "❌ Production health check failed - manual intervention required"
-             exit 1
-           fi
+            echo "💾 Saving deployed commit and color"
+            echo "\$TARGET_COLOR" > active_color
+            echo "\$(git rev-parse HEAD)" > deployed_commit
+
+            echo "✅ New version deployed to \$TARGET_COLOR (not live yet)"
+
+            echo "🎚️ Switching traffic to \$TARGET_COLOR..."
+            ./scripts/switch_proxy.sh \$TARGET_COLOR
+
+            echo "✅ Traffic switched to \$TARGET_COLOR"
           EOF
 
-      # Manual rollback example (uncomment and customize as needed):
-      # - name: Rollback to previous stable release
-      #   run: |
-      #     ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
-      #       cd /path/to/your/project
-      #       docker-compose down
-      #       docker-compose -f docker-compose.rollback.yml up -d
-      #     EOF
+      - name: Post-Deploy Health Check and Rollback
+        if: always()
+        run: |
+          echo "⏳ Waiting before health check..."
+          sleep 30
+
+          echo "🔍 Checking health of deployed version..."
+          if curl -f --max-time 10 ${{ secrets.PRODUCTION_URL }}/health || curl -f --max-time 10 ${{ secrets.PRODUCTION_URL }}; then
+            echo "✅ Health check passed"
+          else
+            echo "❌ Health check failed — rolling back!"
+            ssh -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+              set -e
+              cd ${{ secrets.PRODUCTION_PROJECT_PATH }}
+
+              echo "🔙 Rolling back to previous color and commit..."
+              ROLLBACK_COLOR=\$(cat previous_color)
+              ROLLBACK_COMMIT=\$(cat previous_commit)
+
+              git reset --hard \$ROLLBACK_COMMIT
+              ./scripts/switch_proxy.sh \$ROLLBACK_COLOR
+              echo "\$ROLLBACK_COLOR" > active_color
+              echo "\$ROLLBACK_COMMIT" > deployed_commit
+
+              echo "♻️ Restarting old containers..."
+              docker-compose -f docker-compose.yml -f docker-compose.\$ROLLBACK_COLOR.yml up -d --remove-orphans
+
+              echo "✅ Rollback complete. Traffic back to \$ROLLBACK_COLOR."
+            EOF
+            exit 1
+          fi
 

@@ -1,4 +1,3 @@
-
 name: 🚀 Deploy to Staging (Docker Compose via SSH)
 
 on:
@@ -46,64 +45,68 @@ jobs:
     environment: staging
 
     steps:
-       - name: Setup SSH Agent
-         uses: webfactory/ssh-agent@v0.9.0
-         with:
-           ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
 
-       - name: Pre-Deploy Health Check
-         run: |
-           # Check if staging is accessible before deploy
-           if curl -f --max-time 10 ${{ secrets.STAGING_URL }}/health || curl -f --max-time 10 ${{ secrets.STAGING_URL }}; then
-             echo "✅ Staging is healthy"
-           else
-             echo "❌ Staging is not responding, proceeding with deploy"
-           fi
+      - name: Pre-Deploy Health Check
+        run: |
+          if curl -f --max-time 10 ${{ secrets.STAGING_URL }}/health || curl -f --max-time 10 ${{ secrets.STAGING_URL }}; then
+            echo "✅ Staging is healthy"
+          else
+            echo "⚠️ Staging is not responding, proceeding with deploy"
+          fi
 
-       - name: Deploy to Staging Server
-         run: |
+      - name: Deploy to Staging Server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
+            set -e
+            echo "📦 Pulling latest code..."
+            cd ${{ secrets.STAGING_PROJECT_PATH }}
+            CURRENT_COMMIT=$(git rev-parse HEAD)
+            git fetch origin
+            git reset --hard origin/dev
+
+            echo "💾 Backing up database..."
+            TIMESTAMP=$(date +%Y%m%d%H%M%S)
+            mkdir -p backups
+            docker exec -t ${{ secrets.STAGING_DB_CONTAINER }} pg_dumpall -c -U ${{ secrets.STAGING_DB_USER }} > backups/db_backup_$TIMESTAMP.sql
+
+            echo "🔄 Updating containers with staging compose files..."
+            docker compose -f docker-compose.yml -f docker-compose.staging.yml pull
+            docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d --remove-orphans
+
+            echo "✅ Staging deployment complete!"
+            echo "$CURRENT_COMMIT" > .last-deployed-commit
+          EOF
+
+      - name: Post-Deploy Health Check and Rollback
+        if: always()
+        run: |
+          sleep 30
+          if curl -f --max-time 10 ${{ secrets.STAGING_URL }}/health || curl -f --max-time 10 ${{ secrets.STAGING_URL }}; then
+            echo "✅ Post-deploy health check passed"
+          else
+            echo "❌ Post-deploy health check failed, rolling back"
             ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
-              set -e
-              echo "📦 Pulling latest code..."
               cd ${{ secrets.STAGING_PROJECT_PATH }}
-              CURRENT_COMMIT=$(git rev-parse HEAD)
-              git pull origin dev
-
-              echo "💾 Backing up database..."
-              TIMESTAMP=$(date +%Y%m%d%H%M%S)
-              mkdir -p backups
-              # Backup PostgreSQL database
-              docker exec -t ${{ secrets.STAGING_DB_CONTAINER }} pg_dumpall -c -U ${{ secrets.STAGING_DB_USER }} > backups/db_backup_$TIMESTAMP.sql
-
-              echo "🔄 Updating containers with staging compose files..."
-              docker compose -f docker-compose.yml -f docker-compose.staging.yml pull
+              if [ -f .last-deployed-commit ]; then
+                git checkout "$(cat .last-deployed-commit)"
+              else
+                echo "⚠️ No previous commit to rollback to!"
+              fi
               docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d --remove-orphans
-
-              echo "✅ Staging deployment complete!"
-              echo "CURRENT_COMMIT=$CURRENT_COMMIT" >> $GITHUB_ENV
             EOF
+            exit 1
+          fi
 
-       - name: Post-Deploy Health Check and Rollback
-         if: always()
-         run: |
-           sleep 30
-           if curl -f --max-time 10 ${{ secrets.STAGING_URL }}/health || curl -f --max-time 10 ${{ secrets.STAGING_URL }}; then
-             echo "✅ Post-deploy health check passed"
-           else
-             echo "❌ Post-deploy health check failed, rolling back"
-             ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
-               cd ${{ secrets.STAGING_PROJECT_PATH }}
-               git checkout $CURRENT_COMMIT
-               docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d --remove-orphans
-             EOF
-             exit 1
-           fi
+      # - name: Notify Slack
+      #   if: always()
+      #   uses: slackapi/slack-github-action@v1.24.0
+      #   with:
+      #     channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+      #     slack-message: "Staging deployment ${{ job.status }} for commit ${{ github.sha }}: ${{ github.event.workflow_run.head_commit.message || 'No message' }}"
+      #   env:
+      #     SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 
-       # - name: Notify Slack
-       #   if: always()
-       #   uses: slackapi/slack-github-action@v1.24.0
-       #   with:
-       #     channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
-       #     slack-message: "Staging deployment ${{ job.status }} for commit ${{ github.sha }}: ${{ github.event.workflow_run.head_commit.message || 'No message' }}"
-       #   env:
-       #     SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
