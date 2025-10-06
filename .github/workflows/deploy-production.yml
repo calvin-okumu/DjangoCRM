@@ -1,7 +1,6 @@
 
 # .github/workflows/deploy-production.yml
 
-
 name: 🚀 Deploy to Production (Blue-Green + Rollback)
 
 on:
@@ -20,93 +19,110 @@ jobs:
       url: https://your-production-domain.com
 
     steps:
-      - name: Setup SSH Agent
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
+      - name: Checkout Repo
+        uses: actions/checkout@v4
 
-      - name: Deploy Blue-Green
+      # ---------------------------------------------
+      # 1. Setup Twingate CLI and Connect
+      # ---------------------------------------------
+      - name: Install Twingate CLI
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
-            set -e
+          curl -fsSL https://binaries.twingate.com/client/linux/install.sh | sh
 
+      - name: Connect to Twingate
+        env:
+          TWINGATE_ACCESS_TOKEN: ${{ secrets.TWINGATE_ACCESS_TOKEN }}
+          TWINGATE_REFRESH_TOKEN: ${{ secrets.TWINGATE_REFRESH_TOKEN }}
+          TWINGATE_NETWORK: ${{ secrets.TWINGATE_NETWORK }}
+        run: |
+          ./twingate setup --headless \
+            --network $TWINGATE_NETWORK \
+            --access-token $TWINGATE_ACCESS_TOKEN \
+            --refresh-token $TWINGATE_REFRESH_TOKEN
+
+          ./twingate start
+          sleep 5  # allow time for connection
+
+      # ---------------------------------------------
+      # 2. Run Remote Deployment Commands over Twingate
+      # ---------------------------------------------
+      - name: Run Blue-Green Deployment via Remote Shell (over Twingate)
+        env:
+          PROD_HOST: ${{ secrets.PRODUCTION_HOST }}
+          PROD_USER: ${{ secrets.PRODUCTION_USER }}
+        run: |
+          ssh -o StrictHostKeyChecking=no $PROD_USER@$PROD_HOST << 'EOF'
+            set -e
             cd ${{ secrets.PRODUCTION_PROJECT_PATH }}
 
             echo "🔍 Detecting active color..."
             if [ -f active_color ]; then
               ACTIVE_COLOR=$(cat active_color)
             else
-              ACTIVE_COLOR=green  # fallback default
+              ACTIVE_COLOR=green
             fi
 
-            echo "🌀 Active color is: \$ACTIVE_COLOR"
-
-            if [ "\$ACTIVE_COLOR" = "blue" ]; then
+            if [ "$ACTIVE_COLOR" = "blue" ]; then
               TARGET_COLOR=green
             else
               TARGET_COLOR=blue
             fi
 
-            echo "🚀 Deploying to: \$TARGET_COLOR"
-
-            echo "📦 Fetching latest code..."
+            echo "📦 Pulling latest code..."
             git fetch origin
             git reset --hard origin/main
 
-            echo "💾 Backing up database..."
-            TIMESTAMP=\$(date +%Y%m%d%H%M%S)
+            echo "💾 Backing up DB..."
+            TIMESTAMP=$(date +%Y%m%d%H%M%S)
             mkdir -p backups
-            docker exec -t ${{ secrets.PRODUCTION_DB_CONTAINER }} pg_dumpall -c -U ${{ secrets.PRODUCTION_DB_USER }} > backups/db_backup_\$TIMESTAMP.sql
+            docker exec -t ${{ secrets.PRODUCTION_DB_CONTAINER }} pg_dumpall -c -U ${{ secrets.PRODUCTION_DB_USER }} > backups/db_backup_$TIMESTAMP.sql
 
-            echo "💡 Saving current state..."
-            echo "\$ACTIVE_COLOR" > previous_color
-            echo "\$(git rev-parse HEAD)" > previous_commit
+            echo "$ACTIVE_COLOR" > previous_color
+            echo "$(git rev-parse HEAD)" > previous_commit
 
-            echo "🔄 Spinning up new version (\$TARGET_COLOR)..."
-            docker-compose -f docker-compose.yml -f docker-compose.\$TARGET_COLOR.yml pull
-            docker-compose -f docker-compose.yml -f docker-compose.\$TARGET_COLOR.yml up -d --build --remove-orphans
+            echo "🔄 Deploying to $TARGET_COLOR..."
+            docker-compose -f docker-compose.yml -f docker-compose.$TARGET_COLOR.yml pull
+            docker-compose -f docker-compose.yml -f docker-compose.$TARGET_COLOR.yml up -d --build --remove-orphans
 
-            echo "💾 Saving deployed commit and color"
-            echo "\$TARGET_COLOR" > active_color
-            echo "\$(git rev-parse HEAD)" > deployed_commit
+            echo "$TARGET_COLOR" > active_color
+            echo "$(git rev-parse HEAD)" > deployed_commit
 
-            echo "✅ New version deployed to \$TARGET_COLOR (not live yet)"
+            echo "🎚️ Switching traffic to $TARGET_COLOR..."
+            ./scripts/switch_proxy.sh $TARGET_COLOR
 
-            echo "🎚️ Switching traffic to \$TARGET_COLOR..."
-            ./scripts/switch_proxy.sh \$TARGET_COLOR
-
-            echo "✅ Traffic switched to \$TARGET_COLOR"
+            echo "✅ Deployment to $TARGET_COLOR complete"
           EOF
 
-      - name: Post-Deploy Health Check and Rollback
+      # ---------------------------------------------
+      # 3. Health Check & Rollback
+      # ---------------------------------------------
+      - name: Post-Deploy Health Check & Rollback
         if: always()
         run: |
-          echo "⏳ Waiting before health check..."
+          echo "⏳ Waiting for service to stabilize..."
           sleep 30
 
-          echo "🔍 Checking health of deployed version..."
           if curl -f --max-time 10 ${{ secrets.PRODUCTION_URL }}/health || curl -f --max-time 10 ${{ secrets.PRODUCTION_URL }}; then
-            echo "✅ Health check passed"
+            echo "✅ Health check passed."
           else
-            echo "❌ Health check failed — rolling back!"
+            echo "❌ Health check failed — Rolling back..."
             ssh -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
               set -e
               cd ${{ secrets.PRODUCTION_PROJECT_PATH }}
 
-              echo "🔙 Rolling back to previous color and commit..."
-              ROLLBACK_COLOR=\$(cat previous_color)
-              ROLLBACK_COMMIT=\$(cat previous_commit)
+              ROLLBACK_COLOR=$(cat previous_color)
+              ROLLBACK_COMMIT=$(cat previous_commit)
 
-              git reset --hard \$ROLLBACK_COMMIT
-              ./scripts/switch_proxy.sh \$ROLLBACK_COLOR
-              echo "\$ROLLBACK_COLOR" > active_color
-              echo "\$ROLLBACK_COMMIT" > deployed_commit
+              git reset --hard $ROLLBACK_COMMIT
+              ./scripts/switch_proxy.sh $ROLLBACK_COLOR
+              echo "$ROLLBACK_COLOR" > active_color
+              echo "$ROLLBACK_COMMIT" > deployed_commit
 
-              echo "♻️ Restarting old containers..."
-              docker-compose -f docker-compose.yml -f docker-compose.\$ROLLBACK_COLOR.yml up -d --remove-orphans
+              docker-compose -f docker-compose.yml -f docker-compose.$ROLLBACK_COLOR.yml up -d --remove-orphans
 
-              echo "✅ Rollback complete. Traffic back to \$ROLLBACK_COLOR."
+              echo "✅ Rolled back to $ROLLBACK_COLOR"
             EOF
             exit 1
           fi
+
 
