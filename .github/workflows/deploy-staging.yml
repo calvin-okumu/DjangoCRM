@@ -1,4 +1,5 @@
 
+
 name: 🚀 Deploy to Staging (Docker Compose via Twingate)
 
 on:
@@ -55,10 +56,7 @@ jobs:
       - name: Connect to Twingate (Service Account)
         uses: twingate/github-action@v1
         with:
-          network: ${{ secrets.TWINGATE_NETWORK }}
-          serviceAccountId: ${{ secrets.TWINGATE_SERVICE_ACCOUNT_ID }}
-          keyId: ${{ secrets.TWINGATE_KEY_ID }}
-          privateKey: ${{ secrets.TWINGATE_PRIVATE_KEY }}
+          service-key: ${{ secrets.TWINGATE_SERVICE_KEY }}
 
       # ---------------------------------------------
       # 2. Pre-Deploy Health Check (over Twingate)
