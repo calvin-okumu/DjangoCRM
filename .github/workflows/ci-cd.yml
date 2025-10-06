@@ -27,16 +27,31 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: Install dependencies
-        run: |
-          cd backend
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+       - name: Install dependencies
+         run: |
+           cd backend
+           python -m pip install --upgrade pip
+           pip install -r requirements.txt
 
-      - name: Run unit tests
-        run: |
-          cd backend
-          python manage.py test --tag=unit --verbosity=2
+       - name: Create environment file
+         run: |
+           cd backend
+           echo "SECRET_KEY=ci-test-secret-key-not-for-production-use" > .env
+           echo "DEBUG=true" >> .env
+           echo "ALLOWED_HOSTS=localhost,127.0.0.1,testserver" >> .env
+           echo "SITE_URL=http://127.0.0.1:8000" >> .env
+           echo "MULTI_TENANCY_ENABLED=false" >> .env
+           echo "DB_NAME=test_saascrm_db" >> .env
+           echo "DB_USER=saascrm_user" >> .env
+           echo "DB_PASSWORD=saascrm_password" >> .env
+           echo "DB_HOST=localhost" >> .env
+           echo "DB_PORT=5432" >> .env
+           echo "DATABASE_URL=postgresql://saascrm_user:saascrm_password@localhost:5432/test_saascrm_db" >> .env
+
+       - name: Run unit tests
+         run: |
+           cd backend
+           python manage.py test --tag=unit --verbosity=2
 
   detect-changes:
     name: Detect Code Changes
