@@ -233,7 +233,7 @@ class Invoice(models.Model):
         Client, on_delete=models.CASCADE, related_name="invoices"
     )
     project = models.ForeignKey(
-        Project, on_delete=models.CASCADE, related_name="invoices"
+        Project, on_delete=models.CASCADE, related_name="invoices", null=True, blank=True
     )
     amount = models.DecimalField(
         max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal('0'))]

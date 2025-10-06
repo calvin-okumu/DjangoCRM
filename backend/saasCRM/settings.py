@@ -121,10 +121,17 @@ DATABASES = {
 }
 
 # Test database configuration
-# Django automatically creates test databases with 'test_' prefix
-TEST = {
-    'NAME': 'saascrm_db',  # Use same db for tests
-}
+# Use SQLite for tests to avoid needing PostgreSQL setup
+if 'test' in sys.argv:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
+    }
+else:
+    # Django automatically creates test databases with 'test_' prefix
+    TEST = {
+        'NAME': 'saascrm_db',  # Use same db for tests
+    }
 
 
 # Password validation

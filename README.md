@@ -218,13 +218,14 @@ cd frontend && npx tsc --noEmit
 
 ## 🚀 CI/CD Integration
 
-The project includes GitHub Actions workflows for automated testing and deployment:
+The project includes optimized GitHub Actions workflows for automated testing and deployment:
 
-- **Automated Testing**: Runs on every push/PR
-- **Code Quality**: Linting and type checking
-- **Build Verification**: Ensures production builds work
-- **Docker Images**: Built and pushed automatically
-- **Multi-Environment Deployment**: Staging and production pipelines
+- **Hybrid Branch Workflow**: Feature → Dev (build + staging) → Main (production)
+- **Fast Unit Tests**: Logic tests run first, full integration only if needed
+- **Caching**: Pip, node_modules, and Docker layers for 50-70% faster runs
+- **Conditional Builds**: Builds only on dev/main branches
+- **Multi-Environment Deployment**: Staging (dev) and production (main) with health checks and rollback
+- **Security Scans**: Automated vulnerability checks for dependencies
 
 ## 📖 API Documentation
 
@@ -297,9 +298,18 @@ For social authentication:
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 📧 Support
+## 🐛 Troubleshooting
 
-For questions or support, please open an issue on GitHub.
+### Common Issues
+- **Backend Tests Fail Locally**: Ensure PostgreSQL is running. Use `docker-compose up db -d` or set up local PG with correct credentials.
+- **Frontend Build Fails**: Run `npm install` and check Node.js version (18+).
+- **Workflow Runs on Feature Branches**: Expected if workflow files change; builds are skipped unless on dev/main.
+- **Secrets Not Working**: Ensure GitHub secrets are set in the correct environment (staging/production).
+
+### Getting Help
+- **Issues**: Open an issue on GitHub with error logs
+- **Documentation**: See `MANUAL.md` for detailed setup and usage
+- **API Docs**: Available at http://localhost:8000/docs/ when running
 
 ---
 
