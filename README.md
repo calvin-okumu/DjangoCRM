@@ -311,6 +311,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - **Documentation**: See `MANUAL.md` for detailed setup and usage
 - **API Docs**: Available at http://localhost:8000/docs/ when running
 
+## Test Workflow
+
+This is a test change to verify the CI/CD workflow is working correctly.
+
 ---
 
 **Default Superuser**: admin@example.com / admin123
