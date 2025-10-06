@@ -1,4 +1,5 @@
-name: 🚀 Deploy to Staging (Docker Compose via SSH)
+
+name: 🚀 Deploy to Staging (Docker Compose via Twingate)
 
 on:
   workflow_run:
@@ -45,11 +46,23 @@ jobs:
     environment: staging
 
     steps:
-      - name: Setup SSH Agent
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
+      - name: Checkout Repo
+        uses: actions/checkout@v4
 
+      # ---------------------------------------------
+      # 1. Connect to Twingate Network
+      # ---------------------------------------------
+      - name: Connect to Twingate (Service Account)
+        uses: twingate/github-action@v1
+        with:
+          network: ${{ secrets.TWINGATE_NETWORK }}
+          serviceAccountId: ${{ secrets.TWINGATE_SERVICE_ACCOUNT_ID }}
+          keyId: ${{ secrets.TWINGATE_KEY_ID }}
+          privateKey: ${{ secrets.TWINGATE_PRIVATE_KEY }}
+
+      # ---------------------------------------------
+      # 2. Pre-Deploy Health Check (over Twingate)
+      # ---------------------------------------------
       - name: Pre-Deploy Health Check
         run: |
           if curl -f --max-time 10 ${{ secrets.STAGING_URL }}/health || curl -f --max-time 10 ${{ secrets.STAGING_URL }}; then
@@ -58,9 +71,15 @@ jobs:
             echo "⚠️ Staging is not responding, proceeding with deploy"
           fi
 
+      # ---------------------------------------------
+      # 3. Deploy to Staging Server (over Twingate)
+      # ---------------------------------------------
       - name: Deploy to Staging Server
+        env:
+          STAGING_USER: ${{ secrets.STAGING_USER }}
+          STAGING_HOST: ${{ secrets.STAGING_HOST }}
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no $STAGING_USER@$STAGING_HOST << 'EOF'
             set -e
             echo "📦 Pulling latest code..."
             cd ${{ secrets.STAGING_PROJECT_PATH }}
@@ -81,6 +100,9 @@ jobs:
             echo "$CURRENT_COMMIT" > .last-deployed-commit
           EOF
 
+      # ---------------------------------------------
+      # 4. Post-Deploy Health Check & Rollback
+      # ---------------------------------------------
       - name: Post-Deploy Health Check and Rollback
         if: always()
         run: |
@@ -101,6 +123,9 @@ jobs:
             exit 1
           fi
 
+      # ---------------------------------------------
+      # 5. Optional: Slack Notification
+      # ---------------------------------------------
       # - name: Notify Slack
       #   if: always()
       #   uses: slackapi/slack-github-action@v1.24.0
