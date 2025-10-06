@@ -319,6 +319,8 @@ Updated test for YAML fixes.
 
 Removed services block to fix syntax.
 
+Testing workflow on dev branch - update 2025-10-06.
+
 ---
 
 **Default Superuser**: admin@example.com / admin123
