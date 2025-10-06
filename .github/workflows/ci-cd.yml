@@ -11,6 +11,18 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: ci-test-secret-key-not-for-production-use
+      DEBUG: true
+      ALLOWED_HOSTS: localhost,127.0.0.1,testserver
+      SITE_URL: http://127.0.0.1:8000
+      MULTI_TENANCY_ENABLED: false
+      DB_NAME: test_saascrm_db
+      DB_USER: saascrm_user
+      DB_PASSWORD: saascrm_password
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DATABASE_URL: postgresql://saascrm_user:saascrm_password@localhost:5432/test_saascrm_db
     steps:
       - uses: actions/checkout@v4
 
@@ -36,17 +48,17 @@ jobs:
        - name: Create environment file
          run: |
            cd backend
-           echo "SECRET_KEY=ci-test-secret-key-not-for-production-use" > .env
-           echo "DEBUG=true" >> .env
-           echo "ALLOWED_HOSTS=localhost,127.0.0.1,testserver" >> .env
-           echo "SITE_URL=http://127.0.0.1:8000" >> .env
-           echo "MULTI_TENANCY_ENABLED=false" >> .env
-           echo "DB_NAME=test_saascrm_db" >> .env
-           echo "DB_USER=saascrm_user" >> .env
-           echo "DB_PASSWORD=saascrm_password" >> .env
-           echo "DB_HOST=localhost" >> .env
-           echo "DB_PORT=5432" >> .env
-           echo "DATABASE_URL=postgresql://saascrm_user:saascrm_password@localhost:5432/test_saascrm_db" >> .env
+           echo "SECRET_KEY=${{ env.SECRET_KEY }}" > .env
+           echo "DEBUG=${{ env.DEBUG }}" >> .env
+           echo "ALLOWED_HOSTS=${{ env.ALLOWED_HOSTS }}" >> .env
+           echo "SITE_URL=${{ env.SITE_URL }}" >> .env
+           echo "MULTI_TENANCY_ENABLED=${{ env.MULTI_TENANCY_ENABLED }}" >> .env
+           echo "DB_NAME=${{ env.DB_NAME }}" >> .env
+           echo "DB_USER=${{ env.DB_USER }}" >> .env
+           echo "DB_PASSWORD=${{ env.DB_PASSWORD }}" >> .env
+           echo "DB_HOST=${{ env.DB_HOST }}" >> .env
+           echo "DB_PORT=${{ env.DB_PORT }}" >> .env
+           echo "DATABASE_URL=${{ env.DATABASE_URL }}" >> .env
 
        - name: Run unit tests
          run: |
