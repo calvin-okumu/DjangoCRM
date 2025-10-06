@@ -243,42 +243,7 @@ export default function ProjectDetailPage() {
         setEditingSprint(null);
     };
 
-    const handleTaskStatusChange = async (taskId: number, newStatus: string) => {
-        try {
-            // TODO: Implement API call to update task status
-            console.log('Update task status:', taskId, newStatus);
 
-            // Update task status and cascade progress updates
-            const { updateProgressHierarchy } = await import('@/lib/progressUtils');
-            const {
-                updatedTasks,
-                updatedSprints,
-                updatedMilestones,
-                updatedProjects
-            } = updateProgressHierarchy(
-                taskId,
-                newStatus,
-                tasks,
-                sprints,
-                milestones,
-                project ? [project] : []
-            );
-
-            // Update all state with new progress values
-            setTasks(updatedTasks);
-            setSprints(updatedSprints);
-            setMilestones(updatedMilestones);
-            if (project) {
-                // Update project progress
-                const updatedProject = updatedProjects.find(p => p.id === project.id);
-                if (updatedProject) {
-                    setProject(updatedProject);
-                }
-            }
-        } catch (error) {
-            console.error('Failed to update task status:', error);
-        }
-    };
 
     const handleSaveTask = async (taskData: TaskFormData) => {
         try {

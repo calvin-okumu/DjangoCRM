@@ -49,9 +49,9 @@ const BacklogScreen: React.FC<BacklogScreenProps> = ({
 
   // Filter and sort tasks
   const filteredAndSortedTasks = useMemo(() => {
-    let filtered = tasks.filter(task => {
+    const filtered = tasks.filter(task => {
       const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          task.description?.toLowerCase().includes(searchTerm.toLowerCase());
+                            task.description?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
       const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
 
@@ -60,8 +60,8 @@ const BacklogScreen: React.FC<BacklogScreenProps> = ({
 
     // Sort tasks
     filtered.sort((a, b) => {
-      let aValue: any;
-      let bValue: any;
+      let aValue: string | number;
+      let bValue: string | number;
 
       switch (sortField) {
         case 'title':
@@ -77,16 +77,16 @@ const BacklogScreen: React.FC<BacklogScreenProps> = ({
           bValue = b.priority;
           break;
         case 'assignee':
-          aValue = (a as any).assignee || '';
-          bValue = (b as any).assignee || '';
+          aValue = a.assignee?.toString() || '';
+          bValue = b.assignee?.toString() || '';
           break;
         case 'due_date':
-          aValue = (a as any).end_date ? new Date((a as any).end_date).getTime() : 0;
-          bValue = (b as any).end_date ? new Date((b as any).end_date).getTime() : 0;
+          aValue = a.end_date ? new Date(a.end_date).getTime() : 0;
+          bValue = b.end_date ? new Date(b.end_date).getTime() : 0;
           break;
         case 'sprint':
-          aValue = (a as any).sprint_name || '';
-          bValue = (b as any).sprint_name || '';
+          aValue = a.sprint_name || '';
+          bValue = b.sprint_name || '';
           break;
         case 'created_at':
           aValue = new Date(a.created_at).getTime();

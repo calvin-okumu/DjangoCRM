@@ -67,9 +67,9 @@ const MilestoneList: React.FC<MilestoneListProps> = ({
 
     return (
         <div>
-            {title && (
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+            <div className="flex justify-between items-center mb-6">
+                {title && <h2 className="text-2xl font-bold text-gray-900">{title}</h2>}
+                {onAdd && (
                     <button
                         onClick={onAdd}
                         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md hover:shadow-lg transition-shadow duration-200"
@@ -77,8 +77,8 @@ const MilestoneList: React.FC<MilestoneListProps> = ({
                         <Plus className="h-5 w-5" />
                         {addButtonText}
                     </button>
-                </div>
-            )}
+                )}
+            </div>
 
             <div className="flex gap-4 mb-6">
                 <div className="relative flex-1 max-w-md">

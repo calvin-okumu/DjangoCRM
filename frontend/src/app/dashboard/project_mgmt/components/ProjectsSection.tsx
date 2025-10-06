@@ -1,10 +1,10 @@
 
 "use client";
 
+import Pagination from "@/components/shared/Pagination";
 import { Edit, Loader, Plus, Search, Trash2 } from "lucide-react";
 import Link from "next/link";
 import React, { useMemo, useState } from "react";
-import Pagination from "@/components/shared/Pagination";
 
 interface EmptyState {
     icon: React.ComponentType<{ className?: string }>;

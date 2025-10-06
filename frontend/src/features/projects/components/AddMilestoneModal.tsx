@@ -1,6 +1,6 @@
 "use client";
 
-import { X, Plus } from "lucide-react";
+import { X } from "lucide-react";
 import React, { useState, useEffect } from "react";
 
 interface FormField {
@@ -13,14 +13,26 @@ interface FormField {
     defaultValue?: string | string[] | boolean;
 }
 
+interface Milestone {
+    id?: number;
+    name?: string;
+    description?: string;
+    status?: string;
+    planned_start?: string;
+    actual_start?: string;
+    due_date?: string;
+    assignee?: string;
+    [key: string]: unknown;
+}
+
 interface AddMilestoneModalProps {
     isOpen: boolean;
     onClose: () => void;
     title: string;
     fields: FormField[];
-    onSubmit: (data: Record<string, any>) => void;
+    onSubmit: (data: Record<string, string | string[] | boolean>) => void;
     submitButtonText: string;
-    editingMilestone?: any;
+    editingMilestone?: Milestone;
 }
 
 const AddMilestoneModal = ({
@@ -32,28 +44,29 @@ const AddMilestoneModal = ({
     submitButtonText,
     editingMilestone,
 }: AddMilestoneModalProps) => {
-    const initialData = fields.reduce((acc, field) => {
+    // Calculate initial data based on fields
+    const getInitialData = (): Record<string, string | string[] | boolean> => fields.reduce((acc, field) => {
         acc[field.name] = field.defaultValue || (field.type === "multiselect" ? [] : field.type === "boolean" ? false : "");
         return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, string | string[] | boolean>);
 
-    const [formData, setFormData] = useState(initialData);
+    const [formData, setFormData] = useState<Record<string, string | string[] | boolean>>(getInitialData);
 
+    // Reset form data when modal opens/closes or editingMilestone changes
     useEffect(() => {
-        if (editingMilestone) {
+        if (isOpen) {
             const newInitialData = fields.reduce((acc, field) => {
-                acc[field.name] = editingMilestone[field.name] || field.defaultValue || (field.type === "multiselect" ? [] : field.type === "boolean" ? false : "");
+                if (editingMilestone) {
+                    acc[field.name] = editingMilestone[field.name] || field.defaultValue || (field.type === "multiselect" ? [] : field.type === "boolean" ? false : "");
+                } else {
+                    acc[field.name] = field.defaultValue || (field.type === "multiselect" ? [] : field.type === "boolean" ? false : "");
+                }
                 return acc;
-            }, {} as Record<string, any>);
-            setFormData(newInitialData);
-        } else {
-            const newInitialData = fields.reduce((acc, field) => {
-                acc[field.name] = field.defaultValue || (field.type === "multiselect" ? [] : field.type === "boolean" ? false : "");
-                return acc;
-            }, {} as Record<string, any>);
+            }, {} as Record<string, string | string[] | boolean>);
+
             setFormData(newInitialData);
         }
-    }, [fields, editingMilestone]);
+    }, [isOpen, editingMilestone, fields]);
 
     const handleChange = (
         e: React.ChangeEvent<

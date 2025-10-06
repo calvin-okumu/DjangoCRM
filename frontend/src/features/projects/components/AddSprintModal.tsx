@@ -13,15 +13,31 @@ interface FormField {
     defaultValue?: string | string[] | boolean;
 }
 
+interface Sprint {
+    id?: number;
+    name?: string;
+    status?: string;
+    start_date?: string;
+    end_date?: string;
+    milestone?: number;
+    [key: string]: unknown;
+}
+
+interface Milestone {
+    id: number;
+    name: string;
+    [key: string]: unknown;
+}
+
 interface AddSprintModalProps {
     isOpen: boolean;
     onClose: () => void;
     title: string;
     fields: FormField[];
-    onSubmit: (data: Record<string, any>) => void;
+    onSubmit: (data: Record<string, string | string[] | boolean>) => void;
     submitButtonText: string;
-    editingSprint?: any;
-    milestones?: any[];
+    editingSprint?: Sprint;
+    milestones?: Milestone[];
 }
 
 const AddSprintModal = ({
@@ -32,30 +48,31 @@ const AddSprintModal = ({
     onSubmit,
     submitButtonText,
     editingSprint,
-    milestones = [],
+    milestones: _milestones = [],
 }: AddSprintModalProps) => {
-    const initialData = fields.reduce((acc, field) => {
+    // Calculate initial data based on fields
+    const getInitialData = (): Record<string, string | string[] | boolean> => fields.reduce((acc, field) => {
         acc[field.name] = field.defaultValue || (field.type === "multiselect" ? [] : field.type === "boolean" ? false : "");
         return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, string | string[] | boolean>);
 
-    const [formData, setFormData] = useState(initialData);
+    const [formData, setFormData] = useState<Record<string, string | string[] | boolean>>(getInitialData);
 
+    // Reset form data when modal opens/closes or editingSprint changes
     useEffect(() => {
-        if (editingSprint) {
+        if (isOpen) {
             const newInitialData = fields.reduce((acc, field) => {
-                acc[field.name] = editingSprint[field.name] || field.defaultValue || (field.type === "multiselect" ? [] : field.type === "boolean" ? false : "");
+                if (editingSprint) {
+                    acc[field.name] = editingSprint[field.name] || field.defaultValue || (field.type === "multiselect" ? [] : field.type === "boolean" ? false : "");
+                } else {
+                    acc[field.name] = field.defaultValue || (field.type === "multiselect" ? [] : field.type === "boolean" ? false : "");
+                }
                 return acc;
-            }, {} as Record<string, any>);
-            setFormData(newInitialData);
-        } else {
-            const newInitialData = fields.reduce((acc, field) => {
-                acc[field.name] = field.defaultValue || (field.type === "multiselect" ? [] : field.type === "boolean" ? false : "");
-                return acc;
-            }, {} as Record<string, any>);
+            }, {} as Record<string, string | string[] | boolean>);
+
             setFormData(newInitialData);
         }
-    }, [fields, editingSprint]);
+    }, [isOpen, editingSprint, fields]);
 
     const handleChange = (
         e: React.ChangeEvent<
