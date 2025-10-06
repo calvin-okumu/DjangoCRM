@@ -53,10 +53,11 @@ jobs:
       # ---------------------------------------------
       # 1. Connect to Twingate Network
       # ---------------------------------------------
-      - name: Connect to Twingate (Service Account)
-        uses: twingate/github-action@v1
-        with:
-          service-key: ${{ secrets.TWINGATE_SERVICE_KEY }}
+       - name: Connect to Twingate (Service Account)
+         uses: twingate/github-action@v1.5
+         with:
+           service-key: ${{ secrets.TWINGATE_SERVICE_KEY }}
+           debug: true
 
       # ---------------------------------------------
       # 2. Pre-Deploy Health Check (over Twingate)

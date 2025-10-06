@@ -25,13 +25,11 @@ jobs:
       # ---------------------------------------------
       # 1. Setup Twingate Tunnel
       # ---------------------------------------------
-      - name: Connect to Twingate (Service Account)
-        uses: twingate/github-action@v1
-        with:
-          network: ${{ secrets.TWINGATE_NETWORK }}
-          serviceAccountId: ${{ secrets.TWINGATE_SERVICE_ACCOUNT_ID }}
-          keyId: ${{ secrets.TWINGATE_KEY_ID }}
-          privateKey: ${{ secrets.TWINGATE_PRIVATE_KEY }}
+       - name: Connect to Twingate (Service Account)
+         uses: twingate/github-action@v1.5
+         with:
+           service-key: ${{ secrets.TWINGATE_SERVICE_KEY }}
+           debug: true
 
       # ---------------------------------------------
       # 2. Run Blue-Green Deployment over Twingate
