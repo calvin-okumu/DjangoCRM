@@ -1,5 +1,4 @@
 
-
 #add-staging-workflow
 name: 🚀 Deploy to Staging (Docker Compose via Twingate)
 
@@ -60,26 +59,17 @@ jobs:
           service-key: ${{ secrets.TWINGATE_SERVICE_KEY }}
 
       # ---------------------------------------------
-      # 2. Setup SSH Key (for passwordless access)
-      #    This tries to base64-decode the secret, and falls back to raw text.
+      # 2. Setup SSH Key (passwordless access)
       # ---------------------------------------------
       - name: Setup SSH Key
         run: |
           mkdir -p ~/.ssh
-          set +e
-          echo "${{ secrets.STAGING_SSH_KEY }}" | base64 --decode > /tmp/id_rsa.dec 2>/dev/null
-          if [ $? -eq 0 ] && grep -q "BEGIN" /tmp/id_rsa.dec; then
-            mv /tmp/id_rsa.dec ~/.ssh/id_rsa
-          else
-            # fall back to raw secret (keeps newlines if they exist)
-            echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/id_rsa
-            rm -f /tmp/id_rsa.dec
-          fi
+          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
 
       # ---------------------------------------------
-      # 3. Pre-Deploy Health Check (over Twingate)
+      # 3. Pre-Deploy Health Check
       # ---------------------------------------------
       - name: Pre-Deploy Health Check
         run: |
@@ -90,17 +80,20 @@ jobs:
           fi
 
       # ---------------------------------------------
-      # 4. Deploy to Staging Server (over Twingate)
+      # 4. Deploy to Staging Server
       # ---------------------------------------------
       - name: Deploy to Staging Server
         env:
           STAGING_USER: ${{ secrets.STAGING_USER }}
           STAGING_HOST: ${{ secrets.STAGING_HOST }}
+          PROJECT_PATH: ${{ secrets.STAGING_PROJECT_PATH }}
+          DB_CONTAINER: ${{ secrets.STAGING_DB_CONTAINER }}
+          DB_USER: ${{ secrets.STAGING_DB_USER }}
         run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $STAGING_USER@$STAGING_HOST <<'EOF'
 set -e
 echo "📦 Pulling latest code..."
-cd ${{ secrets.STAGING_PROJECT_PATH }}
+cd $PROJECT_PATH
 CURRENT_COMMIT=$(git rev-parse HEAD)
 git fetch origin
 git reset --hard origin/dev
@@ -108,7 +101,7 @@ git reset --hard origin/dev
 echo "💾 Backing up database..."
 TIMESTAMP=$(date +%Y%m%d%H%M%S)
 mkdir -p backups
-docker exec -t ${{ secrets.STAGING_DB_CONTAINER }} pg_dumpall -c -U ${{ secrets.STAGING_DB_USER }} > backups/db_backup_$TIMESTAMP.sql
+docker exec -t $DB_CONTAINER pg_dumpall -c -U $DB_USER > backups/db_backup_$TIMESTAMP.sql
 
 echo "🔄 Updating containers with staging compose files..."
 docker compose -f docker-compose.yml -f docker-compose.staging.yml pull
@@ -123,14 +116,18 @@ EOF
       # ---------------------------------------------
       - name: Post-Deploy Health Check and Rollback
         if: ${{ always() }}
+        env:
+          STAGING_USER: ${{ secrets.STAGING_USER }}
+          STAGING_HOST: ${{ secrets.STAGING_HOST }}
+          PROJECT_PATH: ${{ secrets.STAGING_PROJECT_PATH }}
         run: |
           sleep 30
           if curl -f --max-time 10 ${{ secrets.STAGING_URL }}/health || curl -f --max-time 10 ${{ secrets.STAGING_URL }}; then
             echo "✅ Post-deploy health check passed"
           else
             echo "❌ Post-deploy health check failed, rolling back"
-            ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} <<'EOF'
-cd ${{ secrets.STAGING_PROJECT_PATH }}
+            ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $STAGING_USER@$STAGING_HOST <<'EOF'
+cd $PROJECT_PATH
 if [ -f .last-deployed-commit ]; then
   git checkout "$(cat .last-deployed-commit)"
 else
