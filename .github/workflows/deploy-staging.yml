@@ -26,7 +26,7 @@ jobs:
             backend:
               - 'backend/**'
               - 'requirements.txt'
-              - 'Dockerfile.backend'
+              - 'backend/Dockerfile'
               - '.github/workflows/ci-cd.yml'
             frontend:
               - 'frontend/**'
@@ -62,8 +62,16 @@ jobs:
       - name: Setup SSH Key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
+          set +e
+          echo "${{ secrets.STAGING_SSH_KEY }}" | base64 --decode > /tmp/id_ed25519.dec 2>/dev/null
+          if [ $? -eq 0 ] && grep -q "BEGIN" /tmp/id_ed25519.dec; then
+            mv /tmp/id_ed25519.dec ~/.ssh/id_ed25519
+          else
+            # fall back to raw secret (keeps newlines if they exist)
+            echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/id_ed25519
+            rm -f /tmp/id_ed25519.dec
+          fi
+          chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
 
       # ---------------------------------------------
@@ -88,7 +96,7 @@ jobs:
           DB_CONTAINER: ${{ secrets.STAGING_DB_CONTAINER }}
           DB_USER: ${{ secrets.STAGING_DB_USER }}
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "$STAGING_USER@$STAGING_HOST" bash -s <<EOF
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "$STAGING_USER@$STAGING_HOST" bash -s <<EOF
           set -e  # Exit on any error
           
           # Navigate to project directory
@@ -114,10 +122,10 @@ jobs:
           fi
           
           echo "🔄 Pulling latest container images..."
-          docker compose -f docker-compose.yml -f docker-compose.staging.yml pull || { echo "❌ Docker pull failed"; exit 1; }
+          docker-compose -f docker-compose.yml -f docker-compose.staging.yml pull || { echo "❌ Docker pull failed"; exit 1; }
           
           echo "🚀 Starting containers..."
-          docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d --remove-orphans || {
+          docker-compose -f docker-compose.yml -f docker-compose.staging.yml up -d --remove-orphans || {
             echo "❌ Docker compose up failed"
             exit 1
           }
@@ -147,7 +155,7 @@ jobs:
           else
             echo "❌ Post-deploy health check failed - initiating rollback"
             
-            ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "$STAGING_USER@$STAGING_HOST" bash -s << 'ENDSSH'
+            ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "$STAGING_USER@$STAGING_HOST" bash -s << 'ENDSSH'
             set -e
             cd "$PROJECT_PATH" || exit 1
             
@@ -155,13 +163,13 @@ jobs:
               ROLLBACK_COMMIT=$(cat .last-deployed-commit)
               echo "🔄 Rolling back to commit: $ROLLBACK_COMMIT"
               
-              git checkout "$ROLLBACK_COMMIT" || {
+              git reset --hard "$ROLLBACK_COMMIT" || {
                 echo "❌ Rollback failed - manual intervention required"
                 exit 1
               }
               
               echo "🔄 Restarting containers with previous version..."
-              docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d --remove-orphans
+              docker-compose -f docker-compose.yml -f docker-compose.staging.yml up -d --remove-orphans
               
               echo "✅ Rollback complete"
             else
@@ -185,7 +193,7 @@ jobs:
           STAGING_HOST: ${{ secrets.STAGING_HOST }}
           PROJECT_PATH: ${{ secrets.STAGING_PROJECT_PATH }}
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "$STAGING_USER@$STAGING_HOST" bash -s <<EOF
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "$STAGING_USER@$STAGING_HOST" bash -s <<EOF
           cd "$PROJECT_PATH/backups" 2>/dev/null || exit 0
           
           # Keep only last 10 backups
