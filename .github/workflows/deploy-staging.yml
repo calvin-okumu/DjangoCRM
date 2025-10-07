@@ -147,15 +147,15 @@ jobs:
           else
             echo "❌ Post-deploy health check failed - initiating rollback"
             
-            ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "$STAGING_USER@$STAGING_HOST" bash -s <<EOF
+            ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no "$STAGING_USER@$STAGING_HOST" bash -s << 'ENDSSH'
             set -e
             cd "$PROJECT_PATH" || exit 1
             
             if [ -f .last-deployed-commit ]; then
-              ROLLBACK_COMMIT=\$(cat .last-deployed-commit)
-              echo "🔄 Rolling back to commit: \$ROLLBACK_COMMIT"
+              ROLLBACK_COMMIT=$(cat .last-deployed-commit)
+              echo "🔄 Rolling back to commit: $ROLLBACK_COMMIT"
               
-              git checkout "\$ROLLBACK_COMMIT" || {
+              git checkout "$ROLLBACK_COMMIT" || {
                 echo "❌ Rollback failed - manual intervention required"
                 exit 1
               }
@@ -169,7 +169,7 @@ jobs:
               echo "⚠️ Manual intervention required"
               exit 1
             fi
-            EOF
+          ENDSSH
             
             echo "❌ Deployment failed and rolled back"
             exit 1
