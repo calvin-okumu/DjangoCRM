@@ -61,11 +61,20 @@ jobs:
 
       # ---------------------------------------------
       # 2. Setup SSH Key (for passwordless access)
+      #    This tries to base64-decode the secret, and falls back to raw text.
       # ---------------------------------------------
       - name: Setup SSH Key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/id_rsa
+          set +e
+          echo "${{ secrets.STAGING_SSH_KEY }}" | base64 --decode > /tmp/id_rsa.dec 2>/dev/null
+          if [ $? -eq 0 ] && grep -q "BEGIN" /tmp/id_rsa.dec; then
+            mv /tmp/id_rsa.dec ~/.ssh/id_rsa
+          else
+            # fall back to raw secret (keeps newlines if they exist)
+            echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/id_rsa
+            rm -f /tmp/id_rsa.dec
+          fi
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
 
@@ -113,7 +122,7 @@ EOF
       # 5. Post-Deploy Health Check & Rollback
       # ---------------------------------------------
       - name: Post-Deploy Health Check and Rollback
-        if: always()
+        if: ${{ always() }}
         run: |
           sleep 30
           if curl -f --max-time 10 ${{ secrets.STAGING_URL }}/health || curl -f --max-time 10 ${{ secrets.STAGING_URL }}; then
@@ -131,4 +140,16 @@ docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d --remov
 EOF
             exit 1
           fi
+
+      # ---------------------------------------------
+      # 6. Optional: Slack Notification (commented)
+      # ---------------------------------------------
+      # - name: Notify Slack
+      #   if: ${{ always() }}
+      #   uses: slackapi/slack-github-action@v1.24.0
+      #   with:
+      #     channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+      #     slack-message: "Staging deployment ${{ job.status }} for commit ${{ github.sha }}: ${{ github.event.workflow_run.head_commit.message || 'No message' }}"
+      #   env:
+      #     SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 
