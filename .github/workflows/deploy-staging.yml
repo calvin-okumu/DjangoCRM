@@ -25,11 +25,11 @@ jobs:
         uses: dorny/paths-filter@v3
         with:
           filters: |
-            backend:
-              - 'backend/**'
-              - 'requirements.txt'
-              - 'Dockerfile.backend'
-              - '.github/workflows/ci-cd.yml'
+             backend:
+               - 'backend/**'
+               - 'requirements.txt'
+               - 'backend/Dockerfile'
+               - '.github/workflows/ci-cd.yml'
             frontend:
               - 'frontend/**'
               - 'package.json'
@@ -61,12 +61,12 @@ jobs:
       # ---------------------------------------------
       # 2. Setup SSH Key (passwordless access)
       # ---------------------------------------------
-      - name: Setup SSH Key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
+       - name: Setup SSH Key
+         run: |
+           mkdir -p ~/.ssh
+           echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/id_ed25519
+           chmod 600 ~/.ssh/id_ed25519
+           ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
 
       # ---------------------------------------------
       # 3. Pre-Deploy Health Check
@@ -89,8 +89,8 @@ jobs:
           PROJECT_PATH: ${{ secrets.STAGING_PROJECT_PATH }}
           DB_CONTAINER: ${{ secrets.STAGING_DB_CONTAINER }}
           DB_USER: ${{ secrets.STAGING_DB_USER }}
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $STAGING_USER@$STAGING_HOST <<'EOF'
+         run: |
+           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no $STAGING_USER@$STAGING_HOST <<'EOF'
 set -e
 echo "📦 Pulling latest code..."
 cd $PROJECT_PATH
@@ -126,10 +126,10 @@ EOF
             echo "✅ Post-deploy health check passed"
           else
             echo "❌ Post-deploy health check failed, rolling back"
-            ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $STAGING_USER@$STAGING_HOST <<'EOF'
+             ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no $STAGING_USER@$STAGING_HOST <<'EOF'
 cd $PROJECT_PATH
 if [ -f .last-deployed-commit ]; then
-  git checkout "$(cat .last-deployed-commit)"
+  git reset --hard "$(cat .last-deployed-commit)"
 else
   echo "⚠️ No previous commit to rollback to!"
 fi
