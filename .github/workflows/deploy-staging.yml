@@ -1,4 +1,5 @@
 
+
 #add-staging-workflow
 name: 🚀 Deploy to Staging (Docker Compose via Twingate)
 
@@ -59,7 +60,17 @@ jobs:
           service-key: ${{ secrets.TWINGATE_SERVICE_KEY }}
 
       # ---------------------------------------------
-      # 2. Pre-Deploy Health Check (over Twingate)
+      # 2. Setup SSH Key (for passwordless access)
+      # ---------------------------------------------
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
+
+      # ---------------------------------------------
+      # 3. Pre-Deploy Health Check (over Twingate)
       # ---------------------------------------------
       - name: Pre-Deploy Health Check
         run: |
@@ -70,14 +81,14 @@ jobs:
           fi
 
       # ---------------------------------------------
-      # 3. Deploy to Staging Server (over Twingate)
+      # 4. Deploy to Staging Server (over Twingate)
       # ---------------------------------------------
       - name: Deploy to Staging Server
         env:
           STAGING_USER: ${{ secrets.STAGING_USER }}
           STAGING_HOST: ${{ secrets.STAGING_HOST }}
         run: |
-          ssh -o StrictHostKeyChecking=no $STAGING_USER@$STAGING_HOST << 'EOF'
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $STAGING_USER@$STAGING_HOST << 'EOF'
             set -e
             echo "📦 Pulling latest code..."
             cd ${{ secrets.STAGING_PROJECT_PATH }}
@@ -99,7 +110,7 @@ jobs:
           EOF
 
       # ---------------------------------------------
-      # 4. Post-Deploy Health Check & Rollback
+      # 5. Post-Deploy Health Check & Rollback
       # ---------------------------------------------
       - name: Post-Deploy Health Check and Rollback
         if: always()
@@ -109,7 +120,7 @@ jobs:
             echo "✅ Post-deploy health check passed"
           else
             echo "❌ Post-deploy health check failed, rolling back"
-            ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
+            ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
               cd ${{ secrets.STAGING_PROJECT_PATH }}
               if [ -f .last-deployed-commit ]; then
                 git checkout "$(cat .last-deployed-commit)"
@@ -122,7 +133,7 @@ jobs:
           fi
 
       # ---------------------------------------------
-      # 5. Optional: Slack Notification
+      # 6. Optional: Slack Notification
       # ---------------------------------------------
       # - name: Notify Slack
       #   if: always()
