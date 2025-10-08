@@ -143,8 +143,6 @@ jobs:
           context: ./backend
           push: false
           tags: carlhub-erp/backend:dev
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache
 
       - name: Login to GitHub Container Registry
         if: github.ref == 'refs/heads/main'
@@ -219,8 +217,6 @@ jobs:
           context: ./frontend
           push: false
           tags: carlhub-erp/frontend:dev
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache
 
       - name: Build & Push Frontend Image
         if: github.ref == 'refs/heads/main'
