@@ -160,15 +160,30 @@ The complete API documentation is available through Swagger UI:
 
 ### Key Endpoints
 
-- `POST /api/login/` - User login
-- `POST /api/signup/` - User registration with company information collection
-- `GET /api/tenants/` - List tenants
-- `GET /api/clients/` - List clients
-- `GET /api/projects/` - List projects
-- `GET /api/milestones/` - List milestones
-- `GET /api/tasks/` - List tasks
-- `GET /api/invoices/` - List invoices
-- `GET /api/payments/` - List payments
+#### Authentication Endpoints
+- `POST /api/login/` - User login with email/password
+- `POST /api/signup/` - User registration with optional tenant creation
+- `GET /api/auth-methods/` - Get available authentication methods (traditional + OAuth)
+- `POST /api/approve-member/` - Approve pending tenant member (tenant owners only)
+- `POST /api/invite-member/` - Send invitation to join tenant (tenant owners only)
+
+#### CRM Data Endpoints
+- `GET|POST|PUT|DELETE /api/tenants/` - Tenant management
+- `GET|POST|PUT|DELETE /api/clients/` - Client management
+- `GET|POST|PUT|DELETE /api/projects/` - Project lifecycle management
+- `GET|POST|PUT|DELETE /api/milestones/` - Project milestone tracking
+- `GET|POST|PUT|DELETE /api/sprints/` - Agile sprint management
+- `GET|POST|PUT|DELETE /api/tasks/` - Individual task management
+- `GET|POST|PUT|DELETE /api/invoices/` - Invoice and billing management
+- `GET|POST|PUT|DELETE /api/payments/` - Payment tracking
+- `GET|POST|PUT|DELETE /api/members/` - Tenant member management
+- `GET|POST|PUT|DELETE /api/invitations/` - Invitation system management
+- `GET|POST|PUT|DELETE /api/users/` - User account management
+
+#### Sprint Task Management (Custom Actions)
+- `POST /api/sprints/{id}/create_task/` - Create task directly in sprint
+- `POST /api/sprints/{id}/assign_task/` - Assign existing task to sprint
+- `POST /api/sprints/{id}/unassign_task/` - Remove task from sprint
 
 All endpoints are fully documented in the Swagger UI with request/response schemas, authentication requirements, and interactive testing capabilities.
 
@@ -179,34 +194,43 @@ The signup endpoint (`POST /api/signup/`) supports two flows:
 1. **New Tenant Creation**: When no `invitation_token` is provided, creates a new tenant with comprehensive company information
 2. **Invitation Acceptance**: When `invitation_token` is provided, joins an existing tenant
 
-**Required Fields for New Tenant:**
-- `email`, `password`, `first_name`, `last_name`, `company_name`
+**Required Fields (All Flows):**
+- `email`: User's email address
+- `password`: User's password
+- `first_name`: User's first name
+- `last_name`: User's last name
 
-**Optional Fields for New Tenant:**
+**Required Fields for New Tenant Creation:**
+- `company_name`: Name of the company/organization
+
+**Optional Fields for New Tenant Creation:**
 - `address`: Physical address of the company
 - `phone`: Contact phone number
 - `website`: Company website URL (validated for proper URL format)
 - `industry`: Industry sector (e.g., Technology, Healthcare, Finance)
 - `company_size`: Company size category (1-10, 11-50, 51-200, 201-1000, 1000+ employees)
 
-**For Invitations:**
-- `invitation_token` (required, valid and unused invitation token)
+**Fields for Invitation Acceptance:**
+- `invitation_token`: Valid and unused invitation token (required for invitation flow)
 
 **Validation Rules:**
-- Email domain is used to create unique tenant subdomain
-- Website URLs are validated for proper format
-- Company name must be unique across all tenants
+- Email must be unique across all users
+- For new tenants: Email domain is used to create unique tenant subdomain
+- Website URLs are validated for proper format (if provided)
+- Company name must be unique across all tenants (for new tenant creation)
 - Invitation tokens must be unused and not expired
+- Phone numbers are validated for proper format (if provided)
 
 **Automatic Group Assignment:**
-- New tenant owners are automatically assigned to "Tenant Owners" group
+- New tenant creators are automatically assigned to "Tenant Owners" group
 - Invited users are assigned to groups based on their invitation role:
   - 'Tenant Owner' → Tenant Owners group
   - 'Employee' → Employees group
   - 'Manager' → Project Managers group
+- Invited users start as unapproved and must be approved by a tenant owner before gaining access
 
 **Response:**
-Returns authentication token and user/tenant information on successful signup.
+Returns authentication token and user/tenant information on successful signup. For invitations, the user account is created but access is restricted until approved by a tenant owner.
 
 ## CORS Configuration
 
@@ -216,6 +240,8 @@ The API includes CORS headers to allow cross-origin requests from the frontend a
 - `http://127.0.0.1:3000`
 
 To modify allowed origins, update `CORS_ALLOWED_ORIGINS` in `saasCRM/settings.py`. Credentials are allowed for authenticated requests.
+
+For production deployment with multi-tenancy, you may need to configure CORS to allow tenant subdomains (e.g., `https://tenant1.example.com`).
 
 ## Models
 
@@ -306,13 +332,13 @@ To modify allowed origins, update `CORS_ALLOWED_ORIGINS` in `saasCRM/settings.py
 #### Task
 - `title`: Task title
 - `description`: Text description
-- `status`: Backlog/To Do/In Progress/In Review/Done
+- `status`: to_do/in_progress/in_review/testing/done (maps to: To Do/In Progress/In Review/Testing/Done)
 - `tenant`: Foreign key to Tenant
 - `milestone`: Foreign key to Milestone
 - `sprint`: Foreign key to Sprint (nullable)
 - `assignee`: Foreign key to CustomUser (nullable)
 - `start_date`, `end_date`: Task timeline
-- `estimated_hours`: Integer field
+- `estimated_hours`: Integer field (estimated hours to complete)
 - `created_at`, `updated_at`: Timestamps
 
 #### Invoice

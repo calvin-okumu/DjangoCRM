@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: saascrm_db
+      POSTGRES_USER: saascrm_user
+      POSTGRES_PASSWORD: saascrm_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saascrm_user -d saascrm_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+   web:
+     build: ./backend
+    environment:
+      DEBUG: "False"
+      SECRET_KEY: "your-secret-key-change-in-production"
+      DB_NAME: saascrm_db
+      DB_USER: saascrm_user
+      DB_PASSWORD: saascrm_password
+      DB_HOST: db
+      DB_PORT: 5432
+      DJANGO_ENV: production
+      MULTI_TENANCY_ENABLED: "False"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - static_files:/app/staticfiles
+    command: python manage.py setup_project --production
+
+volumes:
+  postgres_data:
+  static_files:

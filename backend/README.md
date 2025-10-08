@@ -1,6 +1,6 @@
 # DjangoCRM
 
-A comprehensive multi-tenant Customer Relationship Management system built with Django REST Framework and React.
+A comprehensive multi-tenant Customer Relationship Management system built with Django REST Framework. This is the backend API component providing complete CRM functionality with SaaS architecture.
 
 ## 🚀 Features
 
@@ -54,7 +54,7 @@ For the fastest setup experience, use the automated setup command:
 
 ```bash
 # Clone and enter the repository
-git clone https://github.com/YOUR_USERNAME/DjangoCRM.git
+git clone <repository-url>
 cd DjangoCRM
 
 # Run automated setup (includes environment setup, database, migrations, groups, sample data, and superuser)
@@ -65,16 +65,16 @@ python manage.py runserver 127.0.0.1:8000
 ```
 
 The `setup_project` command automatically:
-- Detects your environment (development/production/CI)
+- Detects your environment (development/production/CI/Docker)
 - Sets up the database and runs migrations
-- Creates default user groups
-- Generates sample data for testing
-- Creates a superuser account
-- Validates the configuration
+- Creates default user groups with proper permissions
+- Generates sample data for testing (development only)
+- Creates a superuser account (development only)
+- Validates the configuration and dependencies
 
 **Command Options:**
 - `--skip-sample-data`: Skip generating sample data
-- `--production`: Run in production mode (minimal setup)
+- `--production`: Run in production mode (no sample data, no superuser)
 - `--skip-db-setup`: Skip database creation (useful if DB already exists)
 
 ### Manual Setup (Alternative)
@@ -82,10 +82,10 @@ The `setup_project` command automatically:
 If you prefer manual control over each step:
 
 1. **Clone the repository**
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/DjangoCRM.git
-   cd DjangoCRM
-   ```
+    ```bash
+    git clone <repository-url>
+    cd DjangoCRM
+    ```
 
 2. **Set up Python environment**
     ```bash
@@ -165,53 +165,67 @@ The DjangoCRM includes a comprehensive automated setup system that handles envir
 
 The `python manage.py setup_project` command provides:
 
-- **Environment Detection**: Automatically detects development, production, or CI environments
+- **Environment Detection**: Automatically detects development, production, CI, or Docker environments
 - **Database Setup**: Creates database, runs migrations, and sets up user groups
-- **Sample Data Generation**: Creates realistic test data for development
-- **Superuser Creation**: Interactive superuser setup with validation
+- **Sample Data Generation**: Creates realistic test data for development and testing
+- **Superuser Creation**: Automatic superuser setup for development environments
 - **Configuration Validation**: Ensures all required environment variables are set
-- **Docker Integration**: Works seamlessly with Docker deployments
-- **CI/CD Ready**: Optimized for automated deployment pipelines
+- **Docker Integration**: Optimized for containerized deployments with health checks
+- **CI/CD Ready**: Streamlined for automated deployment pipelines
 
 ### Environment Detection
 
 The setup system uses multiple indicators to determine the environment:
 
-- **DJANGO_ENV variable**: Explicit environment setting
-- **CI variables**: Detects CI/CD pipelines (GITHUB_ACTIONS, CI, etc.)
+- **DJANGO_ENV variable**: Explicit environment setting (production/development)
+- **CI variables**: Detects CI/CD pipelines (GITHUB_ACTIONS, CI, GITLAB_CI, etc.)
 - **Git repository**: Development mode when .git directory exists
-- **Docker containers**: Detects containerized environments
+- **Docker containers**: Detects containerized environments (/.dockerenv, DOCKER_CONTAINER)
 - **Production flags**: Command-line options for production deployment
 
 ### Docker Deployment
 
-For containerized deployment:
+For containerized deployment with full stack (Django + PostgreSQL):
 
 ```bash
-# Start with Docker Compose (includes PostgreSQL)
+# Start with Docker Compose (includes PostgreSQL database)
 docker-compose up -d
 
-# Or build and run manually
+# The setup will automatically:
+# - Start PostgreSQL database
+# - Build and run the Django application
+# - Run database migrations and setup
+# - Create default user groups
+# - Generate sample data (if not in production mode)
+```
+
+For manual Docker deployment:
+
+```bash
+# Build the image
 docker build -t djangocrm .
+
+# Run with environment file
 docker run -p 8000:8000 --env-file .env djangocrm
 ```
 
 ### CI/CD Integration
 
-The project includes GitHub Actions workflows for automated testing and deployment:
+The project supports CI/CD pipelines for automated testing and deployment:
 
-- **Automated Testing**: Runs test suite on every push
-- **Code Quality**: Linting and type checking
+- **Automated Testing**: Run `python manage.py test` for comprehensive test suite
+- **Code Quality**: Linting and type checking with proper Django conventions
 - **Security Scanning**: Dependency vulnerability checks
 - **Multi-Environment Deployment**: Staging and production pipelines
-- **Docker Image Building**: Automated container image creation
+- **Docker Image Building**: Automated container image creation with multi-stage builds
 
 ### Setup Phases
 
-1. **Phase 1: Unified Command** - Single command orchestrates entire setup
-2. **Phase 2: Environment Detection** - Smart environment recognition
-3. **Phase 3: Docker Integration** - Container-ready deployment
-4. **Phase 4: CI/CD Pipeline** - Automated testing and deployment
+1. **Phase 1: Environment Detection** - Smart environment recognition (dev/prod/CI/Docker)
+2. **Phase 2: Database Setup** - Automated PostgreSQL setup and migration
+3. **Phase 3: User Groups** - Create default role-based access control groups
+4. **Phase 4: Sample Data** - Generate test data (development only)
+5. **Phase 5: Validation** - Configuration and setup verification
 
 ## 🐳 Production Deployment
 
@@ -219,23 +233,28 @@ The project includes GitHub Actions workflows for automated testing and deployme
 
 For production deployment with Docker Compose:
 
-```yaml
-# docker-compose.yml is configured for production use
+```bash
+# Set production environment variables
+export DJANGO_ENV=production
+export MULTI_TENANCY_ENABLED=True
+
+# Deploy with Docker Compose
 docker-compose up -d
 ```
 
 This starts:
-- Django application on port 8000
+- Django application on port 8000 with production settings
 - PostgreSQL database with persistent storage
 - Automatic health checks and restart policies
+- Multi-tenancy enabled for subdomain routing
 
 ### Manual Docker Deployment
 
 ```bash
 # Build the image
-docker build -f backend/Dockerfile -t djangocrm .
+docker build -t djangocrm .
 
-# Run with environment file
+# Run with environment file (requires separate PostgreSQL)
 docker run -d \
   --name djangocrm \
   -p 8000:8000 \
@@ -243,6 +262,8 @@ docker run -d \
   -v django_static:/app/static \
   djangocrm
 ```
+
+**Note:** Manual Docker deployment requires a separate PostgreSQL database instance. Use Docker Compose for a complete containerized setup.
 
 ### Environment Variables for Production
 
@@ -256,15 +277,17 @@ Ensure your `.env` file includes:
 
 ### CI/CD Deployment
 
-The GitHub Actions workflow automatically:
-- Runs tests on every push
-- Builds Docker images
-- Deploys to staging on main branch pushes
-- Deploys to production on tagged releases
+Configure your CI/CD pipeline to:
+- Run `python manage.py test` for automated testing
+- Build Docker images using the provided Dockerfile
+- Deploy using Docker Compose for staging/production
+- Set appropriate environment variables for each environment
 
 ### Troubleshooting
 
 If setup fails:
+
+**General Issues:**
 ```bash
 # Check environment configuration
 python check_env.py
@@ -275,6 +298,23 @@ python manage.py setup_project --verbosity=2
 # Manual database setup
 python manage.py migrate
 python manage.py setup_groups
+```
+
+**Docker Issues:**
+```bash
+# Check container logs
+docker-compose logs web
+docker-compose logs db
+
+# Restart services
+docker-compose restart
+
+# Rebuild and restart
+docker-compose down
+docker-compose up --build
+
+# Check database connectivity
+docker-compose exec db pg_isready -U saascrm_user -d saascrm_db
 ```
 
   9. **Access the application**
@@ -366,38 +406,44 @@ Running `python manage.py generate_sample_data` creates:
 
 ```
 DjangoCRM/
-├── .github/
-│   └── workflows/
-│       └── ci-cd.yml       # CI/CD pipeline configuration
 ├── accounts/               # User authentication and tenant management
 │   ├── models.py           # CustomUser, Tenant, UserTenant, Invitation models
 │   ├── admin.py            # Django admin configuration
 │   ├── apps.py             # App configuration with signals
 │   ├── signals.py          # Automatic group assignment signals
 │   ├── migrations/         # Database migrations for accounts
-│   └── management/commands/# Management commands (setup_groups)
+│   ├── management/
+│   │   └── commands/
+│   │       └── setup_groups.py  # Management command for user groups
+│   ├── tests.py            # Tests for accounts app
+│   └── views.py            # Account-related views (currently empty)
 ├── project/                # Main Django app for CRM functionality
 │   ├── models.py           # Database models (Client, Project, Milestone, etc.)
-│   ├── views.py            # API views with tenant filtering and signup
+│   ├── views.py            # API views with tenant filtering and authentication
 │   ├── serializers.py      # DRF serializers for all models
 │   ├── permissions.py      # Custom permissions (tenant ownership, role-based)
 │   ├── middleware.py       # Tenant middleware for subdomain routing
-│   ├── tests.py            # Comprehensive test suite (48 tests)
+│   ├── tests.py            # Comprehensive test suite
+│   ├── urls.py             # URL patterns for project app
 │   ├── migrations/         # Database migrations
-│   ├── management/commands/# Management commands (setup_project, generate_sample_data, migrate_to_tenants)
+│   ├── management/
+│   │   └── commands/       # Management commands
+│   │       ├── generate_sample_data.py
+│   │       ├── migrate_to_tenants.py
+│   │       └── setup_project.py
 │   ├── factories.py        # Test data factories
-│   └── permissions.py      # Permission classes
+│   └── permissions.py      # Permission classes (duplicate file)
 ├── saasCRM/                # Django project settings
 │   ├── settings.py         # Django settings (includes OAuth config)
-│   ├── urls.py             # URL configuration
+│   ├── urls.py             # Main URL configuration
 │   ├── db_routers.py       # Database routing for multi-tenancy
-│   └── wsgi.py             # WSGI configuration
-├── backend/
-│   └── Dockerfile          # Docker image for backend deployment
+│   ├── wsgi.py             # WSGI configuration
+│   └── asgi.py             # ASGI configuration
+├── Dockerfile              # Docker image for backend deployment
 ├── docker-compose.yml      # Docker Compose configuration for development
 ├── .env.example            # Environment variables template
-├── .env                    # Environment variables (not committed)
 ├── check_env.py            # Environment configuration checker
+├── setup_db.py             # Database setup script
 ├── test_*.py               # Additional test files
 ├── API_DOCUMENTATION.md    # Complete API documentation
 ├── requirements.txt        # Python dependencies
