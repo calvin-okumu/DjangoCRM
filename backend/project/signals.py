@@ -8,11 +8,19 @@ from .models import Task, Milestone, Sprint, Project
 def update_progress_on_task_change(sender, instance, **kwargs):
     """
     Update progress for sprint, milestone, and project when task changes.
+    Also auto-complete sprint if all tasks are done.
     """
-    # Update sprint progress
+    # Update sprint progress and status
     if instance.sprint:
         instance.sprint.progress = instance.sprint.calculate_progress()
-        instance.sprint.save(update_fields=['progress'])
+        # Auto-complete sprint if all tasks are done
+        all_done = instance.sprint.tasks.exists() and all(task.status == 'done' for task in instance.sprint.tasks.all())
+        if all_done and instance.sprint.status != 'completed':
+            instance.sprint.status = 'completed'
+        elif not all_done and instance.sprint.status == 'completed':
+            # Revert if not all done (e.g., task changed back)
+            instance.sprint.status = 'active'  # Or keep as is, but perhaps set to active
+        instance.sprint.save(update_fields=['progress', 'status'])
 
     # Update milestone progress
     instance.milestone.progress = instance.milestone.calculate_progress()

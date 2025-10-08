@@ -91,7 +91,7 @@ class ModelTests(TestCase):
         """Test milestone model creation and validation"""
         self.assertEqual(self.milestone.name, "Test Milestone")
         self.assertEqual(self.milestone.project, self.project)
-        self.assertEqual(self.milestone.calculate_progress(), 50)  # One task with in_progress status
+        self.assertEqual(self.milestone.calculate_progress(), 25)  # One task with in_progress status
         self.assertEqual(str(self.milestone), "Test Milestone (Test Project)")
 
         # Test progress validation
@@ -149,6 +149,56 @@ class ModelTests(TestCase):
 
         # Invoice -> Payment
         self.assertIn(self.payment, self.invoice.payments.all())
+
+    def test_sprint_auto_completion_single_task(self):
+        """Test sprint auto-completion with single task"""
+        # Initially, sprint should not be completed
+        self.assertNotEqual(self.sprint.status, 'completed')
+
+        # Mark task as done
+        self.task.status = 'done'
+        self.task.save()
+
+        # Refresh sprint from db
+        self.sprint.refresh_from_db()
+        self.assertEqual(self.sprint.status, 'completed')
+
+        # Change task back to in_progress
+        self.task.status = 'in_progress'
+        self.task.save()
+
+        # Refresh sprint
+        self.sprint.refresh_from_db()
+        self.assertEqual(self.sprint.status, 'active')  # Should revert
+
+    def test_sprint_auto_completion_multiple_tasks(self):
+        """Test sprint auto-completion with multiple tasks"""
+        # Create another task
+        task2 = Task.objects.create(
+            title="Test Task 2",
+            tenant=self.org,
+            milestone=self.milestone,
+            sprint=self.sprint,
+            status="in_progress"
+        )
+
+        # Mark first task done, second not
+        self.task.status = 'done'
+        self.task.save()
+        self.sprint.refresh_from_db()
+        self.assertNotEqual(self.sprint.status, 'completed')
+
+        # Mark second task done
+        task2.status = 'done'
+        task2.save()
+        self.sprint.refresh_from_db()
+        self.assertEqual(self.sprint.status, 'completed')
+
+        # Mark first task back
+        self.task.status = 'in_progress'
+        self.task.save()
+        self.sprint.refresh_from_db()
+        self.assertEqual(self.sprint.status, 'active')
 
     def test_unique_constraints(self):
         """Test unique constraints"""

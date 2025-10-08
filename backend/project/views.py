@@ -183,12 +183,12 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if self.request.tenant:
-            return Project.objects.filter(tenant=self.request.tenant)
+            return Project.objects.filter(tenant=self.request.tenant).prefetch_related('milestones', 'milestones__sprints')
         elif self.request.user.is_authenticated:
             # In dev mode, filter by user's tenants
             user_tenants = UserTenant.objects.filter(user=self.request.user).values_list('tenant', flat=True)
             if user_tenants:
-                return Project.objects.filter(tenant__in=user_tenants)
+                return Project.objects.filter(tenant__in=user_tenants).prefetch_related('milestones', 'milestones__sprints')
             else:
                 return Project.objects.none()  # No tenants, no projects
         else:
@@ -272,12 +272,12 @@ class MilestoneViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if self.request.tenant:
-            return Milestone.objects.filter(tenant=self.request.tenant)
+            return Milestone.objects.filter(tenant=self.request.tenant).select_related('project').prefetch_related('sprints', 'sprints__tasks')
         elif self.request.user.is_authenticated:
             # In dev mode, filter by user's tenants
             user_tenants = UserTenant.objects.filter(user=self.request.user).values_list('tenant', flat=True)
             if user_tenants:
-                return Milestone.objects.filter(tenant__in=user_tenants)
+                return Milestone.objects.filter(tenant__in=user_tenants).select_related('project').prefetch_related('sprints', 'sprints__tasks')
             else:
                 return Milestone.objects.none()  # No tenants, no milestones
         else:
@@ -340,12 +340,12 @@ class SprintViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if self.request.tenant:
-            return Sprint.objects.filter(tenant=self.request.tenant)
+            return Sprint.objects.filter(tenant=self.request.tenant).select_related('milestone').prefetch_related('tasks')
         elif self.request.user.is_authenticated:
             # In dev mode, filter by user's tenants
             user_tenants = UserTenant.objects.filter(user=self.request.user).values_list('tenant', flat=True)
             if user_tenants:
-                return Sprint.objects.filter(tenant__in=user_tenants)
+                return Sprint.objects.filter(tenant__in=user_tenants).select_related('milestone').prefetch_related('tasks')
             else:
                 return Sprint.objects.none()  # No tenants, no sprints
         else:
@@ -392,7 +392,7 @@ class SprintViewSet(viewsets.ModelViewSet):
 @extend_schema_view(
     list=extend_schema(
         summary="List tasks",
-        description="Retrieve a list of tasks for the current tenant with progress calculation."
+        description="Retrieve a list of tasks for the current tenant with progress calculation. Use 'backlog=true' to filter backlog tasks, 'backlog=false' for assigned tasks."
     ),
     retrieve=extend_schema(
         summary="Retrieve task",
@@ -426,22 +426,32 @@ class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
     permission_classes = [permissions.IsAuthenticated, IsTenantOwner]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ["status", "milestone", "sprint", "assignee"]
+    filterset_fields = ["status", "milestone", "sprint", "assignee", "milestone__project"]
     search_fields = ["title", "description"]
     ordering_fields = ["title", "created_at"]
 
     def get_queryset(self):
+        queryset = super().get_queryset()
         if self.request.tenant:
-            return Task.objects.filter(tenant=self.request.tenant)
+            queryset = Task.objects.filter(tenant=self.request.tenant).select_related('milestone', 'sprint', 'milestone__project')
         elif self.request.user.is_authenticated:
             # In dev mode, filter by user's tenants
             user_tenants = UserTenant.objects.filter(user=self.request.user).values_list('tenant', flat=True)
             if user_tenants:
-                return Task.objects.filter(tenant__in=user_tenants)
+                queryset = Task.objects.filter(tenant__in=user_tenants).select_related('milestone', 'sprint', 'milestone__project')
             else:
                 return Task.objects.none()  # No tenants, no tasks
         else:
             return Task.objects.none()  # Unauthenticated, no access
+
+        # Filter by backlog status
+        backlog = self.request.query_params.get('backlog')
+        if backlog == 'true':
+            queryset = queryset.filter(sprint__isnull=True)
+        elif backlog == 'false':
+            queryset = queryset.filter(sprint__isnull=False)
+
+        return queryset
 
     def perform_create(self, serializer):
         instance = serializer.save()

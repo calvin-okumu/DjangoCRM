@@ -49,7 +49,16 @@ class ProjectSerializer(serializers.ModelSerializer):
                 value = Decimal(str(value)).quantize(Decimal('0.01'))
             elif isinstance(value, str):
                 value = Decimal(value).quantize(Decimal('0.01'))
+            if value < 0:
+                raise serializers.ValidationError("Budget cannot be negative.")
         return value
+
+    def validate(self, data):
+        # Sanitize description/tags
+        if 'description' in data and data['description']:
+            import bleach
+            data['description'] = bleach.clean(data['description'], tags=[], strip=True)
+        return data
 
     class Meta:
         model = Project
@@ -79,7 +88,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 class MilestoneSerializer(serializers.ModelSerializer):
     project_name = serializers.CharField(source='project.name', read_only=True, help_text='Name of the parent project')
     sprints_count = serializers.SerializerMethodField(help_text='Number of sprints in this milestone')
-    progress = serializers.IntegerField(min_value=0, max_value=100, default=0, help_text='Milestone progress percentage (0-100)')
+    progress = serializers.IntegerField(min_value=0, max_value=100, help_text='Milestone progress percentage (0-100)')
 
     def validate_progress(self, value):
         if value < 0 or value > 100:
@@ -111,7 +120,7 @@ class MilestoneSerializer(serializers.ModelSerializer):
 class SprintSerializer(serializers.ModelSerializer):
     milestone_name = serializers.CharField(source='milestone.name', read_only=True, help_text='Name of the parent milestone')
     tasks_count = serializers.SerializerMethodField(help_text='Number of tasks in this sprint')
-    progress = serializers.IntegerField(min_value=0, max_value=100, default=0, read_only=True, help_text='Sprint progress percentage (0-100)')
+    progress = serializers.IntegerField(min_value=0, max_value=100, read_only=True, help_text='Sprint progress percentage (0-100)')
 
     class Meta:
         model = Sprint
@@ -124,6 +133,13 @@ class SprintSerializer(serializers.ModelSerializer):
             'milestone': 'Parent milestone this sprint belongs to',
         }
 
+    def validate_status(self, value):
+        if value == 'completed':
+            instance = self.instance
+            if instance and not all(task.status == 'done' for task in instance.tasks.all()):
+                raise serializers.ValidationError("Cannot mark sprint as completed until all tasks are done.")
+        return value
+
     @extend_schema_field(serializers.IntegerField)
     def get_tasks_count(self, obj):
         return obj.tasks.count()
@@ -131,15 +147,21 @@ class SprintSerializer(serializers.ModelSerializer):
 class TaskSerializer(serializers.ModelSerializer):
     milestone_name = serializers.CharField(source='milestone.name', read_only=True, help_text='Name of the parent milestone')
     sprint_name = serializers.CharField(source='sprint.name', read_only=True, help_text='Name of the assigned sprint (if any)')
-    progress = serializers.IntegerField(min_value=0, max_value=100, default=0, help_text='Task progress percentage (0-100)')
+    progress = serializers.IntegerField(min_value=0, max_value=100, read_only=True, help_text='Task progress percentage (0-100)')
+    is_assigned = serializers.SerializerMethodField(help_text='Whether the task is assigned to a sprint')
 
     class Meta:
         model = Task
-        fields = ['id', 'title', 'description', 'status', 'milestone', 'milestone_name', 'sprint', 'sprint_name', 'assignee', 'start_date', 'end_date', 'estimated_hours', 'tenant', 'progress', 'created_at', 'updated_at']
+        fields = ['id', 'title', 'description', 'status', 'milestone', 'milestone_name', 'sprint', 'sprint_name', 'assignee', 'start_date', 'end_date', 'estimated_hours', 'tenant', 'progress', 'is_assigned', 'created_at', 'updated_at']
+        read_only_fields = ['progress']
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_is_assigned(self, obj):
+        return obj.sprint is not None
         help_texts = {
             'title': 'Task title or summary',
             'description': 'Detailed task description',
-            'status': 'Current task status (Backlog, To Do, In Progress, In Review, Done)',
+             'status': 'Current task status (To Do, In Progress, In Review, Testing, Done)',
             'milestone': 'Parent milestone this task belongs to',
             'sprint': 'Sprint this task is assigned to (optional)',
             'assignee': 'User assigned to this task',
