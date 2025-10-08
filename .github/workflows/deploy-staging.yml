@@ -122,10 +122,10 @@ jobs:
           fi
           
           echo "🔄 Pulling latest container images..."
-          docker-compose -f docker-compose.yml -f docker-compose.staging.yml pull || { echo "❌ Docker pull failed"; exit 1; }
+          docker compose -f docker compose.yml -f docker compose.staging.yml pull || { echo "❌ Docker pull failed"; exit 1; }
           
           echo "🚀 Starting containers..."
-          docker-compose -f docker-compose.yml -f docker-compose.staging.yml up -d --remove-orphans || {
+          docker compose -f docker compose.yml -f docker compose.staging.yml up -d --remove-orphans || {
             echo "❌ Docker compose up failed"
             exit 1
           }
@@ -169,7 +169,7 @@ jobs:
               }
               
               echo "🔄 Restarting containers with previous version..."
-              docker-compose -f docker-compose.yml -f docker-compose.staging.yml up -d --remove-orphans
+              docker compose -f docker compose.yml -f docker compose.staging.yml up -d --remove-orphans
               
               echo "✅ Rollback complete"
             else
