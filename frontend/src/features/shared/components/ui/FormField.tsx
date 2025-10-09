@@ -12,9 +12,11 @@ export interface FormField {
     defaultValue?: string | string[] | boolean;
 }
 
+type FormDataValue = string | string[] | boolean;
+
 interface FormFieldProps extends FormField {
-    value: any;
-    onChange: (name: string, value: any) => void;
+    value: FormDataValue;
+    onChange: (name: string, value: FormDataValue) => void;
 }
 
 const FormFieldComponent: React.FC<FormFieldProps> = ({
@@ -65,7 +67,7 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({
                     placeholder={placeholder}
                     rows={4}
                     className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                    value={value}
+                    value={value as string}
                     onChange={handleChange}
                 />
             ) : type === "select" ? (
@@ -73,7 +75,7 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({
                     name={name}
                     required={required}
                     className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                    value={value}
+                    value={value as string}
                     onChange={handleChange}
                 >
                     {options?.map((option) => (
@@ -88,7 +90,7 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({
                         multiple
                         name={name}
                         className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                        value={value}
+                        value={value as string}
                         onChange={(e) => {
                             const selected = Array.from(e.target.selectedOptions, option => option.value);
                             handleMultiSelectChange(selected);
@@ -101,7 +103,7 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({
                         ))}
                     </select>
                     <div className="mt-2 text-xs text-gray-500">
-                        Selected: {value.join(", ")}
+                                                Selected: {(value as string[]).join(", ")}
                     </div>
                 </div>
             ) : type === "boolean" ? (
@@ -109,7 +111,7 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({
                     <input
                         type="checkbox"
                         name={name}
-                        checked={value}
+                                                checked={value as boolean}
                         onChange={handleChange}
                         className="mr-2"
                     />
@@ -122,7 +124,7 @@ const FormFieldComponent: React.FC<FormFieldProps> = ({
                     required={required}
                     placeholder={placeholder}
                     className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                    value={value}
+                    value={value as string}
                     onChange={handleChange}
                 />
             )}

@@ -1,7 +1,9 @@
 "use client";
 
-import { X, Plus } from "lucide-react";
+import { X } from "lucide-react";
 import React, { useState, useEffect } from "react";
+
+type FormDataValue = string | string[] | boolean;
 
 interface FormField {
     name: string;
@@ -10,7 +12,7 @@ interface FormField {
     required?: boolean;
     placeholder?: string;
     options?: { value: string; label: string }[];
-    defaultValue?: string | string[] | boolean;
+    defaultValue?: FormDataValue;
 }
 
 interface AddMilestoneModalProps {
@@ -18,9 +20,9 @@ interface AddMilestoneModalProps {
     onClose: () => void;
     title: string;
     fields: FormField[];
-    onSubmit: (data: Record<string, any>) => void;
+    onSubmit: (data: Record<string, FormDataValue>) => void;
     submitButtonText: string;
-    editingMilestone?: any;
+    editingMilestone?: Record<string, FormDataValue>;
 }
 
 const AddMilestoneModal = ({
@@ -35,7 +37,7 @@ const AddMilestoneModal = ({
     const initialData = fields.reduce((acc, field) => {
         acc[field.name] = field.defaultValue || (field.type === "multiselect" ? [] : field.type === "boolean" ? false : "");
         return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, FormDataValue>);
 
     const [formData, setFormData] = useState(initialData);
 
@@ -44,13 +46,13 @@ const AddMilestoneModal = ({
             const newInitialData = fields.reduce((acc, field) => {
                 acc[field.name] = editingMilestone[field.name] || field.defaultValue || (field.type === "multiselect" ? [] : field.type === "boolean" ? false : "");
                 return acc;
-            }, {} as Record<string, any>);
+            }, {} as Record<string, FormDataValue>);
             setFormData(newInitialData);
         } else {
             const newInitialData = fields.reduce((acc, field) => {
                 acc[field.name] = field.defaultValue || (field.type === "multiselect" ? [] : field.type === "boolean" ? false : "");
                 return acc;
-            }, {} as Record<string, any>);
+            }, {} as Record<string, FormDataValue>);
             setFormData(newInitialData);
         }
     }, [fields, editingMilestone]);
@@ -129,7 +131,7 @@ const AddMilestoneModal = ({
                                             placeholder={field.placeholder}
                                             rows={4}
                                             className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                                            value={formData[field.name]}
+                                            value={formData[field.name] as string}
                                             onChange={handleChange}
                                         />
                                     ) : field.type === "select" ? (
@@ -137,7 +139,7 @@ const AddMilestoneModal = ({
                                             name={field.name}
                                             required={field.required}
                                             className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                                            value={formData[field.name]}
+                                            value={formData[field.name] as string}
                                             onChange={handleChange}
                                         >
                                             {field.options?.map((option) => (
@@ -152,7 +154,7 @@ const AddMilestoneModal = ({
                                                 multiple
                                                 name={field.name}
                                                 className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                                                value={formData[field.name]}
+                                                value={formData[field.name] as string}
                                                 onChange={(e) => {
                                                     const selected = Array.from(e.target.selectedOptions, option => option.value);
                                                     handleMultiSelectChange(field.name, selected);
@@ -164,16 +166,16 @@ const AddMilestoneModal = ({
                                                     </option>
                                                 ))}
                                             </select>
-                                            <div className="mt-2 text-xs text-gray-500">
-                                                Selected: {formData[field.name].join(", ")}
-                                            </div>
+                                             <div className="mt-2 text-xs text-gray-500">
+                                                 Selected: {(formData[field.name] as string[]).join(", ")}
+                                             </div>
                                         </div>
                                     ) : field.type === "boolean" ? (
                                         <label className="flex items-center">
                                             <input
                                                 type="checkbox"
                                                 name={field.name}
-                                                checked={formData[field.name]}
+                                                 checked={formData[field.name] as boolean}
                                                 onChange={handleChange}
                                                 className="mr-2"
                                             />
@@ -186,7 +188,7 @@ const AddMilestoneModal = ({
                                             required={field.required}
                                             placeholder={field.placeholder}
                                             className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                                            value={formData[field.name]}
+                                            value={formData[field.name] as string}
                                             onChange={handleChange}
                                         />
                                     )}

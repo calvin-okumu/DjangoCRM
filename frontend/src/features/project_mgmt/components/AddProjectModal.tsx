@@ -10,7 +10,7 @@ interface AddProjectModalProps {
     onClose: () => void;
     title: string;
     fields: FormField[];
-    onSubmit: (data: Record<string, any>) => void;
+    onSubmit: (data: Record<string, string | string[] | boolean>) => void;
     submitButtonText: string;
     onAddClient?: () => void;
 }
@@ -41,7 +41,7 @@ const AddProjectModal: React.FC<AddProjectModalProps> = ({
                             Add new client
                         </button>
                     </span>
-                ) as any, // TypeScript workaround for JSX in label
+                ),
             };
         }
         return field;

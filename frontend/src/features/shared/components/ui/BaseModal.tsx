@@ -4,14 +4,16 @@ import { X } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import FormFieldComponent, { FormField } from "./FormField";
 
+type FormDataValue = string | string[] | boolean;
+
 interface BaseModalProps {
     isOpen: boolean;
     onClose: () => void;
     title: string;
     fields: FormField[];
-    onSubmit: (data: Record<string, any>) => void;
+    onSubmit: (data: Record<string, FormDataValue>) => void;
     submitButtonText: string;
-    initialData?: Record<string, any>;
+    initialData?: Record<string, FormDataValue>;
 }
 
 const BaseModal: React.FC<BaseModalProps> = ({
@@ -26,7 +28,7 @@ const BaseModal: React.FC<BaseModalProps> = ({
     const defaultData = fields.reduce((acc, field) => {
         acc[field.name] = field.defaultValue || (field.type === "multiselect" ? [] : field.type === "boolean" ? false : "");
         return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, FormDataValue>);
 
     const [formData, setFormData] = useState(defaultData);
 
@@ -34,11 +36,11 @@ const BaseModal: React.FC<BaseModalProps> = ({
         const newInitialData = initialData || fields.reduce((acc, field) => {
             acc[field.name] = field.defaultValue || (field.type === "multiselect" ? [] : field.type === "boolean" ? false : "");
             return acc;
-        }, {} as Record<string, any>);
+        }, {} as Record<string, FormDataValue>);
         setFormData(newInitialData);
     }, [fields, initialData]);
 
-    const handleChange = (name: string, value: any) => {
+    const handleChange = (name: string, value: FormDataValue) => {
         setFormData({
             ...formData,
             [name]: value,

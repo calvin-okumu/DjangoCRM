@@ -7,15 +7,7 @@ import AddProjectModal from '../components/AddProjectModal';
 import { getProjects, createProject, getClients } from '../../../../api';
 import { Project, Client } from '../../../../api/types';
 
-interface FormField {
-    name: string;
-    label: string;
-    type: "text" | "number" | "date" | "textarea" | "select" | "multiselect" | "boolean";
-    required?: boolean;
-    placeholder?: string;
-    options?: { value: string; label: string }[];
-    defaultValue?: string | string[] | boolean;
-}
+
 
 export default function ProjectPage() {
     const [projects, setProjects] = useState<Project[]>([]);
@@ -185,7 +177,7 @@ export default function ProjectPage() {
         }
     };
 
-    const handleSubmitProject = async (data: Record<string, any>) => {
+    const handleSubmitProject = async (data: Record<string, string | string[] | boolean>) => {
         try {
             const authToken = localStorage.getItem('access_token');
             if (!authToken) {

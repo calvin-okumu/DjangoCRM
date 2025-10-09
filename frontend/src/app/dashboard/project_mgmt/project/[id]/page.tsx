@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getProject, getTasks, createTask, updateTask, deleteTask, assignTaskToSprint, updateSprint, updateMilestone } from '../../../../../lib/api';
+import { getProject, getTasks, createTask, updateTask, deleteTask, assignTaskToSprint, updateSprint, updateMilestone } from '../../../../../api';
 import { Project, Milestone, Sprint, Task } from '../../../../../features/shared/types/common';
 import { KanbanView, MilestoneList, AddMilestoneModal, SprintList, AddSprintModal, AddTaskModal } from '../../../../../features/projects';
 import { TaskFormData } from '../../../../../features/projects/components/AddTaskModal';
@@ -275,7 +275,7 @@ export default function ProjectDetailPage() {
                 return prevSprints;
             });
         }
-    }, [allTasks, sprints, project, calculateMilestoneProgress, calculateSprintProgress]);
+    }, [allTasks, sprints, project, milestones, calculateMilestoneProgress, calculateSprintProgress]);
 
     const handleAddMilestone = () => {
         setEditingMilestone(null);

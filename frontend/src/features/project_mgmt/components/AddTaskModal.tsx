@@ -10,7 +10,6 @@ interface AddTaskModalProps {
     onClose: () => void;
     onSubmit: (data: TaskCreateData) => void;
     tenantMembers: User[];
-    defaultSprintId?: number;
 }
 
 type TaskCreateData = {
@@ -28,7 +27,6 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
     onClose,
     onSubmit,
     tenantMembers,
-    defaultSprintId,
 }) => {
     const fields: FormField[] = [
         {
