@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Folder } from 'lucide-react';
-import ProjectsSection from '../../../../components/dashboard/project_mgmt/ProjectsSection';
-import AddProjectModal from '../../../../components/dashboard/project_mgmt/AddProjectModal';
+import ProjectsSection from '../components/ProjectsSection';
+import AddProjectModal from '../components/AddProjectModal';
 import { getProjects, createProject, getClients } from '../../../../api';
 import { Project, Client } from '../../../../api/types';
 
@@ -22,7 +22,8 @@ export default function ProjectPage() {
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [projectFields, setProjectFields] = useState<FormField[]>([]);
+    const [editingProject, setEditingProject] = useState<Project | null>(null);
+    const [projectFields, setProjectFields] = useState<any[]>([]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -157,8 +158,34 @@ export default function ProjectPage() {
         // TODO: Open add client modal
         console.log('Add new client clicked');
     };
+    const handleEditProject = (project: Project) => {
+        setEditingProject(project);
+        setIsModalOpen(true);
+    };
 
-    const handleSubmitProject = async (data: Record<string, unknown>) => {
+    const handleDeleteProject = async (projectId: number) => {
+        if (!confirm("Are you sure you want to delete this project?")) return;
+        // TODO: Implement delete API call
+        console.log('Delete project:', projectId);
+        // For now, just remove from local state
+        setProjects(projects.filter(p => p.id !== projectId));
+    };
+
+    const getDefaultValue = (fieldName: string, project: Project) => {
+        switch (fieldName) {
+            case 'name': return project.name;
+            case 'client': return project.client?.toString();
+            case 'status': return project.status;
+            case 'priority': return project.priority;
+            case 'budget': return project.budget?.toString();
+            case 'startDate': return project.start_date;
+            case 'endDate': return project.end_date;
+            case 'description': return project.tags; // Backend uses tags for description
+            default: return undefined;
+        }
+    };
+
+    const handleSubmitProject = async (data: Record<string, any>) => {
         try {
             const authToken = localStorage.getItem('access_token');
             if (!authToken) {
@@ -178,8 +205,20 @@ export default function ProjectPage() {
                 team_members: Array.isArray(data.teamMembers) && data.teamMembers.length > 0 ? data.teamMembers.map((id: unknown) => parseInt(String(id))) : [], // Empty array if none
                 access_groups: Array.isArray(data.allowedGroups) && data.allowedGroups.length > 0 ? data.allowedGroups.map((id: unknown) => parseInt(String(id))) : [], // Empty array if none
             };
-            const newProject = await createProject(authToken, projectData);
-            setProjects([...projects, newProject]);
+
+            if (editingProject) {
+                // TODO: Implement update API call
+                console.log('Update project:', editingProject.id, projectData);
+                // For now, just update local state
+                setProjects(projects.map(p =>
+                    p.id === editingProject.id
+                        ? { ...p, ...projectData, client_name: clients.find(c => c.id === parseInt(data.client))?.name }
+                        : p
+                ));
+            } else {
+                const newProject = await createProject(authToken, projectData);
+                setProjects([...projects, newProject]);
+            }
         } catch (error) {
             console.error('Failed to create project:', error);
             if (error instanceof Error && error.message.includes('403')) {
@@ -197,7 +236,9 @@ export default function ProjectPage() {
             <ProjectsSection
                 title="Projects"
                 addButtonText="New Project"
-                onAdd={handleAddProject}
+                onAdd={() => { setEditingProject(null); handleAddProject(); }}
+                onEdit={handleEditProject}
+                onDelete={handleDeleteProject}
                 searchPlaceholder="Search projects..."
                 emptyState={{
                     icon: Folder,
@@ -210,11 +251,14 @@ export default function ProjectPage() {
             />
             <AddProjectModal
                 isOpen={isModalOpen}
-                onClose={handleCloseModal}
-                title="Create New Project"
-                fields={projectFields}
+                onClose={() => { handleCloseModal(); setEditingProject(null); }}
+                title={editingProject ? "Edit Project" : "Create New Project"}
+                fields={projectFields.map(field => ({
+                    ...field,
+                    defaultValue: editingProject ? getDefaultValue(field.name, editingProject) : field.defaultValue
+                }))}
                 onSubmit={handleSubmitProject}
-                submitButtonText="Create Project"
+                submitButtonText={editingProject ? "Update Project" : "Create Project"}
                 onAddClient={handleAddClient}
             />
         </div>

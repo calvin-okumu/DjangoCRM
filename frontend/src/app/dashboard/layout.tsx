@@ -1,6 +1,6 @@
 import React from 'react';
-import Sidebar from '../../components/dashboard/Sidebar';
-import Header from '../../components/dashboard/Header';
+import Sidebar from '../../components/layout/Sidebar';
+import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/dashboard/Footer';
 
 export default function DashboardLayout({
@@ -12,7 +12,7 @@ export default function DashboardLayout({
         <div className="flex h-screen bg-gray-50">
             <Sidebar />
             <div className="flex-1 flex flex-col overflow-hidden md:ml-64">
-                <Header />
+                <Navbar />
                 <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 pl-6">
                     {children}
                 </main>

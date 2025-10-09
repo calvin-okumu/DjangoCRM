@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { Users, CheckCircle, Eye, Clock } from 'lucide-react';
-import MetricsBar from '../../../../components/dashboard/crm/MetricsBar';
-import ClientsSection from '../../../../components/dashboard/crm/ClientsSection';
-import AddClientModal from '../../../../components/dashboard/crm/AddClientModal';
+import MetricsBar from '../components/MetricsBar';
+import ClientsSection from '../components/ClientsSection';
+import AddClientModal from '../components/AddClientModal';
 import { useClients } from '../../../../hooks/useClients';
 import { Client, CreateClientData } from '../../../../api';
 
@@ -132,6 +132,7 @@ export default function ClientsPage() {
                 onAdd={() => { setEditingClient(null); setIsModalOpen(true); }}
                 onEdit={handleEditClient}
                 onDelete={handleDeleteClient}
+                searchPlaceholder="Search clients..."
                 filters={filters}
                 emptyState={emptyState}
                 clients={clients}

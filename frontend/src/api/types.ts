@@ -73,8 +73,56 @@ export interface Project {
   tags?: string;
   team_members: number[];
   access_groups: number[];
-  progress: number;
   milestones_count: number;
+  progress: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Milestone {
+  id: number;
+  name: string;
+  description?: string;
+  status: string;
+  planned_start?: string;
+  actual_start?: string;
+  due_date?: string;
+  assignee?: number;
+  progress: number;
+  project: number;
+  project_name: string;
+  sprints_count: number;
+  created_at: string;
+}
+
+export interface Sprint {
+  id: number;
+  name: string;
+  status: string;
+  start_date?: string;
+  end_date?: string;
+  milestone: number;
+  milestone_name?: string;
+  tasks_count: number;
+  progress: number;
+  created_at: string;
+}
+
+export interface Task {
+  id: number;
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  milestone: number;
+  milestone_name: string;
+  sprint?: number;
+  sprint_name?: string;
+  assignee?: number;
+  start_date?: string;
+  end_date?: string;
+  estimated_hours?: number;
+  progress: number;
   created_at: string;
   updated_at: string;
 }

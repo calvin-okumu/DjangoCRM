@@ -1,9 +1,9 @@
 "use client";
 
-import React from 'react';
+import Pagination from '@/components/shared/Pagination';
+import { Edit, Loader, Plus, Search, Trash2 } from 'lucide-react';
 import Link from 'next/link';
-import { Plus, Search, Loader } from 'lucide-react';
-import { Project } from '../../../api';
+import React, { useMemo, useState } from 'react';
 
 interface EmptyState {
     icon: React.ComponentType<{ className?: string }>;
@@ -12,10 +12,24 @@ interface EmptyState {
     buttonText: string;
 }
 
+interface Project {
+    id: number;
+    name: string;
+    client_name?: string;
+    status: string;
+    priority: string;
+    start_date?: string;
+    end_date?: string;
+    budget?: number;
+    progress: number;
+}
+
 interface ProjectsSectionProps {
     title: string;
     addButtonText: string;
     onAdd: () => void;
+    onEdit?: (project: Project) => void;
+    onDelete?: (projectId: number) => void;
     searchPlaceholder: string;
     emptyState: EmptyState;
     projects?: Project[];
@@ -26,11 +40,42 @@ const ProjectsSection: React.FC<ProjectsSectionProps> = ({
     title,
     addButtonText,
     onAdd,
+    onEdit,
+    onDelete,
     searchPlaceholder,
     emptyState,
     projects,
     loading = false
 }) => {
+    const [currentPage, setCurrentPage] = useState(1);
+    const [searchTerm, setSearchTerm] = useState('');
+    const itemsPerPage = 10;
+
+    const filteredProjects = useMemo(() => {
+        if (!projects) return [];
+        if (!searchTerm) return projects;
+
+        return projects.filter(project =>
+            project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            project.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            project.status.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [projects, searchTerm]);
+
+    const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
+    const paginatedProjects = filteredProjects.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+    };
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value);
+        setCurrentPage(1); // Reset to first page when searching
+    };
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
@@ -50,6 +95,8 @@ const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                     <input
                         type="text"
                         placeholder={searchPlaceholder}
+                        value={searchTerm}
+                        onChange={handleSearchChange}
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-md hover:shadow-lg transition-shadow duration-200"
                     />
                 </div>
@@ -107,10 +154,13 @@ const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Progress
                                     </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                    </th>
                                 </tr>
                             </thead>
-                             <tbody className="bg-white divide-y divide-gray-200">
-                                 {projects?.map((project) => (
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {paginatedProjects.map((project) => (
                                     <tr key={project.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm font-medium text-gray-900">
@@ -125,22 +175,20 @@ const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                project.status === 'planning' ? 'bg-blue-100 text-blue-800' :
+                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${project.status === 'planning' ? 'bg-blue-100 text-blue-800' :
                                                 project.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
-                                                project.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                                'bg-gray-100 text-gray-800'
-                                            }`}>
+                                                    project.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                                        'bg-gray-100 text-gray-800'
+                                                }`}>
                                                 {project.status.replace('_', ' ')}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                project.priority === 'low' ? 'bg-green-100 text-green-800' :
+                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${project.priority === 'low' ? 'bg-green-100 text-green-800' :
                                                 project.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                                                project.priority === 'high' ? 'bg-red-100 text-red-800' :
-                                                'bg-purple-100 text-purple-800'
-                                            }`}>
+                                                    project.priority === 'high' ? 'bg-red-100 text-red-800' :
+                                                        'bg-purple-100 text-purple-800'
+                                                }`}>
                                                 {project.priority}
                                             </span>
                                         </td>
@@ -156,14 +204,43 @@ const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {project.progress}%
                                         </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div className="flex space-x-2">
+                                                {onEdit && (
+                                                    <button
+                                                        onClick={() => onEdit(project)}
+                                                        className="text-blue-600 hover:text-blue-900"
+                                                        title="Edit"
+                                                    >
+                                                        <Edit className="h-5 w-5" />
+                                                    </button>
+                                                )}
+                                                {onDelete && (
+                                                    <button
+                                                        onClick={() => onDelete(project.id)}
+                                                        className="text-red-600 hover:text-red-900"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 className="h-5 w-5" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
-                        </table>
-                    </div>
-                </div>
+                        </table >
+                    </div >
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                        itemsPerPage={itemsPerPage}
+                        totalItems={filteredProjects.length}
+                    />
+                </div >
             )}
-        </div>
+        </div >
     );
 };
 

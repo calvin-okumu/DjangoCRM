@@ -1,14 +1,53 @@
 // Export types
-export type { LoginResponse, SignupResponse, Client, CreateClientData, UpdateClientData, UserTenant, Project } from './types';
+export type {
+  Client,
+  LoginResponse,
+  Milestone,
+  Project,
+  SignupResponse,
+  Sprint,
+  Task,
+  UserTenant,
+} from "./types";
 
 // Export auth functions
-export { login, signup } from './auth';
+export { login, signup } from "./auth";
 
 // Export CRM functions
-export { getClients, createClient, updateClient, deleteClient, getUserTenants } from './crm';
+export {
+  createClient,
+  deleteClient,
+  getClients,
+  getUserTenants,
+  updateClient,
+} from "./crm";
 
 // Export Project Management functions
-export { getProjects, getProject, createProject } from './project_mgmt';
+export {
+  assignTaskToSprint,
+  createMilestone,
+  createProject,
+  createSprint,
+  createTask,
+  createTaskInSprint,
+  deleteMilestone,
+  deleteSprint,
+  deleteTask,
+  getMilestone,
+  getMilestones,
+  getProject,
+  getProjects,
+  getSprint,
+  getSprints,
+  getTask,
+  getTasks,
+  unassignTaskFromSprint,
+  updateMilestone,
+  updateSprint,
+  updateTask,
+} from "./project_mgmt";
 
 // Export API base URL
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+export const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+

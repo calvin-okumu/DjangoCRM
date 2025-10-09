@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { DollarSign, TrendingUp, Target, Users } from 'lucide-react';
-import MetricsBar from '../../../../components/dashboard/crm/MetricsBar';
-import ClientsSection from '../../../../components/dashboard/crm/ClientsSection';
-import AddClientModal from '../../../../components/dashboard/crm/AddClientModal';
+import MetricsBar from '../components/MetricsBar';
+import ClientsSection from '../components/ClientsSection';
+import AddClientModal from '../components/AddClientModal';
 
 export default function SalesPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
