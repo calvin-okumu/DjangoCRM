@@ -71,6 +71,14 @@ setup_backend() {
     log_info "Installing Python dependencies..."
     pip install -r requirements.txt
 
+    # Check and start Redis for caching
+    if command -v redis-server &> /dev/null; then
+        log_info "Starting Redis server for caching..."
+        redis-server --daemonize yes 2>/dev/null || log_warning "Redis already running"
+    else
+        log_warning "Redis not installed. Install with: sudo apt install redis-server"
+    fi
+
     # Setup database and application
     log_info "Running automated backend setup..."
     python manage.py setup_project

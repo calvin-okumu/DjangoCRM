@@ -1,7 +1,7 @@
 # DjangoCRM Project Makefile
 # Unified commands for development, testing, and deployment
 
-.PHONY: help setup setup-backend setup-frontend setup-docker dev dev-backend dev-frontend test test-backend test-frontend build build-backend build-frontend clean clean-backend clean-frontend docker-up docker-down docker-logs
+.PHONY: help setup setup-backend setup-frontend setup-docker dev dev-backend dev-frontend dev-stop test test-backend test-frontend build build-backend build-frontend clean clean-backend clean-frontend docker-up docker-down docker-logs
 
 # Default target
 help:
@@ -17,6 +17,7 @@ help:
 	@echo "  make dev                - Start both backend and frontend in development"
 	@echo "  make dev-backend        - Start backend development server"
 	@echo "  make dev-frontend       - Start frontend development server"
+	@echo "  make dev-stop           - Stop all development servers"
 	@echo ""
 	@echo "Testing Commands:"
 	@echo "  make test               - Run all tests"
@@ -61,6 +62,8 @@ dev:
 	@echo "Backend will be available at: http://localhost:8000"
 	@echo "Frontend will be available at: http://localhost:3000"
 	@echo ""
+	@echo "Starting Redis..."
+	@redis-server --daemonize yes 2>/dev/null || echo "Redis already running or not installed"
 	@echo "Starting backend..."
 	@cd backend && python manage.py runserver &
 	@echo "Starting frontend..."
@@ -75,6 +78,13 @@ dev-backend:
 dev-frontend:
 	@echo "Starting frontend development server..."
 	@cd frontend && npm run dev
+
+dev-stop:
+	@echo "Stopping development servers..."
+	@pkill -f "manage.py runserver" 2>/dev/null || echo "Backend not running"
+	@pkill -f "next" 2>/dev/null || echo "Frontend not running"
+	@pkill -f "redis-server" 2>/dev/null || echo "Redis not running"
+	@echo "Development servers stopped."
 
 # Testing commands
 test:
