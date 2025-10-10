@@ -1,7 +1,7 @@
 # DjangoCRM Project Makefile
 # Unified commands for development, testing, and deployment
 
-.PHONY: help setup setup-backend setup-frontend setup-docker dev dev-backend dev-frontend dev-stop test test-backend test-frontend build build-backend build-frontend clean clean-backend clean-frontend docker-up docker-down docker-logs
+.PHONY: help setup setup-backend setup-frontend setup-docker dev dev-backend dev-frontend stop test test-backend test-frontend build build-backend build-frontend clean clean-backend clean-frontend docker-up docker-down docker-logs
 
 # Default target
 help:
@@ -17,7 +17,7 @@ help:
 	@echo "  make dev                - Start both backend and frontend in development"
 	@echo "  make dev-backend        - Start backend development server"
 	@echo "  make dev-frontend       - Start frontend development server"
-	@echo "  make dev-stop           - Stop all development servers"
+	@echo "  make stop               - Stop all development servers"
 	@echo ""
 	@echo "Testing Commands:"
 	@echo "  make test               - Run all tests"
@@ -59,17 +59,31 @@ setup-docker:
 # Development commands
 dev:
 	@echo "Starting development environment..."
+	@echo "Checking port availability..."
+	@if lsof -i:8000 >/dev/null 2>&1; then \
+		echo "Port 8000 is in use by:"; \
+		lsof -i:8000; \
+		echo "Run 'make stop' to free ports."; \
+		exit 1; \
+	fi
+	@if lsof -i:3000 >/dev/null 2>&1; then \
+		echo "Port 3000 is in use by:"; \
+		lsof -i:3000; \
+		echo "Run 'make stop' to free ports."; \
+		exit 1; \
+	fi
+	@echo "Ports available. Starting servers..."
 	@echo "Backend will be available at: http://localhost:8000"
 	@echo "Frontend will be available at: http://localhost:3000"
 	@echo ""
 	@echo "Starting Redis..."
 	@redis-server --daemonize yes 2>/dev/null || echo "Redis already running or not installed"
 	@echo "Starting backend..."
-	@cd backend && python manage.py runserver &
+	@cd backend && (python manage.py runserver 8000 & echo "Backend started with PID $$!")
 	@echo "Starting frontend..."
-	@cd frontend && npm run dev &
+	@cd frontend && (npm run dev -- -p 3000 & echo "Frontend started with PID $$!")
 	@echo ""
-	@echo "Development servers started. Press Ctrl+C to stop."
+	@echo "Development servers started. Use 'make stop' to stop."
 
 dev-backend:
 	@echo "Starting backend development server..."
@@ -79,11 +93,27 @@ dev-frontend:
 	@echo "Starting frontend development server..."
 	@cd frontend && npm run dev
 
-dev-stop:
+stop:
 	@echo "Stopping development servers..."
-	@pkill -f "manage.py runserver" 2>/dev/null || echo "Backend not running"
-	@pkill -f "next" 2>/dev/null || echo "Frontend not running"
-	@pkill -f "redis-server" 2>/dev/null || echo "Redis not running"
+	@echo "Stopping backend processes..."
+	@echo "Found backend PIDs: $$(pgrep -f 'manage.py runserver' 2>/dev/null || echo 'none')"
+	@for pid in $$(pgrep -f "manage.py runserver" 2>/dev/null); do \
+		kill -9 $$pid 2>/dev/null && echo "Stopped backend PID $$pid" || echo "Failed to stop backend PID $$pid"; \
+	done
+	@echo "Stopping frontend processes..."
+	@echo "Found npm PIDs: $$(pgrep -f 'npm run dev' 2>/dev/null || echo 'none')"
+	@for pid in $$(pgrep -f "npm run dev" 2>/dev/null); do \
+		kill -9 $$pid 2>/dev/null && echo "Stopped frontend PID $$pid" || echo "Failed to stop frontend PID $$pid"; \
+	done
+	@echo "Found next PIDs: $$(pgrep -f 'next' 2>/dev/null || echo 'none')"
+	@for pid in $$(pgrep -f "next" 2>/dev/null); do \
+		kill -9 $$pid 2>/dev/null && echo "Stopped frontend PID $$pid" || echo "Failed to stop frontend PID $$pid"; \
+	done
+	@echo "Stopping Redis processes..."
+	@echo "Found Redis PIDs: $$(pgrep -f 'redis-server' 2>/dev/null || echo 'none')"
+	@for pid in $$(pgrep -f "redis-server" 2>/dev/null); do \
+		kill -9 $$pid 2>/dev/null && echo "Stopped Redis PID $$pid" || echo "Failed to stop Redis PID $$pid"; \
+	done
 	@echo "Development servers stopped."
 
 # Testing commands
