@@ -2,11 +2,13 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { Trash2 } from 'lucide-react';
 import { getProject, getTasks, createTask, updateTask, deleteTask, assignTaskToSprint, updateSprint, updateMilestone, getUserTenants } from '../../../../../api';
 import { Project, Milestone, Sprint, Task, UserTenant, User } from '../../../../../features/shared/types/common';
 import { KanbanView, MilestoneList, AddMilestoneModal, SprintList, AddSprintModal, AddTaskModal } from '../../../../../features/projects';
 import BacklogView from '../../components/BacklogView';
 import { TaskFormData } from '../../../../../features/projects/components/AddTaskModal';
+import Loader from '../../../../../features/shared/components/common/Loader';
 
 export default function ProjectDetailPage() {
     const params = useParams();
@@ -18,8 +20,8 @@ export default function ProjectDetailPage() {
     const calculateSprintProgress = useCallback((sprintId: number, tasks: Task[]): number => {
         const sprintTasks = tasks.filter(t => t.sprint === sprintId);
         if (sprintTasks.length === 0) return 0;
-        const completedTasks = sprintTasks.filter(t => t.status === 'done').length;
-        return Math.round((completedTasks / sprintTasks.length) * 100);
+        const totalProgress = sprintTasks.reduce((sum, task) => sum + task.progress, 0);
+        return Math.round(totalProgress / sprintTasks.length);
     }, []);
 
     const calculateMilestoneProgress = useCallback((milestoneId: number, sprints: Sprint[], tasks: Task[]): number => {
@@ -34,23 +36,21 @@ export default function ProjectDetailPage() {
         return Math.round(totalProgress / milestoneSprints.length);
     }, [calculateSprintProgress]);
 
-    const calculateProjectProgress = useMemo(() => {
-        return (milestones: Milestone[], sprints: Sprint[], tasks: Task[]): number => {
-            if (milestones.length === 0) return 0;
+    const calculateProjectProgress = useCallback((milestones: Milestone[]): number => {
+        if (milestones.length === 0) return 0;
 
-            // Calculate weighted progress based on milestone progress
-            const totalProgress = milestones.reduce((sum, milestone) => {
-                return sum + calculateMilestoneProgress(milestone.id, sprints, tasks);
-            }, 0);
+        // Use the already calculated milestone progress
+        const totalProgress = milestones.reduce((sum, milestone) => {
+            return sum + milestone.progress;
+        }, 0);
 
-            return Math.round(totalProgress / milestones.length);
-        };
-    }, [calculateMilestoneProgress]);
+        return Math.round(totalProgress / milestones.length);
+    }, []);
 
     // Completion check functions
     const isSprintCompleted = (sprintId: number, tasks: Task[]): boolean => {
         const sprintTasks = tasks.filter(t => t.sprint === sprintId);
-        return sprintTasks.length > 0 && sprintTasks.every(t => t.status === 'done');
+        return sprintTasks.length > 0 && sprintTasks.every(t => t.progress === 100);
     };
 
     const isMilestoneCompleted = (milestoneId: number, sprints: Sprint[]): boolean => {
@@ -89,7 +89,13 @@ export default function ProjectDetailPage() {
         try {
             const stored = localStorage.getItem(`milestones_${project.id}`);
             if (stored) {
-                setMilestones(JSON.parse(stored));
+                const parsedMilestones = JSON.parse(stored);
+                // Ensure milestone IDs are numbers for consistent comparison
+                const normalizedMilestones = parsedMilestones.map((m: Milestone) => ({
+                    ...m,
+                    id: typeof m.id === 'string' ? parseInt(m.id) : m.id
+                }));
+                setMilestones(normalizedMilestones);
             } else {
                 setMilestones([]);
             }
@@ -108,7 +114,13 @@ export default function ProjectDetailPage() {
         try {
             const stored = localStorage.getItem(`sprints_${project.id}`);
             if (stored) {
-                setSprints(JSON.parse(stored));
+                const parsedSprints = JSON.parse(stored);
+                // Ensure sprint milestone fields are numbers for consistent comparison
+                const normalizedSprints = parsedSprints.map((s: Sprint) => ({
+                    ...s,
+                    milestone: typeof s.milestone === 'string' ? parseInt(s.milestone) : s.milestone
+                }));
+                setSprints(normalizedSprints);
             } else {
                 setSprints([]);
             }
@@ -158,18 +170,18 @@ export default function ProjectDetailPage() {
     }, [id]);
 
     useEffect(() => {
-        if (activeTab === 'milestones' && project && !milestonesFetched) {
+        if (project && !milestonesFetched) {
             fetchMilestones();
             setMilestonesFetched(true);
         }
-    }, [activeTab, project, milestonesFetched, fetchMilestones]);
+    }, [project, milestonesFetched, fetchMilestones]);
 
     useEffect(() => {
-        if (activeTab === 'sprints' && project && !sprintsFetched) {
+        if (project && !sprintsFetched) {
             fetchSprints();
             setSprintsFetched(true);
         }
-    }, [activeTab, project, sprintsFetched, fetchSprints]);
+    }, [project, sprintsFetched, fetchSprints]);
 
     const fetchTasks = useCallback(async () => {
         if (!project) return;
@@ -181,12 +193,32 @@ export default function ProjectDetailPage() {
                 // For backlog, get tasks that are not assigned to any sprint
                 // This represents the product backlog - items ready to be planned into sprints
                 const data = await getTasks(token, undefined, undefined);
+
+                // Merge with localStorage sprint tasks to get the most up-to-date task states
+                const mergedTasks = [...data];
+                sprints.forEach(sprint => {
+                    const sprintTasksKey = `sprint_tasks_${sprint.id}`;
+                    const storedSprintTasks = localStorage.getItem(sprintTasksKey);
+                    if (storedSprintTasks) {
+                        const parsedSprintTasks = JSON.parse(storedSprintTasks);
+                        // Update or add sprint tasks to the merged array
+                        parsedSprintTasks.forEach((sprintTask: Task) => {
+                            const existingIndex = mergedTasks.findIndex(t => t.id === sprintTask.id);
+                            if (existingIndex >= 0) {
+                                mergedTasks[existingIndex] = sprintTask;
+                            } else {
+                                mergedTasks.push(sprintTask);
+                            }
+                        });
+                    }
+                });
+
                 // Filter to only show tasks not assigned to any sprint (true backlog)
-                const backlogTasks = data.filter(task => !task.sprint && task.status !== 'done');
+                const backlogTasks = mergedTasks.filter(task => !task.sprint && task.status !== 'done');
                 setTasks(backlogTasks);
 
                 // Also store all tasks for progress calculation
-                setAllTasks(data);
+                setAllTasks(mergedTasks);
             }
         } catch (error) {
             console.error('Failed to fetch tasks:', error);
@@ -220,16 +252,29 @@ export default function ProjectDetailPage() {
                         allCompleted.push(apiTask);
                     }
                 });
-                setCompletedTasks(allCompleted);
+                // Filter out any remaining duplicates
+                const uniqueCompleted = allCompleted.filter((task, index, arr) =>
+                    arr.findIndex(t => t.id === task.id) === index
+                );
+                setCompletedTasks(uniqueCompleted);
             } else {
-                setCompletedTasks(completedTasks);
+                // Filter out duplicates from localStorage
+                const uniqueCompleted = completedTasks.filter((task, index, arr) =>
+                    arr.findIndex(t => t.id === task.id) === index
+                );
+                setCompletedTasks(uniqueCompleted);
             }
         } catch (error) {
             console.error('Failed to fetch completed tasks:', error);
             // Fallback to localStorage only
             const localCompleted = localStorage.getItem(`completed_tasks_${project.id}`);
             if (localCompleted) {
-                setCompletedTasks(JSON.parse(localCompleted));
+                const completedTasks = JSON.parse(localCompleted);
+                // Filter out duplicates
+                const uniqueCompleted = completedTasks.filter((task: Task, index: number, arr: Task[]) =>
+                    arr.findIndex(t => t.id === task.id) === index
+                );
+                setCompletedTasks(uniqueCompleted);
             }
         } finally {
             setCompletedTasksLoading(false);
@@ -248,25 +293,91 @@ export default function ProjectDetailPage() {
         }
     }, [activeTab, project, fetchTasks]);
 
+    // Refetch tasks when returning from sprint detail page to sync localStorage changes
+    useEffect(() => {
+        if (project && sprints.length > 0) {
+            fetchTasks();
+        }
+    }, [project, sprints, fetchTasks]);
+
+    // Refetch tasks and sprints when window regains focus (user returns from sprint page)
+    useEffect(() => {
+        const handleFocus = () => {
+            if (project) {
+                // Refetch sprints first
+                setSprintsLoading(true);
+                try {
+                    const stored = localStorage.getItem(`sprints_${project.id}`);
+                    if (stored) {
+                        const parsedSprints = JSON.parse(stored);
+                        // Ensure sprint milestone fields are numbers for consistent comparison
+                        const normalizedSprints = parsedSprints.map((s: Sprint) => ({
+                            ...s,
+                            milestone: typeof s.milestone === 'string' ? parseInt(s.milestone) : s.milestone
+                        }));
+                        setSprints(normalizedSprints);
+                    } else {
+                        setSprints([]);
+                    }
+                } catch (error) {
+                    console.error('Failed to load sprints:', error);
+                    setSprints([]);
+                } finally {
+                    setSprintsLoading(false);
+                }
+
+                // Then refetch tasks to merge with updated sprints
+                fetchTasks();
+            }
+        };
+
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, [project, fetchTasks]);
+
     useEffect(() => {
         if (activeTab === 'completed' && project) {
             fetchCompletedTasks();
         }
     }, [activeTab, project, fetchCompletedTasks]);
 
-    // Update milestone and sprint progress when tasks change
+    // Update sprint and milestone progress when tasks change
     useEffect(() => {
-        if (milestones.length > 0) {
-            const updatedMilestones = milestones.map(milestone => ({
-                ...milestone,
-                progress: calculateMilestoneProgress(milestone.id, sprints, allTasks)
-            }));
+        // Calculate updated sprints
+        const updatedSprints = sprints.length > 0 ? sprints.map(sprint => ({
+            ...sprint,
+            progress: calculateSprintProgress(sprint.id, allTasks)
+        })) : sprints;
 
-            // Only update if progress actually changed
+        // Update sprints if changed
+        setSprints(prevSprints => {
+            const hasChanged = updatedSprints.some((updated, index) =>
+                prevSprints[index]?.progress !== updated.progress
+            );
+            if (hasChanged) {
+                localStorage.setItem(`sprints_${project.id}`, JSON.stringify(updatedSprints));
+                return updatedSprints;
+            }
+            return prevSprints;
+        });
+
+        // Update milestone progress using the updated sprints
+        if (milestones.length > 0) {
+            const updatedMilestones = milestones.map(milestone => {
+                const milestoneSprints = updatedSprints.filter(s => s.milestone === milestone.id);
+                return {
+                    ...milestone,
+                    progress: calculateMilestoneProgress(milestone.id, updatedSprints, allTasks),
+                    sprints_count: milestoneSprints.length
+                };
+            });
+
+            // Only update if progress or sprints_count actually changed
             setMilestones(prevMilestones => {
-                const hasChanged = updatedMilestones.some((updated, index) =>
-                    prevMilestones[index]?.progress !== updated.progress
-                );
+                const hasChanged = updatedMilestones.some((updated, index) => {
+                    const prev = prevMilestones[index];
+                    return prev?.progress !== updated.progress || prev?.sprints_count !== updated.sprints_count;
+                });
                 if (hasChanged) {
                     localStorage.setItem(`milestones_${project.id}`, JSON.stringify(updatedMilestones));
                     return updatedMilestones;
@@ -274,26 +385,7 @@ export default function ProjectDetailPage() {
                 return prevMilestones;
             });
         }
-
-        if (sprints.length > 0) {
-            const updatedSprints = sprints.map(sprint => ({
-                ...sprint,
-                progress: calculateSprintProgress(sprint.id, allTasks)
-            }));
-
-            // Only update if progress actually changed
-            setSprints(prevSprints => {
-                const hasChanged = updatedSprints.some((updated, index) =>
-                    prevSprints[index]?.progress !== updated.progress
-                );
-                if (hasChanged) {
-                    localStorage.setItem(`sprints_${project.id}`, JSON.stringify(updatedSprints));
-                    return updatedSprints;
-                }
-                return prevSprints;
-            });
-        }
-    }, [allTasks, sprints, project, milestones, calculateMilestoneProgress, calculateSprintProgress]);
+    }, [allTasks, sprints, milestones, project, calculateSprintProgress, calculateMilestoneProgress]);
 
     const handleAddMilestone = () => {
         setEditingMilestone(null);
@@ -487,49 +579,54 @@ export default function ProjectDetailPage() {
             if (!token) return;
 
             await updateTask(token, taskId, { status: newStatus });
+
+            // Update local state optimistically
             const updatedAllTasks = allTasks.map(task =>
                 task.id === taskId
-                    ? { ...task, status: newStatus }
+                    ? { ...task, status: newStatus, progress: getProgressFromStatus(newStatus) }
                     : task
             );
             setAllTasks(updatedAllTasks);
 
-            // Also update backlog tasks if this task was in backlog
-            const updatedTasks = tasks.map(task =>
-                task.id === taskId
-                    ? { ...task, status: newStatus }
-                    : task
-            );
-            setTasks(updatedTasks);
+            // Update backlog tasks
+            const backlogTasks = updatedAllTasks.filter(task => !task.sprint && task.status !== 'done');
+            setTasks(backlogTasks);
 
-            // Check if sprint is now completed
-            const task = updatedAllTasks.find(t => t.id === taskId);
-            if (task && task.sprint && isSprintCompleted(task.sprint, updatedAllTasks)) {
-                await updateSprint(token, task.sprint, { status: 'completed' });
-                const updatedSprints = sprints.map(s =>
-                    s.id === task.sprint
-                        ? { ...s, status: 'completed' }
-                        : s
-                );
-                setSprints(updatedSprints);
-                localStorage.setItem(`sprints_${project.id}`, JSON.stringify(updatedSprints));
-
-                // Check if milestone is now completed
-                const sprint = updatedSprints.find(s => s.id === task.sprint);
-                if (sprint && isMilestoneCompleted(sprint.milestone, updatedSprints)) {
-                    await updateMilestone(token, sprint.milestone, { status: 'completed' });
-                    const updatedMilestones = milestones.map(m =>
-                        m.id === sprint.milestone
-                            ? { ...m, status: 'completed' }
-                            : m
-                    );
-                    setMilestones(updatedMilestones);
-                    localStorage.setItem(`milestones_${project.id}`, JSON.stringify(updatedMilestones));
-                }
+            // Refetch all data to get updated progress from backend (if API works)
+            try {
+                const tasksData = await getTasks(token, undefined, undefined);
+                setAllTasks(tasksData);
+                const updatedBacklogTasks = tasksData.filter(task => !task.sprint && task.status !== 'done');
+                setTasks(updatedBacklogTasks);
+            } catch (refetchError) {
+                console.warn('Failed to refetch tasks, using local updates:', refetchError);
             }
+
         } catch (error) {
             console.error('Failed to update task status:', error);
+            // Still update local state even if API fails
+            const updatedAllTasks = allTasks.map(task =>
+                task.id === taskId
+                    ? { ...task, status: newStatus, progress: getProgressFromStatus(newStatus) }
+                    : task
+            );
+            setAllTasks(updatedAllTasks);
+
+            const backlogTasks = updatedAllTasks.filter(task => !task.sprint && task.status !== 'done');
+            setTasks(backlogTasks);
         }
+    };
+
+    // Helper function to get progress from status
+    const getProgressFromStatus = (status: string): number => {
+        const statusWeights: { [key: string]: number } = {
+            'to_do': 0,
+            'in_progress': 25,
+            'in_review': 50,
+            'testing': 75,
+            'done': 100
+        };
+        return statusWeights[status] || 0;
     };
 
     const handleAddTask = () => {
@@ -621,7 +718,9 @@ export default function ProjectDetailPage() {
     };
 
     // Calculate project progress based on milestone progress
-    const projectProgress = calculateProjectProgress(milestones, sprints, allTasks);
+    const projectProgress = useMemo(() => {
+        return calculateProjectProgress(milestones);
+    }, [milestones, calculateProjectProgress]);
 
     const milestoneFields = useMemo(() => [
         {
@@ -720,7 +819,7 @@ export default function ProjectDetailPage() {
     if (loading) {
         return (
             <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-                <div className="text-center">Loading project...</div>
+                <Loader size="lg" text="Loading project..." />
             </div>
         );
     }
@@ -953,70 +1052,88 @@ export default function ProjectDetailPage() {
                          </div>
                      )}
 
-                       {activeTab === 'completed' && (
-                           <div>
-                               <div className="flex justify-between items-center mb-6">
-                                   <h2 className="text-2xl font-bold text-gray-900">Completed Tasks</h2>
-                               </div>
+                        {activeTab === 'completed' && (
+                            <div>
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-bold text-gray-900">Completed Tasks</h2>
+                                </div>
 
-                               {completedTasks.length === 0 ? (
-                                   <div className="text-center py-12">
-                                       <div className="text-4xl mb-4">✅</div>
-                                       <h3 className="text-lg font-medium text-gray-900 mb-2">No Completed Tasks</h3>
-                                       <p className="text-gray-600">Tasks marked as done will appear here.</p>
-                                   </div>
-                               ) : (
-                                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                       {completedTasks.map((task) => (
-                                           <div key={task.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                                               <div className="flex items-start justify-between mb-3">
-                                                   <h4 className="text-lg font-medium text-gray-900 flex-1 pr-2">
-                                                       {task.title}
-                                                   </h4>
-                                                   <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                                       Completed
-                                                   </span>
-                                               </div>
-
-                                               {task.description && (
-                                                   <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                                                       {task.description}
-                                                   </p>
-                                               )}
-
-                                               <div className="space-y-2 text-sm text-gray-500">
-                                                   <div className="flex justify-between">
-                                                       <span>Priority:</span>
-                                                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                                                           task.priority === 'high' ? 'bg-red-100 text-red-800' :
-                                                           task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                                                           task.priority === 'low' ? 'bg-green-100 text-green-800' :
-                                                           'bg-gray-100 text-gray-800'
-                                                       }`}>
-                                                           {task.priority || 'Medium'}
-                                                       </span>
-                                                   </div>
-                                                   <div className="flex justify-between">
-                                                       <span>Estimated Hours:</span>
-                                                       <span>{task.estimated_hours || 0}h</span>
-                                                   </div>
-                                                   {task.sprint_name && (
-                                                       <div className="flex justify-between">
-                                                           <span>Sprint:</span>
-                                                           <span>{task.sprint_name}</span>
-                                                       </div>
-                                                   )}
-                                                   <div className="flex justify-between">
-                                                       <span>Completed:</span>
-                                                       <span>{task.updated_at ? new Date(task.updated_at).toLocaleDateString() : 'Recently'}</span>
-                                                   </div>
-                                               </div>
-                                           </div>
-                                       ))}
-                                   </div>
-                               )}
-                           </div>
-                        )}
+                                {completedTasks.length === 0 ? (
+                                    <div className="text-center py-12">
+                                        <div className="text-4xl mb-4">✅</div>
+                                        <h3 className="text-lg font-medium text-gray-900 mb-2">No Completed Tasks</h3>
+                                        <p className="text-gray-600">Tasks marked as done will appear here.</p>
+                                    </div>
+                                ) : (
+                                    <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+                                        <div className="overflow-x-auto">
+                                            <table className="min-w-full divide-y divide-gray-200">
+                                                <thead className="bg-gray-50">
+                                                    <tr>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                            Task
+                                                        </th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                            Priority
+                                                        </th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                            Sprint
+                                                        </th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                            Completed
+                                                        </th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                            Actions
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="bg-white divide-y divide-gray-200">
+                                                    {completedTasks.map((task) => (
+                                                        <tr key={task.id} className="hover:bg-gray-50">
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <div className="text-sm font-medium text-gray-900">
+                                                                    {task.title}
+                                                                </div>
+                                                                {task.description && (
+                                                                    <div className="text-sm text-gray-500 truncate max-w-xs">
+                                                                        {task.description}
+                                                                    </div>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                                                    task.priority === 'high' ? 'bg-red-100 text-red-800' :
+                                                                    task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                                                    task.priority === 'low' ? 'bg-green-100 text-green-800' :
+                                                                    'bg-gray-100 text-gray-800'
+                                                                }`}>
+                                                                    {task.priority || 'Medium'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                                {task.sprint_name || '-'}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                                {task.updated_at ? new Date(task.updated_at).toLocaleDateString() : 'Recently'}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                                <button
+                                                                    onClick={() => handleDeleteTask(task.id)}
+                                                                    className="text-red-600 hover:text-red-900"
+                                                                    title="Delete"
+                                                                >
+                                                                    <Trash2 className="h-5 w-5" />
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                         )}
 
                       {activeTab === 'overview' && (
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
