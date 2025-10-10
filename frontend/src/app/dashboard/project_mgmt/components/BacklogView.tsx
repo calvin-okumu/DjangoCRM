@@ -11,17 +11,7 @@ interface EmptyState {
     buttonText: string;
 }
 
-interface Task {
-    id: number;
-    title: string;
-    description?: string;
-    status: string;
-    priority: string;
-    assignee?: string;
-    story_points?: number;
-    sprint_id?: number;
-    created_at: string;
-}
+import { Task } from '../../../features/shared/types/common';
 
 interface BacklogViewProps {
     title: string;
@@ -83,17 +73,10 @@ const BacklogView: React.FC<BacklogViewProps> = ({
             {title && (
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
-                    <button
-                        onClick={onAdd}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md hover:shadow-lg transition-shadow duration-200"
-                    >
-                        <Plus className="h-5 w-5" />
-                        {addButtonText}
-                    </button>
                 </div>
             )}
 
-            <div className="flex gap-4 mb-6">
+            <div className="flex gap-4 mb-6 items-center">
                 <div className="relative flex-1 max-w-md">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                     <input
@@ -104,6 +87,13 @@ const BacklogView: React.FC<BacklogViewProps> = ({
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-md hover:shadow-lg transition-shadow duration-200"
                     />
                 </div>
+                <button
+                    onClick={onAdd}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md hover:shadow-lg transition-shadow duration-200"
+                >
+                    <Plus className="h-5 w-5" />
+                    {addButtonText}
+                </button>
             </div>
 
             {(tasks || []).length === 0 ? (
@@ -141,7 +131,7 @@ const BacklogView: React.FC<BacklogViewProps> = ({
                                         Priority
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Story Points
+                                        Est. Hours
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Assignee
@@ -177,12 +167,12 @@ const BacklogView: React.FC<BacklogViewProps> = ({
                                                 {task.priority}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {task.story_points || '-'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {task.assignee || '-'}
-                                        </td>
+                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                             {task.estimated_hours || '-'}
+                                         </td>
+                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                             {task.assignee ? `User ${task.assignee}` : '-'}
+                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {new Date(task.created_at).toLocaleDateString()}
                                         </td>

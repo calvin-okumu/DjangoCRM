@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, UserPlus } from 'lucide-react';
-import { getSprint, getTasks, createTask, updateTask, getMilestones } from '../../../../../../../api';
-import { Sprint, Task, Milestone } from '../../../../../../../features/shared/types/common';
+import { getSprint, getTasks, createTask, updateTask, getMilestones, getUserTenants } from '../../../../../../../api';
+import { Sprint, Task, Milestone, UserTenant, User } from '../../../../../../../features/shared/types/common';
 import AddTaskModal from '../../../../../../../features/projects/components/AddTaskModal';
 import { TaskFormData } from '../../../../../../../features/projects/components/AddTaskModal';
 
@@ -24,13 +24,26 @@ export default function SprintDetailPage() {
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [taskToMove, setTaskToMove] = useState<Task | null>(null);
     const [newStatus, setNewStatus] = useState<string>('');
+    const [tenantMembers, setTenantMembers] = useState<User[]>([]);
 
     // Calculate sprint progress
     const calculateSprintProgress = useCallback((sprintTasks: Task[]): number => {
         if (sprintTasks.length === 0) return 0;
-        const completedTasks = sprintTasks.filter(t => t.status === 'done').length;
-        return Math.round((completedTasks / sprintTasks.length) * 100);
+        const totalProgress = sprintTasks.reduce((sum, task) => sum + task.progress, 0);
+        return Math.round(totalProgress / sprintTasks.length);
     }, []);
+
+    // Helper function to get progress from status
+    const getProgressFromStatus = (status: string): number => {
+        const statusWeights: { [key: string]: number } = {
+            'to_do': 0,
+            'in_progress': 25,
+            'in_review': 50,
+            'testing': 75,
+            'done': 100
+        };
+        return statusWeights[status] || 0;
+    };
 
     // Check if sprint exists locally (for mock data)
     const getLocalSprint = useCallback((sprintId: string): Sprint | null => {
@@ -56,8 +69,23 @@ export default function SprintDetailPage() {
                 const localSprint = getLocalSprint(sprintId);
                 if (localSprint) {
                     setSprint(localSprint);
-                    // For local sprints, show empty tasks array
-                    setTasks([]);
+                    // For local sprints, load saved tasks from localStorage
+                    const savedSprintTasks = localStorage.getItem(`sprint_tasks_${sprintId}`);
+                    if (savedSprintTasks) {
+                        const parsedTasks = JSON.parse(savedSprintTasks);
+                        // Ensure all tasks have progress values and remove duplicates
+                        const uniqueTasks = parsedTasks
+                            .map((task: Task) => ({
+                                ...task,
+                                progress: task.progress ?? getProgressFromStatus(task.status)
+                            }))
+                            .filter((task: Task, index: number, arr: Task[]) =>
+                                arr.findIndex(t => t.id === task.id) === index
+                            );
+                        setTasks(uniqueTasks);
+                    } else {
+                        setTasks([]);
+                    }
 
                     // Fetch backlog tasks and milestones for local sprints too
                     const token = localStorage.getItem('access_token');
@@ -68,6 +96,22 @@ export default function SprintDetailPage() {
 
                         const milestonesData = await getMilestones(token, parseInt(projectId));
                         setMilestones(milestonesData);
+
+                        // Fetch tenant members
+                        try {
+                            const userTenants = await getUserTenants(token);
+                            // Map UserTenant[] to User[] for the modal
+                            const users = userTenants.filter(ut => ut.is_approved).map(ut => ({
+                                id: ut.user,
+                                first_name: ut.user_first_name,
+                                last_name: ut.user_last_name,
+                                email: ut.user_email
+                            }));
+                            setTenantMembers(users);
+                        } catch (error) {
+                            console.error('Failed to fetch tenant members:', error);
+                            setTenantMembers([]);
+                        }
                     }
                 } else {
                     // Try to fetch from API
@@ -86,9 +130,25 @@ export default function SprintDetailPage() {
                     const backlog = allTasks.filter(task => !task.sprint && task.status !== 'done');
                     setBacklogTasks(backlog);
 
-                    // Fetch milestones for task creation
-                    const milestonesData = await getMilestones(token, parseInt(projectId));
-                    setMilestones(milestonesData);
+                        // Fetch milestones for task creation
+                        const milestonesData = await getMilestones(token, parseInt(projectId));
+                        setMilestones(milestonesData);
+
+                        // Fetch tenant members
+                        try {
+                            const userTenants = await getUserTenants(token);
+                            // Map UserTenant[] to User[] for the modal
+                            const users = userTenants.filter(ut => ut.is_approved).map(ut => ({
+                                id: ut.user,
+                                first_name: ut.user_first_name,
+                                last_name: ut.user_last_name,
+                                email: ut.user_email
+                            }));
+                            setTenantMembers(users);
+                        } catch (error) {
+                            console.error('Failed to fetch tenant members:', error);
+                            setTenantMembers([]);
+                        }
                     }
                 }
             } catch (error) {
@@ -111,10 +171,25 @@ export default function SprintDetailPage() {
         if (sprint && tasks.length >= 0) {
             const progress = calculateSprintProgress(tasks);
             if (sprint.progress !== progress) {
-                setSprint({ ...sprint, progress });
+                const updatedSprint = { ...sprint, progress };
+                setSprint(updatedSprint);
+
+                // Save updated sprint back to localStorage
+                try {
+                    const stored = localStorage.getItem(`sprints_${projectId}`);
+                    if (stored) {
+                        const sprints: Sprint[] = JSON.parse(stored);
+                        const updatedSprints = sprints.map(s =>
+                            s.id === sprint.id ? updatedSprint : s
+                        );
+                        localStorage.setItem(`sprints_${projectId}`, JSON.stringify(updatedSprints));
+                    }
+                } catch (error) {
+                    console.error('Failed to save updated sprint progress:', error);
+                }
             }
         }
-    }, [tasks, sprint, calculateSprintProgress]);
+    }, [tasks, sprint, calculateSprintProgress, projectId]);
 
     const handleBackToSprints = () => {
         router.push(`/dashboard/project_mgmt/project/${projectId}`);
@@ -149,8 +224,13 @@ export default function SprintDetailPage() {
             if (sprint.id >= 1000000000000) { // Mock sprint (Date.now() IDs are large)
                 // For mock sprints, just add to local state
                 const milestoneObj = milestones.find(m => m.id === newTaskData.milestone);
+                // Generate unique ID to avoid conflicts
+                const generateUniqueId = () => {
+                    return Date.now() + Math.random() * 1000;
+                };
+
                 const newTask: Task = {
-                    id: Date.now(),
+                    id: generateUniqueId(),
                     title: newTaskData.title,
                     description: newTaskData.description,
                     priority: taskData.priority, // Use original taskData priority
@@ -163,11 +243,16 @@ export default function SprintDetailPage() {
                     estimated_hours: newTaskData.estimated_hours,
                     start_date: newTaskData.start_date,
                     end_date: newTaskData.end_date,
-                    progress: 0,
+                    progress: getProgressFromStatus('to_do'),
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
                 };
-                setTasks(prev => [...prev, newTask]);
+                const updatedTasks = [...tasks, newTask].filter((task, index, arr) =>
+                    arr.findIndex(t => t.id === task.id) === index
+                );
+                setTasks(updatedTasks);
+                // Save to localStorage
+                localStorage.setItem(`sprint_tasks_${sprint.id}`, JSON.stringify(updatedTasks));
             } else {
                 // For real sprints, create via API
                 const createdTask = await createTask(token, newTaskData);
@@ -193,9 +278,17 @@ export default function SprintDetailPage() {
                     sprint: sprint.id,
                     sprint_name: sprint.name,
                     status: 'to_do' as const,
+                    progress: getProgressFromStatus('to_do'),
                     updated_at: new Date().toISOString()
                 };
-                setTasks(prev => [...prev, updatedTask]);
+                // Check if task is already in the sprint to avoid duplicates
+                const taskExists = tasks.some(t => t.id === updatedTask.id);
+                const updatedSprintTasks = taskExists
+                    ? tasks.map(t => t.id === updatedTask.id ? updatedTask : t)
+                    : [...tasks, updatedTask];
+                setTasks(updatedSprintTasks);
+                // Save to localStorage
+                localStorage.setItem(`sprint_tasks_${sprint.id}`, JSON.stringify(updatedSprintTasks));
                 // Remove from backlog
                 setBacklogTasks(prev => prev.filter(t => t.id !== task.id));
             } else {
@@ -236,6 +329,7 @@ export default function SprintDetailPage() {
                     const completedTask = {
                         ...taskToMove,
                         status: 'done',
+                        progress: getProgressFromStatus('done'),
                         updated_at: new Date().toISOString()
                     };
                     // Store in project's completed tasks localStorage
@@ -244,8 +338,10 @@ export default function SprintDetailPage() {
                     const updatedCompleted = [...completedTasks.filter((t: Task) => t.id !== taskToMove.id), completedTask];
                     localStorage.setItem(`completed_tasks_${projectId}`, JSON.stringify(updatedCompleted));
 
-                    // Remove from sprint tasks
-                    setTasks(prev => prev.filter(t => t.id !== taskToMove.id));
+                    // Remove from sprint tasks and save updated sprint tasks
+                    const updatedSprintTasks = tasks.filter(t => t.id !== taskToMove.id);
+                    setTasks(updatedSprintTasks);
+                    localStorage.setItem(`sprint_tasks_${sprint.id}`, JSON.stringify(updatedSprintTasks));
                 } else {
                     // Update via API
                     await updateTask(token, taskToMove.id, {
@@ -260,9 +356,15 @@ export default function SprintDetailPage() {
                     const updatedTask = {
                         ...taskToMove,
                         status: newStatus,
+                        progress: getProgressFromStatus(newStatus),
                         updated_at: new Date().toISOString()
                     };
-                    setTasks(prev => prev.map(t => t.id === taskToMove.id ? updatedTask : t));
+                    const updatedSprintTasks = tasks.map(t => t.id === taskToMove.id ? updatedTask : t).filter((task, index, arr) =>
+                        arr.findIndex(t => t.id === task.id) === index
+                    );
+                    setTasks(updatedSprintTasks);
+                    // Save updated sprint tasks to localStorage
+                    localStorage.setItem(`sprint_tasks_${sprint.id}`, JSON.stringify(updatedSprintTasks));
                 } else {
                     // Update via API
                     const updatedTask = await updateTask(token, taskToMove.id, {
@@ -583,11 +685,12 @@ export default function SprintDetailPage() {
                 onClose={() => setIsTaskModalOpen(false)}
                 onSave={handleSaveNewTask}
                 milestones={milestones}
+                tenantMembers={tenantMembers}
             />
 
             {/* Add Task to Sprint Modal */}
             {isAddTaskModalOpen && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-black/70 z-60 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-semibold text-gray-900">Add Task to Sprint</h3>
@@ -631,7 +734,7 @@ export default function SprintDetailPage() {
 
             {/* Confirmation Modal */}
             {isConfirmModalOpen && taskToMove && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-black/70 z-60 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl p-6 w-full max-w-md">
                         <div className="text-center">
                             <h3 className="text-lg font-semibold text-gray-900 mb-4">
