@@ -173,19 +173,19 @@ const ClientsSection: React.FC<ClientsSectionProps> = ({
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Projects
                                     </th>
-                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                         Created
-                                     </th>
-                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                         Actions
-                                     </th>
-                                 </tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Created
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                    </th>
+                                </tr>
                             </thead>
-                             <tbody className="bg-white divide-y divide-gray-200">
-                                 {paginatedClients.map((client) => (
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {paginatedClients.map((client) => (
                                     <tr key={client.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-medium text-gray-900">
+                                            <div className="text-sm font-medium text-blue-600">
                                                 {client.name}
                                             </div>
                                         </td>
@@ -200,58 +200,57 @@ const ClientsSection: React.FC<ClientsSectionProps> = ({
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                client.status === 'active' ? 'bg-green-100 text-green-800' :
-                                                client.status === 'inactive' ? 'bg-red-100 text-red-800' :
-                                                'bg-yellow-100 text-yellow-800'
-                                            }`}>
+                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${client.status === 'active' ? 'bg-green-100 text-green-800' :
+                                                    client.status === 'inactive' ? 'bg-red-100 text-red-800' :
+                                                        'bg-yellow-100 text-yellow-800'
+                                                }`}>
                                                 {client.status}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {client.projects_count}
                                         </td>
-                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                             {new Date(client.created_at).toLocaleDateString()}
-                                         </td>
-                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                             <div className="flex space-x-2">
-                                                 {onEdit && (
-                                                     <button
-                                                         onClick={() => onEdit(client)}
-                                                         className="text-blue-600 hover:text-blue-900"
-                                                         title="Edit"
-                                                     >
-                                                         <Edit className="h-5 w-5" />
-                                                     </button>
-                                                 )}
-                                                 {onDelete && (
-                                                     <button
-                                                         onClick={() => onDelete(client.id)}
-                                                         className="text-red-600 hover:text-red-900"
-                                                         title="Delete"
-                                                     >
-                                                         <Trash2 className="h-5 w-5" />
-                                                     </button>
-                                                 )}
-                                             </div>
-                                         </td>
-                                     </tr>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {new Date(client.created_at).toLocaleDateString()}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div className="flex space-x-2">
+                                                {onEdit && (
+                                                    <button
+                                                        onClick={() => onEdit(client)}
+                                                        className="text-blue-600 hover:text-blue-900"
+                                                        title="Edit"
+                                                    >
+                                                        <Edit className="h-5 w-5" />
+                                                    </button>
+                                                )}
+                                                {onDelete && (
+                                                    <button
+                                                        onClick={() => onDelete(client.id)}
+                                                        className="text-red-600 hover:text-red-900"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 className="h-5 w-5" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
                                 ))}
                             </tbody>
-                         </table>
-                     </div>
-                     <Pagination
-                         currentPage={currentPage}
-                         totalPages={totalPages}
-                         onPageChange={handlePageChange}
-                         itemsPerPage={itemsPerPage}
-                         totalItems={filteredClients.length}
-                     />
-                 </div>
-             )}
-         </div>
-     );
+                        </table>
+                    </div>
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                        itemsPerPage={itemsPerPage}
+                        totalItems={filteredClients.length}
+                    />
+                </div>
+            )}
+        </div>
+    );
 };
 
 export default ClientsSection;

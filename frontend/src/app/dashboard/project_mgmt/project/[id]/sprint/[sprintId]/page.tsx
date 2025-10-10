@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, UserPlus } from 'lucide-react';
-import { getSprint, getTasks, createTask, updateTask, getMilestones } from '../../../../../../../api';
-import { Sprint, Task, Milestone } from '../../../../../../../features/shared/types/common';
+import { getSprint, getTasks, createTask, updateTask, getMilestones, getUserTenants } from '../../../../../../../api';
+import { Sprint, Task, Milestone, UserTenant, User } from '../../../../../../../features/shared/types/common';
 import AddTaskModal from '../../../../../../../features/projects/components/AddTaskModal';
 import { TaskFormData } from '../../../../../../../features/projects/components/AddTaskModal';
 
@@ -24,6 +24,7 @@ export default function SprintDetailPage() {
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [taskToMove, setTaskToMove] = useState<Task | null>(null);
     const [newStatus, setNewStatus] = useState<string>('');
+    const [tenantMembers, setTenantMembers] = useState<User[]>([]);
 
     // Calculate sprint progress
     const calculateSprintProgress = useCallback((sprintTasks: Task[]): number => {
@@ -68,6 +69,22 @@ export default function SprintDetailPage() {
 
                         const milestonesData = await getMilestones(token, parseInt(projectId));
                         setMilestones(milestonesData);
+
+                        // Fetch tenant members
+                        try {
+                            const userTenants = await getUserTenants(token);
+                            // Map UserTenant[] to User[] for the modal
+                            const users = userTenants.filter(ut => ut.is_approved).map(ut => ({
+                                id: ut.user,
+                                first_name: ut.user_first_name,
+                                last_name: ut.user_last_name,
+                                email: ut.user_email
+                            }));
+                            setTenantMembers(users);
+                        } catch (error) {
+                            console.error('Failed to fetch tenant members:', error);
+                            setTenantMembers([]);
+                        }
                     }
                 } else {
                     // Try to fetch from API
@@ -86,9 +103,25 @@ export default function SprintDetailPage() {
                     const backlog = allTasks.filter(task => !task.sprint && task.status !== 'done');
                     setBacklogTasks(backlog);
 
-                    // Fetch milestones for task creation
-                    const milestonesData = await getMilestones(token, parseInt(projectId));
-                    setMilestones(milestonesData);
+                        // Fetch milestones for task creation
+                        const milestonesData = await getMilestones(token, parseInt(projectId));
+                        setMilestones(milestonesData);
+
+                        // Fetch tenant members
+                        try {
+                            const userTenants = await getUserTenants(token);
+                            // Map UserTenant[] to User[] for the modal
+                            const users = userTenants.filter(ut => ut.is_approved).map(ut => ({
+                                id: ut.user,
+                                first_name: ut.user_first_name,
+                                last_name: ut.user_last_name,
+                                email: ut.user_email
+                            }));
+                            setTenantMembers(users);
+                        } catch (error) {
+                            console.error('Failed to fetch tenant members:', error);
+                            setTenantMembers([]);
+                        }
                     }
                 }
             } catch (error) {
@@ -583,11 +616,12 @@ export default function SprintDetailPage() {
                 onClose={() => setIsTaskModalOpen(false)}
                 onSave={handleSaveNewTask}
                 milestones={milestones}
+                tenantMembers={tenantMembers}
             />
 
             {/* Add Task to Sprint Modal */}
             {isAddTaskModalOpen && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-black/70 z-60 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-semibold text-gray-900">Add Task to Sprint</h3>
@@ -631,7 +665,7 @@ export default function SprintDetailPage() {
 
             {/* Confirmation Modal */}
             {isConfirmModalOpen && taskToMove && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-black/70 z-60 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl p-6 w-full max-w-md">
                         <div className="text-center">
                             <h3 className="text-lg font-semibold text-gray-900 mb-4">

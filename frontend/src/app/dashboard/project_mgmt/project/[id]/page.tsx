@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getProject, getTasks, createTask, updateTask, deleteTask, assignTaskToSprint, updateSprint, updateMilestone } from '../../../../../api';
-import { Project, Milestone, Sprint, Task } from '../../../../../features/shared/types/common';
+import { getProject, getTasks, createTask, updateTask, deleteTask, assignTaskToSprint, updateSprint, updateMilestone, getUserTenants } from '../../../../../api';
+import { Project, Milestone, Sprint, Task, UserTenant, User } from '../../../../../features/shared/types/common';
 import { KanbanView, MilestoneList, AddMilestoneModal, SprintList, AddSprintModal, AddTaskModal } from '../../../../../features/projects';
+import BacklogView from '../../components/BacklogView';
 import { TaskFormData } from '../../../../../features/projects/components/AddTaskModal';
 
 export default function ProjectDetailPage() {
@@ -75,6 +76,7 @@ export default function ProjectDetailPage() {
     const [tasksLoading, setTasksLoading] = useState(false);
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
+    const [tenantMembers, setTenantMembers] = useState<User[]>([]);
 
     const [totalTasksCount, setTotalTasksCount] = useState(0);
     const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
@@ -129,6 +131,22 @@ export default function ProjectDetailPage() {
                     // Fetch total task count
                     const tasksData = await getTasks(token, undefined, undefined);
                     setTotalTasksCount(tasksData.length);
+
+                    // Fetch tenant members
+                    try {
+                        const userTenants = await getUserTenants(token);
+                        // Map UserTenant[] to User[] for the modal
+                        const users = userTenants.filter(ut => ut.is_approved).map(ut => ({
+                            id: ut.user,
+                            first_name: ut.user_first_name,
+                            last_name: ut.user_last_name,
+                            email: ut.user_email
+                        }));
+                        setTenantMembers(users);
+                    } catch (error) {
+                        console.error('Failed to fetch tenant members:', error);
+                        setTenantMembers([]);
+                    }
                 }
             } catch (error) {
                 console.error('Failed to fetch project:', error);
@@ -888,14 +906,13 @@ export default function ProjectDetailPage() {
                      )}
 
                         {activeTab === 'backlog' && (
-                            <KanbanView
+                            <BacklogView
                                 title=""
                                 addButtonText="Add Task"
                                 onAdd={handleAddTask}
                                 onEdit={handleEditTask}
                                 onDelete={handleDeleteTask}
                                 onAssignToSprint={handleAssignToSprint}
-                                onStatusChange={handleTaskStatusChange}
                                 searchPlaceholder="Search tasks..."
                                 emptyState={{
                                     icon: ({ className }) => <div className={`${className} text-4xl`}>📋</div>,
@@ -905,7 +922,6 @@ export default function ProjectDetailPage() {
                                 }}
                                 tasks={tasks}
                                 loading={tasksLoading}
-                                milestones={milestones}
                             />
                         )}
 
@@ -1078,24 +1094,25 @@ export default function ProjectDetailPage() {
                    milestones={milestones}
                />
 
-               <AddTaskModal
-                   isOpen={isTaskModalOpen}
-                   onClose={() => setIsTaskModalOpen(false)}
-                   onSave={handleSubmitTask}
-                   milestones={milestones}
-                   sprints={sprints}
-                   initialData={editingTask ? {
-                       title: editingTask.title,
-                       description: editingTask.description,
-                       priority: editingTask.priority as 'low' | 'medium' | 'high' | 'urgent',
-                       milestone_id: editingTask.milestone,
-                       sprint_id: editingTask.sprint,
-                       assignee: editingTask.assignee,
-                       estimated_hours: editingTask.estimated_hours,
-                       start_date: editingTask.start_date,
-                       end_date: editingTask.end_date
-                   } : undefined}
-               />
+                <AddTaskModal
+                    isOpen={isTaskModalOpen}
+                    onClose={() => setIsTaskModalOpen(false)}
+                    onSave={handleSubmitTask}
+                    milestones={milestones}
+                    sprints={sprints}
+                    tenantMembers={tenantMembers}
+                    initialData={editingTask ? {
+                        title: editingTask.title,
+                        description: editingTask.description,
+                        priority: editingTask.priority as 'low' | 'medium' | 'high' | 'urgent',
+                        milestone_id: editingTask.milestone,
+                        sprint_id: editingTask.sprint,
+                        assignee: editingTask.assignee,
+                        estimated_hours: editingTask.estimated_hours,
+                        start_date: editingTask.start_date,
+                        end_date: editingTask.end_date
+                    } : undefined}
+                />
           </div>
       );
   }
