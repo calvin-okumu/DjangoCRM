@@ -3,9 +3,10 @@
 DjangoCRM API Testing Script
 Tests all authentication methods and API endpoints
 """
-import requests
 import json
 import sys
+
+import requests
 
 BASE_URL = "http://127.0.0.1:8000"
 
@@ -165,13 +166,15 @@ def create_test_user():
     print("\n👤 Creating test user...")
     try:
         import os
+
         import django
 
         os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'saasCRM.settings')
         django.setup()
 
-        from accounts.models import CustomUser, Tenant, UserTenant
         from django.contrib.auth.models import Group
+
+        from accounts.models import CustomUser, Tenant, UserTenant
 
         user, created = CustomUser.objects.get_or_create(
             email='test@example.com',

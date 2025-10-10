@@ -1,9 +1,11 @@
-from django.core.management.base import BaseCommand, CommandError
-from django.conf import settings
-from django.core.management import call_command
+import os
 import subprocess
 import sys
-import os
+
+from django.conf import settings
+from django.core.management import call_command
+from django.core.management.base import BaseCommand, CommandError
+
 
 class Command(BaseCommand):
     help = 'Complete DjangoCRM project setup: database, migrations, groups, and sample data'
@@ -162,6 +164,7 @@ class Command(BaseCommand):
 
         # Check migrations
         from django.core.management import execute_from_command_line
+
         # This is a simple check - could be more thorough
         self.stdout.write('✅ Migrations: OK')
 

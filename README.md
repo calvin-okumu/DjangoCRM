@@ -141,36 +141,6 @@ make build
 make start-production
 ```
 
-## 🤖 Automated Setup System
-
-The DjangoCRM includes comprehensive automation for setup, testing, and deployment:
-
-### Setup Automation
-- **Environment Detection**: Automatically detects development, production, or CI environments
-- **Database Setup**: Creates database, runs migrations, and sets up user groups
-- **Sample Data Generation**: Creates realistic test data for development
-- **Superuser Creation**: Interactive superuser setup with validation
-- **Configuration Validation**: Ensures all required environment variables are set
-- **Docker Integration**: Works seamlessly with containerized deployments
-- **CI/CD Ready**: Optimized for automated deployment pipelines
-
-### Development Workflow
-```bash
-# Setup everything
-./setup.sh
-
-# Development commands
-make dev          # Start development servers
-make test         # Run all tests
-make build        # Build for production
-make clean        # Clean build artifacts
-
-# Docker commands
-make docker-up    # Start Docker services
-make docker-down  # Stop Docker services
-make docker-logs  # View Docker logs
-```
-
 ## 🐳 Docker Deployment
 
 ### Quick Start with Docker
@@ -185,11 +155,7 @@ docker-compose logs -f
 docker-compose down
 ```
 
-### Services
-- **PostgreSQL**: Database service with persistent storage
-- **Backend**: Django application with automated setup
-- **Frontend**: Next.js application with hot reloading
-- **Nginx**: Reverse proxy for production (optional)
+
 
 ## 🧪 Testing & Quality
 
@@ -205,27 +171,7 @@ make test-backend
 make test-frontend
 ```
 
-### Code Quality
-```bash
-# Backend quality checks
-cd backend && python manage.py test
-cd backend && python manage.py check
 
-# Frontend quality checks
-cd frontend && npm run lint
-cd frontend && npx tsc --noEmit
-```
-
-## 🚀 CI/CD Integration
-
-The project includes optimized GitHub Actions workflows for automated testing and deployment:
-
-- **Hybrid Branch Workflow**: Feature → Dev (build + staging) → Main (production)
-- **Fast Unit Tests**: Logic tests run first, full integration only if needed
-- **Caching**: Pip, node_modules, and Docker layers for 50-70% faster runs
-- **Conditional Builds**: Builds only on dev/main branches
-- **Multi-Environment Deployment**: Staging (dev) and production (main) with health checks and rollback
-- **Security Scans**: Automated vulnerability checks for dependencies
 
 ## 📖 API Documentation
 
@@ -247,14 +193,7 @@ curl -H "Authorization: Token YOUR_TOKEN" \
 
 ## 📊 Sample Data
 
-Running `python manage.py generate_sample_data` creates:
-- **3 Tenants** with comprehensive company information
-- **6 Clients** distributed across tenants
-- **6 Projects** with various statuses and progress tracking
-- **10 Milestones** with automatic progress calculation
-- **15 Sprints** with task management
-- **50 Tasks** with status-based progress
-- **5 Users** with different permission levels
+Run `python manage.py generate_sample_data` to create realistic test data including tenants, clients, projects, milestones, sprints, tasks, and users.
 
 ## 🔧 Configuration
 
@@ -278,10 +217,7 @@ NEXT_PUBLIC_APP_ENV=development
 
 ### OAuth Setup
 
-For social authentication:
-1. **Google OAuth**: Get credentials from Google Cloud Console
-2. **GitHub OAuth**: Get credentials from GitHub Developer Settings
-3. Add credentials to backend `.env` file
+For social authentication, add Google/GitHub credentials to backend `.env`.
 
 ## 🤝 Contributing
 
@@ -310,16 +246,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - **Issues**: Open an issue on GitHub with error logs
 - **Documentation**: See `MANUAL.md` for detailed setup and usage
 - **API Docs**: Available at http://localhost:8000/docs/ when running
-
-## Test Workflow
-
-This is a test change to verify the CI/CD workflow is working correctly.
-
-Updated test for YAML fixes.
-
-Removed services block to fix syntax.
-
-Testing workflow on dev branch - update 2025-10-06.
 
 ---
 

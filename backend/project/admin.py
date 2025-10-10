@@ -1,12 +1,13 @@
 from django.contrib import admin
+
 from .models import (
     Client,
-    Project,
+    Invoice,
     Milestone,
+    Payment,
+    Project,
     Sprint,
     Task,
-    Invoice,
-    Payment,
 )
 
 

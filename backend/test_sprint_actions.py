@@ -2,8 +2,9 @@
 """
 Test Sprint Custom Actions
 """
-import requests
 import json
+
+import requests
 
 BASE_URL = "http://127.0.0.1:8000"
 

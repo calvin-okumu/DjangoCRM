@@ -1,45 +1,49 @@
-from rest_framework import viewsets, permissions, status
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, permissions, status
-from rest_framework.filters import SearchFilter, OrderingFilter
-from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes, action
-from rest_framework.authtoken.models import Token
+import uuid
+from datetime import timedelta
+
 from django.contrib.auth import authenticate
 from django.shortcuts import render
 from django.utils import timezone
-from datetime import timedelta
-import uuid
+from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view
-from .models import (
-    Client,
-    Project,
-    Milestone,
-    Sprint,
-    Task,
-    Invoice,
-    Payment,
-)
+from rest_framework import permissions, status, viewsets
+from rest_framework.authtoken.models import Token
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.response import Response
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+
 from accounts.models import (
+    CustomUser,
+    Invitation,
     Tenant,
     UserTenant,
-    Invitation,
-    CustomUser,
 )
+
+from .models import (
+    Client,
+    Invoice,
+    Milestone,
+    Payment,
+    Project,
+    Sprint,
+    Task,
+)
+from .permissions import IsAPIManager, IsClientManager, IsProjectManager, IsTenantOwner
 from .serializers import (
-    TenantSerializer,
     ClientSerializer,
-    ProjectSerializer,
+    CustomUserSerializer,
+    InvitationSerializer,
+    InvoiceSerializer,
     MilestoneSerializer,
+    PaymentSerializer,
+    ProjectSerializer,
     SprintSerializer,
     TaskSerializer,
-    InvoiceSerializer,
-    PaymentSerializer,
+    TenantSerializer,
     UserTenantSerializer,
-    InvitationSerializer,
-    CustomUserSerializer,
 )
-from .permissions import IsClientManager, IsProjectManager, IsAPIManager, IsTenantOwner
 
 
 @extend_schema_view(
@@ -194,12 +198,16 @@ class ProjectViewSet(viewsets.ModelViewSet):
         else:
             return Project.objects.none()  # Unauthenticated, no access
 
+    @method_decorator(cache_page(60*15))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         if hasattr(self.request, 'tenant') and self.request.tenant:
             serializer.save(tenant=self.request.tenant)
         else:
             # Development/Test mode: try to get tenant from user or create default
-            from accounts.models import UserTenant, Tenant
+            from accounts.models import Tenant, UserTenant
             try:
                 user_tenant = UserTenant.objects.filter(user=self.request.user, is_owner=True).first()
                 if user_tenant:
@@ -882,8 +890,8 @@ def signup_view(request):
             return Response({'error': 'Domain already in use'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Basic validation for optional fields
-        from django.core.validators import URLValidator
         from django.core.exceptions import ValidationError
+        from django.core.validators import URLValidator
         if website:
             validate = URLValidator()
             try:
@@ -1061,9 +1069,9 @@ def invite_member_view(request):
     )
 
     # Send invitation email
+    from django.conf import settings
     from django.core.mail import send_mail
     from django.urls import reverse
-    from django.conf import settings
 
     subject = f"Invitation to join {request.tenant.name}"
     invitation_url = f"{settings.SITE_URL or 'http://127.0.0.1:8000'}/api/signup/?token={token}"

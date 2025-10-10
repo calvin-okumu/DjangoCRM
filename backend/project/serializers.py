@@ -1,7 +1,10 @@
-from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
-from .models import Client, Project, Milestone, Sprint, Task, Invoice, Payment
-from accounts.models import Tenant, CustomUser, UserTenant, Invitation
+from rest_framework import serializers
+
+from accounts.models import CustomUser, Invitation, Tenant, UserTenant
+
+from .models import Client, Invoice, Milestone, Payment, Project, Sprint, Task
+
 
 class TenantSerializer(serializers.ModelSerializer):
     class Meta:

@@ -4,7 +4,9 @@ Environment Configuration Checker
 Validates that required environment variables are set for DjangoCRM
 """
 import os
+
 from dotenv import load_dotenv
+
 
 def check_env():
     """Check environment variables and report status"""

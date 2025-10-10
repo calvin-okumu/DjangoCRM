@@ -1,12 +1,19 @@
-from django.core.management.base import BaseCommand
 from django.contrib.auth.models import Group
+from django.core.management.base import BaseCommand
+
 from accounts.models import CustomUser, Tenant
-from project.models import Client, Project, Milestone, Sprint, Task, Invoice, Payment
 from project.factories import (
-    TenantFactory, ClientFactory,
-    ProjectFactory, MilestoneFactory, SprintFactory, TaskFactory,
-    InvoiceFactory, PaymentFactory
+    ClientFactory,
+    InvoiceFactory,
+    MilestoneFactory,
+    PaymentFactory,
+    ProjectFactory,
+    SprintFactory,
+    TaskFactory,
+    TenantFactory,
 )
+from project.models import Client, Invoice, Milestone, Payment, Project, Sprint, Task
+
 
 class Command(BaseCommand):
     help = 'Generate sample data for CRM using factory-boy'

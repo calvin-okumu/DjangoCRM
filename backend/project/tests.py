@@ -1,16 +1,15 @@
 import json
-from django.test import TestCase
+from decimal import Decimal
+
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
-from rest_framework.test import APITestCase
+from django.test import TestCase
 from rest_framework import status
-from decimal import Decimal
-from .models import (
-    Client, Project, Milestone, Sprint, Task,
-    Invoice, Payment
-)
-from accounts.models import CustomUser
-from accounts.models import Tenant
+from rest_framework.test import APITestCase
+
+from accounts.models import CustomUser, Tenant
+
+from .models import Client, Invoice, Milestone, Payment, Project, Sprint, Task
 
 
 class ModelTests(TestCase):

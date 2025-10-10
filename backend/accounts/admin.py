@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import CustomUser, Tenant, UserTenant, Invitation
+
+from .models import CustomUser, Invitation, Tenant, UserTenant
 
 
 @admin.register(CustomUser)

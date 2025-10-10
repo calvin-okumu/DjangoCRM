@@ -1,9 +1,17 @@
 from decimal import Decimal
-from django.db import models
+
+from decimal import Decimal
+
+from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator, URLValidator
-from django.conf import settings
+from django.core.validators import (
+    MaxValueValidator,
+    MinValueValidator,
+    RegexValidator,
+    URLValidator,
+)
+from django.db import models
 
 
 class Client(models.Model):
@@ -253,7 +261,7 @@ class Payment(models.Model):
         Invoice, on_delete=models.CASCADE, related_name="payments", db_index=True
     )
     amount = models.DecimalField(
-        max_digits=12, decimal_places=2, validators=[MinValueValidator(0)]
+        max_digits=12, decimal_places=2, validators=[MinValueValidator(Decimal('0'))]
     )
     paid_at = models.DateTimeField(auto_now_add=True)
 

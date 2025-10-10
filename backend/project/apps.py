@@ -6,5 +6,5 @@ class ProjectConfig(AppConfig):
     name = 'project'
 
     def ready(self):
-        import project.signals  # Connect signals when app is ready
         import accounts.signals  # Connect accounts signals
+        import project.signals  # Connect signals when app is ready

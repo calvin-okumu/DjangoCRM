@@ -1,9 +1,10 @@
-from django.utils.deprecation import MiddlewareMixin
-from django.core.exceptions import ImproperlyConfigured
 from django.conf import settings
-from accounts.models import Tenant, UserTenant
+from django.core.exceptions import ImproperlyConfigured
 from django.http import Http404
 from django.shortcuts import redirect
+from django.utils.deprecation import MiddlewareMixin
+
+from accounts.models import Tenant, UserTenant
 
 
 class TenantMiddleware(MiddlewareMixin):

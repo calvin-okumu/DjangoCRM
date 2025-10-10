@@ -1,5 +1,7 @@
 from rest_framework import permissions
+
 from accounts.models import UserTenant
+
 
 class IsClientManager(permissions.BasePermission):
     """
