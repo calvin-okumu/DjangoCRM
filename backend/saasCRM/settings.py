@@ -239,9 +239,18 @@ else:
             'LOCATION': 'redis://127.0.0.1:6379/1',
             'OPTIONS': {
                 'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'IGNORE_EXCEPTIONS': True,
             }
         }
     }
+
+    # Check Redis availability and warn if not running
+    try:
+        import redis
+        r = redis.Redis(host='127.0.0.1', port=6379, db=1)
+        r.ping()
+    except Exception:
+        print("Warning: Redis is not running or unreachable. Caching will be disabled.")
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "DjangoCRM API",
@@ -292,3 +301,65 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+    },
+    'filters': {
+        'info_only': {
+            '()': 'django.utils.log.CallbackFilter',
+            'callback': lambda record: record.levelno == 20,  # INFO
+        },
+        'warning_only': {
+            '()': 'django.utils.log.CallbackFilter',
+            'callback': lambda record: record.levelno == 30,  # WARNING
+        },
+        'error_only': {
+            '()': 'django.utils.log.CallbackFilter',
+            'callback': lambda record: record.levelno >= 40,  # ERROR and above
+        },
+    },
+    'handlers': {
+        'info_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR.parent / 'logs' / 'backend' / 'info.log',
+            'formatter': 'verbose',
+            'filters': ['info_only'],
+            'maxBytes': 10485760,  # 10MB
+            'backupCount': 5,
+        },
+        'warning_file': {
+            'level': 'WARNING',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR.parent / 'logs' / 'backend' / 'warning.log',
+            'formatter': 'verbose',
+            'filters': ['warning_only'],
+            'maxBytes': 10485760,  # 10MB
+            'backupCount': 5,
+        },
+        'error_file': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR.parent / 'logs' / 'backend' / 'error.log',
+            'formatter': 'verbose',
+            'filters': ['error_only'],
+            'maxBytes': 10485760,  # 10MB
+            'backupCount': 5,
+        },
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console', 'info_file', 'warning_file', 'error_file'],
+        'level': 'INFO',
+    },
+}

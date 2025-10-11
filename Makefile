@@ -1,7 +1,7 @@
 # DjangoCRM Project Makefile
 # Unified commands for development, testing, and deployment
 
-.PHONY: help setup setup-backend setup-frontend setup-docker dev dev-backend dev-frontend stop test test-backend test-frontend build build-backend build-frontend clean clean-backend clean-frontend docker-up docker-down docker-logs
+.PHONY: help setup setup-backend setup-frontend setup-docker dev dev-backend dev-frontend check-servers stop test test-backend test-frontend build build-backend build-frontend clean clean-backend clean-frontend docker-up docker-down docker-logs
 
 # Default target
 help:
@@ -17,6 +17,7 @@ help:
 	@echo "  make dev                - Start both backend and frontend in development"
 	@echo "  make dev-backend        - Start backend development server"
 	@echo "  make dev-frontend       - Start frontend development server"
+	@echo "  make check-servers      - Check if backend and frontend are accessible"
 	@echo "  make stop               - Stop all development servers"
 	@echo ""
 	@echo "Testing Commands:"
@@ -60,15 +61,15 @@ setup-docker:
 dev:
 	@echo "Starting development environment..."
 	@echo "Checking port availability..."
-	@if lsof -i:8000 >/dev/null 2>&1; then \
+	@if ss -tulpn | grep -q :8000; then \
 		echo "Port 8000 is in use by:"; \
-		lsof -i:8000; \
+		ss -tulpn | grep :8000; \
 		echo "Run 'make stop' to free ports."; \
 		exit 1; \
 	fi
-	@if lsof -i:3000 >/dev/null 2>&1; then \
+	@if ss -tulpn | grep -q :3000; then \
 		echo "Port 3000 is in use by:"; \
-		lsof -i:3000; \
+		ss -tulpn | grep :3000; \
 		echo "Run 'make stop' to free ports."; \
 		exit 1; \
 	fi
@@ -79,9 +80,15 @@ dev:
 	@echo "Starting Redis..."
 	@redis-server --daemonize yes 2>/dev/null || echo "Redis already running or not installed"
 	@echo "Starting backend..."
-	@cd backend && (python manage.py runserver 8000 & echo "Backend started with PID $$!")
+	@cd backend && (python manage.py runserver 0.0.0.0:8000 & echo "Backend started with PID $$!")
 	@echo "Starting frontend..."
 	@cd frontend && (npm run dev -- -p 3000 & echo "Frontend started with PID $$!")
+	@echo ""
+	@sleep 5
+	@echo "Verifying server availability..."
+	@curl -s http://localhost:8000 >/dev/null && echo "✅ Backend available at http://localhost:8000" || echo "⚠️  Backend not responding on http://localhost:8000"
+	@curl -s http://localhost:3000 >/dev/null && echo "✅ Frontend available at http://localhost:3000" || echo "⚠️  Frontend not responding on http://localhost:3000"
+	@redis-cli ping >/dev/null 2>&1 && echo "✅ Redis available" || echo "⚠️  Redis not responding"
 	@echo ""
 	@echo "Development servers started. Use 'make stop' to stop."
 
@@ -93,27 +100,25 @@ dev-frontend:
 	@echo "Starting frontend development server..."
 	@cd frontend && npm run dev
 
+check-servers:
+	@echo "Checking server availability..."
+	@curl -s http://localhost:8000 >/dev/null && echo "✅ Backend: http://localhost:8000" || echo "❌ Backend: http://localhost:8000 (not responding)"
+	@curl -s http://localhost:3000 >/dev/null && echo "✅ Frontend: http://localhost:3000" || echo "❌ Frontend: http://localhost:3000 (not responding)"
+
 stop:
 	@echo "Stopping development servers..."
 	@echo "Stopping backend processes..."
-	@echo "Found backend PIDs: $$(pgrep -f 'manage.py runserver' 2>/dev/null || echo 'none')"
-	@for pid in $$(pgrep -f "manage.py runserver" 2>/dev/null); do \
-		kill -9 $$pid 2>/dev/null && echo "Stopped backend PID $$pid" || echo "Failed to stop backend PID $$pid"; \
-	done
+	@ps aux | grep "runserver" | grep -v grep | awk '{print $$2}' | xargs kill 2>/dev/null && echo "Backend processes stopped" || echo "No backend processes found"
 	@echo "Stopping frontend processes..."
-	@echo "Found npm PIDs: $$(pgrep -f 'npm run dev' 2>/dev/null || echo 'none')"
-	@for pid in $$(pgrep -f "npm run dev" 2>/dev/null); do \
-		kill -9 $$pid 2>/dev/null && echo "Stopped frontend PID $$pid" || echo "Failed to stop frontend PID $$pid"; \
-	done
-	@echo "Found next PIDs: $$(pgrep -f 'next' 2>/dev/null || echo 'none')"
-	@for pid in $$(pgrep -f "next" 2>/dev/null); do \
-		kill -9 $$pid 2>/dev/null && echo "Stopped frontend PID $$pid" || echo "Failed to stop frontend PID $$pid"; \
-	done
+	@ps aux | grep "npm run dev" | grep -v grep | awk '{print $$2}' | xargs kill 2>/dev/null && echo "NPM dev processes stopped" || echo "No NPM dev processes found"
+	@ps aux | grep "next" | grep -v grep | awk '{print $$2}' | xargs kill 2>/dev/null && echo "Next.js processes stopped" || echo "No Next.js processes found"
 	@echo "Stopping Redis processes..."
-	@echo "Found Redis PIDs: $$(pgrep -f 'redis-server' 2>/dev/null || echo 'none')"
-	@for pid in $$(pgrep -f "redis-server" 2>/dev/null); do \
-		kill -9 $$pid 2>/dev/null && echo "Stopped Redis PID $$pid" || echo "Failed to stop Redis PID $$pid"; \
-	done
+	@ps aux | grep "redis-server" | grep -v grep | awk '{print $$2}' | xargs kill 2>/dev/null && echo "Redis processes stopped" || echo "No Redis processes found"
+	@echo "Verifying servers are stopped..."
+	@sleep 2
+	@curl -s --max-time 5 http://localhost:8000 >/dev/null && echo "⚠️  Backend still responding on http://localhost:8000" || echo "✅ Backend stopped"
+	@curl -s --max-time 5 http://localhost:3000 >/dev/null && echo "⚠️  Frontend still responding on http://localhost:3000" || echo "✅ Frontend stopped"
+	@ps aux | grep "redis-server" | grep -v grep >/dev/null && echo "⚠️  Redis still running" || echo "✅ Redis stopped"
 	@echo "Development servers stopped."
 
 # Testing commands
