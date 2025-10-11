@@ -1,19 +1,18 @@
 
 "use client";
 
-import React from "react";
-import Link from "next/link";
 import {
-    Users,
-    UserCheck,
-    Building,
-    DollarSign,
     Archive,
-    FolderOpen,
     BarChart3,
-    TrendingUp,
+    Building,
     Calendar,
+    DollarSign,
+    FolderOpen,
+    TrendingUp,
+    UserCheck,
+    Users,
 } from "lucide-react";
+import Link from "next/link";
 
 const features = [
     {
@@ -75,11 +74,11 @@ const features = [
         title: "Project Management",
         subtitle: "Plan and track project progress",
         icon: FolderOpen,
-        color: "bg-orange-400",
-        hoverColor: "hover:shadow-orange-400/20 hover:border-orange-400 hover:bg-orange-400/10",
-        buttonColor: "bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600",
+        color: "bg-yellow-400",
+        hoverColor: "hover:shadow-yellow-400/20 hover:border-yellow-400 hover:bg-yellow-400/10",
+        buttonColor: "bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600",
         cta: "View Projects",
-        href: "/dashboard/project_mgmt/project",
+        href: "/dashboard/project-management/",
         active: true,
     },
     {
