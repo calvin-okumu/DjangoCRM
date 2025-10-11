@@ -70,6 +70,50 @@ export async function createProject(token: string, projectData: {
   return data;
 }
 
+export async function updateProject(token: string, id: number, projectData: Partial<{
+  name: string;
+  client: number;
+  status: string;
+  priority: string;
+  start_date: string;
+  end_date: string;
+  budget?: string;
+  tags?: string;
+  team_members?: number[];
+  access_groups?: number[];
+}>): Promise<Project> {
+  const response = await fetch(`${API_BASE}/projects/${id}/`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Token ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(projectData),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to update project");
+  }
+
+  return data;
+}
+
+export async function deleteProject(token: string, id: number): Promise<void> {
+  const response = await fetch(`${API_BASE}/projects/${id}/`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Token ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.error || "Failed to delete project");
+  }
+}
+
 // Milestone API functions
 export async function getMilestones(token: string, projectId?: number): Promise<Milestone[]> {
   const url = projectId ? `${API_BASE}/milestones/?project=${projectId}` : `${API_BASE}/milestones/`;

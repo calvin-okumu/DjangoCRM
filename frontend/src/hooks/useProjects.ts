@@ -3,6 +3,8 @@ import { Project } from "../api/types";
 import {
     getProjects,
     createProject,
+    updateProject,
+    deleteProject,
 } from "../api/project_mgmt";
 
 function getToken(): string | null {
@@ -60,7 +62,6 @@ export function useProjects() {
     }
   };
 
-  // Note: Update and delete not implemented in API yet
   const editProject = async (id: number, data: Partial<{
     name: string;
     client: number;
@@ -73,14 +74,33 @@ export function useProjects() {
     team_members?: number[];
     access_groups?: number[];
   }>) => {
-    // Placeholder - implement when API is ready
-    console.log("Edit project not implemented", id, data);
+    const token = getToken();
+    if (!token) return;
+
+    setLoading(true);
+    try {
+      await updateProject(token, id, data);
+      await fetchProjects();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update project.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const removeProject = async (id: number) => {
-    // Placeholder - implement when API is ready
-    console.log("Delete project not implemented", id);
-    setProjects((prev) => prev.filter((p) => p.id !== id));
+    const token = getToken();
+    if (!token) return;
+
+    setLoading(true);
+    try {
+      await deleteProject(token, id);
+      setProjects((prev) => prev.filter((p) => p.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete project.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return {

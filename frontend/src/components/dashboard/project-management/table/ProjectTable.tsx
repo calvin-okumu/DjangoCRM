@@ -2,28 +2,55 @@
 
 import type { Project } from '@/api/types';
 import Pagination from '@/components/shared/Pagination';
+import Loader from '@/components/shared/Loader';
 import Button from '@/components/ui/Button';
 import Table from '@/components/ui/Table';
+import ProjectModal from '../ProjectModal';
 import { useProjects } from '@/hooks/useProjects';
 import { Edit, Plus, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 
 const ProjectTable: React.FC = () => {
     const [page, setPage] = useState(1);
+    const [searchValue, setSearchValue] = useState('');
+    const [modalOpen, setModalOpen] = useState(false);
+    const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+    const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const { projects, loading, error, addProject, editProject, removeProject } = useProjects();
 
+    const filteredProjects = projects.filter(project =>
+        project.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+        project.client_name.toLowerCase().includes(searchValue.toLowerCase())
+    );
+
     const itemsPerPage = 10;
-    const totalPages = Math.ceil(projects.length / itemsPerPage);
-    const visibleProjects = projects.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+    const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
+    const visibleProjects = filteredProjects.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
     const handleNewProject = () => {
-        // TODO: Open modal
-        console.log("New project");
+        setModalMode('add');
+        setSelectedProject(null);
+        setModalOpen(true);
     };
 
     const handleEdit = (project: Project) => {
-        // TODO: Open edit modal
-        console.log("Edit project", project);
+        setModalMode('edit');
+        setSelectedProject(project);
+        setModalOpen(true);
+    };
+
+    const handleSaveProject = async (data: any) => {
+        try {
+            if (modalMode === 'add') {
+                await addProject(data);
+            } else if (selectedProject) {
+                await editProject(selectedProject.id, data);
+            }
+            setModalOpen(false);
+        } catch (error) {
+            console.error('Error saving project:', error);
+            // TODO: Show error message
+        }
     };
 
     const handleDelete = (id: number) => {
@@ -75,7 +102,7 @@ const ProjectTable: React.FC = () => {
     ]);
 
     if (loading) {
-        return <div>Loading...</div>;
+        return <Loader />;
     }
 
     if (error) {
@@ -83,27 +110,38 @@ const ProjectTable: React.FC = () => {
     }
 
     return (
-        <div className="bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                <input
-                    type="text"
-                    placeholder="Search projects..."
-                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        <>
+            <div className="bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+                <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+                    <input
+                        type="text"
+                        placeholder="Search projects..."
+                        value={searchValue}
+                        onChange={(e) => setSearchValue(e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <Button onClick={handleNewProject} variant="primary" size="md" className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center">
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Project
+                    </Button>
+                </div>
+                <Table headers={headers} rows={rows} />
+                <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                    itemsPerPage={itemsPerPage}
+                    totalItems={filteredProjects.length}
                 />
-                <Button onClick={handleNewProject} variant="primary" size="md" className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300">
-                    <Plus className="h-2 w-4 mr-2" />
-                    New Project
-                </Button>
             </div>
-            <Table headers={headers} rows={rows} />
-            <Pagination
-                currentPage={page}
-                totalPages={totalPages}
-                onPageChange={setPage}
-                itemsPerPage={itemsPerPage}
-                totalItems={projects.length}
+            <ProjectModal
+                isOpen={modalOpen}
+                onClose={() => setModalOpen(false)}
+                mode={modalMode}
+                project={selectedProject || undefined}
+                onSave={handleSaveProject}
             />
-        </div>
+        </>
     );
 };
 
