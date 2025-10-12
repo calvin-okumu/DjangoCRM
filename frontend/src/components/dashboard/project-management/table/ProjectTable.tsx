@@ -9,6 +9,7 @@ import ProjectModal from '../ProjectModal';
 import { useProjects } from '@/hooks/useProjects';
 import { Edit, Plus, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
+import Link from 'next/link';
 
 const ProjectTable: React.FC = () => {
     const [page, setPage] = useState(1);
@@ -62,7 +63,9 @@ const ProjectTable: React.FC = () => {
     const headers = ["Name", "Client", "Status", "Priority", "Start Date", "End Date", "Budget", "Progress", "Milestones", "Actions"];
 
     const rows = visibleProjects.map(p => [
-        p.name,
+        <Link href={`/dashboard/project-management/${p.id}`} className="text-blue-600 hover:text-blue-800 hover:underline">
+            {p.name}
+        </Link>,
         p.client_name,
         <span
             className={`px-2 py-1 text-xs font-semibold rounded-full ${p.status === "active"

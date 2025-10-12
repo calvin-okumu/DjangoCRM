@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import { useClients } from '@/hooks/useClients';
-import type { Project, Client } from '@/api/types';
+import type { Project } from '@/api/types';
 
 interface ProjectModalProps {
     isOpen: boolean;
@@ -18,40 +18,37 @@ export default function ProjectModal({ isOpen, onClose, mode, project, onSave }:
     const { clients } = useClients();
     const [formData, setFormData] = useState({
         name: '',
-        client: 0,
+        client: '0',
         status: 'active' as 'active' | 'completed' | 'on-hold',
         priority: 'medium' as 'high' | 'medium' | 'low',
         start_date: '',
         end_date: '',
         budget: '',
-        tags: '',
     });
 
     useEffect(() => {
         if (mode === 'edit' && project) {
             setFormData({
                 name: project.name,
-                client: project.client,
+                client: project.client.toString(),
                 status: project.status as 'active' | 'completed' | 'on-hold',
                 priority: project.priority as 'high' | 'medium' | 'low',
                 start_date: project.start_date,
                 end_date: project.end_date,
                 budget: project.budget || '',
-                tags: project.tags || '',
             });
         } else {
             setFormData({
                 name: '',
-                client: clients.length > 0 ? clients[0].id : 0,
+                client: clients.length > 0 ? clients[0].id.toString() : '0',
                 status: 'active',
                 priority: 'medium',
                 start_date: '',
                 end_date: '',
                 budget: '',
-                tags: '',
             });
         }
-    }, [mode, project, isOpen, clients]);
+    }, [mode, project, clients]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -60,17 +57,31 @@ export default function ProjectModal({ isOpen, onClose, mode, project, onSave }:
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.name || !formData.client) return;
+        if (!formData.name || !formData.client || !formData.start_date || !formData.end_date) return;
+
+        const startDate = new Date(formData.start_date);
+        const endDate = new Date(formData.end_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (startDate < today) {
+            alert("Start date cannot be in the past.");
+            return;
+        }
+
+        if (endDate < startDate) {
+            alert("End date cannot be before start date.");
+            return;
+        }
 
         const data = {
             name: formData.name,
-            client: formData.client,
+            client: parseInt(formData.client),
             status: formData.status,
             priority: formData.priority,
             start_date: formData.start_date,
             end_date: formData.end_date,
             budget: formData.budget || undefined,
-            tags: formData.tags || undefined,
         };
 
         onSave(data);
@@ -174,18 +185,7 @@ export default function ProjectModal({ isOpen, onClose, mode, project, onSave }:
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     />
                 </div>
-                <div>
-                    <label htmlFor="tags" className="block text-sm font-medium text-gray-700">Tags</label>
-                    <input
-                        type="text"
-                        id="tags"
-                        name="tags"
-                        value={formData.tags}
-                        onChange={handleChange}
-                        placeholder="Comma separated tags"
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    />
-                </div>
+
                 <div className="flex justify-end space-x-3 pt-4">
                     <Button type="button" onClick={onClose} variant="outline">
                         Cancel

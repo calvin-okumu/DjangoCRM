@@ -1,8 +1,9 @@
 import { Project, Milestone, Sprint, Task } from './types';
 import { API_BASE } from './index';
 
-export async function getProjects(token: string): Promise<Project[]> {
-  const response = await fetch(`${API_BASE}/projects/`, {
+export async function getProjects(token: string, tenant?: number): Promise<Project[]> {
+  const url = tenant ? `${API_BASE}/projects/?tenant=${tenant}` : `${API_BASE}/projects/`;
+  const response = await fetch(url, {
     method: "GET",
     headers: {
       Authorization: `Token ${token}`,

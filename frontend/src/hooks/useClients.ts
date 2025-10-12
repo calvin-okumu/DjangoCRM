@@ -51,8 +51,8 @@ export function useClients() {
 
     setLoading(true);
     try {
-      await createClient(token, { ...data, tenant: currentTenant.tenant });
-      await fetchClients();
+      const newClient = await createClient(token, { ...data, tenant: currentTenant.tenant });
+      setClients(prev => [...prev, newClient]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create client.");
     } finally {
@@ -66,8 +66,8 @@ export function useClients() {
 
     setLoading(true);
     try {
-      await updateClient(token, id, data);
-      await fetchClients();
+      const updatedClient = await updateClient(token, id, data);
+      setClients(prev => prev.map(c => c.id === id ? updatedClient : c));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update client.");
     } finally {

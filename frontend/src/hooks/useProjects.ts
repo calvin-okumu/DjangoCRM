@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { Project } from "../api/types";
+import { Project, UserTenant } from "../api/types";
 import {
     getProjects,
     createProject,
     updateProject,
     deleteProject,
 } from "../api/project_mgmt";
+import { getUserTenants } from "../api/crm";
 
 function getToken(): string | null {
   return localStorage.getItem("access_token");
@@ -13,6 +14,7 @@ function getToken(): string | null {
 
 export function useProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [currentTenant, setCurrentTenant] = useState<UserTenant | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,7 +24,11 @@ export function useProjects() {
 
     setLoading(true);
     try {
-      const data = await getProjects(token);
+      const tenants = await getUserTenants(token);
+      const ownerTenant = tenants.find((t) => t.is_owner) || tenants[0];
+      setCurrentTenant(ownerTenant || null);
+
+      const data = await getProjects(token, ownerTenant?.tenant);
       setProjects(data);
     } catch (err) {
       console.error(err);
@@ -53,8 +59,8 @@ export function useProjects() {
 
     setLoading(true);
     try {
-      await createProject(token, data);
-      await fetchProjects();
+      const newProject = await createProject(token, data);
+      setProjects(prev => [...prev, newProject]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create project.");
     } finally {
@@ -79,8 +85,8 @@ export function useProjects() {
 
     setLoading(true);
     try {
-      await updateProject(token, id, data);
-      await fetchProjects();
+      const updatedProject = await updateProject(token, id, data);
+      setProjects(prev => prev.map(p => p.id === id ? updatedProject : p));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update project.");
     } finally {
