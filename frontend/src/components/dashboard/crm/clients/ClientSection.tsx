@@ -8,7 +8,7 @@ import { useClients } from '@/hooks/useClients';
 import type { Client, CreateClientData, UpdateClientData } from '@/api/types';
 
 export default function ClientSection() {
-    const { addClient, editClient } = useClients();
+    const { clients, loading, error, addClient, editClient, removeClient } = useClients();
     const [modalOpen, setModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -43,7 +43,14 @@ export default function ClientSection() {
     return (
         <div className="space-y-6">
             <ClientHeader onAddClient={handleAddClient} searchValue={searchValue} onSearchChange={setSearchValue} />
-            <ClientTable onEditClient={handleEditClient} searchValue={searchValue} />
+            <ClientTable
+                clients={clients}
+                loading={loading}
+                error={error}
+                onEditClient={handleEditClient}
+                onDeleteClient={removeClient}
+                searchValue={searchValue}
+            />
             <ClientModal
                 isOpen={modalOpen}
                 onClose={() => setModalOpen(false)}

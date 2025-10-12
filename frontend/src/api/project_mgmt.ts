@@ -116,8 +116,13 @@ export async function deleteProject(token: string, id: number): Promise<void> {
 }
 
 // Milestone API functions
-export async function getMilestones(token: string, projectId?: number): Promise<Milestone[]> {
-  const url = projectId ? `${API_BASE}/milestones/?project=${projectId}` : `${API_BASE}/milestones/`;
+export async function getMilestones(token: string, projectId?: number, tenant?: number): Promise<Milestone[]> {
+  let url = `${API_BASE}/milestones/`;
+  const params = new URLSearchParams();
+  if (projectId) params.append('project', projectId.toString());
+  if (tenant) params.append('tenant', tenant.toString());
+  if (params.toString()) url += `?${params.toString()}`;
+
   const response = await fetch(url, {
     method: "GET",
     headers: {
@@ -157,11 +162,13 @@ export async function createMilestone(token: string, milestoneData: {
   name: string;
   description?: string;
   status: string;
+  progress: number;
   planned_start?: string;
   actual_start?: string;
   due_date?: string;
   assignee?: number;
   project: number;
+  tenant: number;
 }): Promise<Milestone> {
   const response = await fetch(`${API_BASE}/milestones/`, {
     method: "POST",
@@ -185,6 +192,7 @@ export async function updateMilestone(token: string, id: number, milestoneData: 
   name: string;
   description: string;
   status: string;
+  progress: number;
   planned_start: string;
   actual_start: string;
   due_date: string;

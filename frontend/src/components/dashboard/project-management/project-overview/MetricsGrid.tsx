@@ -7,7 +7,6 @@ interface MetricsGridProps {
     tasksCount: number;
     sprintsCount: number;
     teamMembersCount: number;
-    onTabChange: (tab: string) => void;
 }
 
 export default function MetricsGrid({
@@ -15,7 +14,6 @@ export default function MetricsGrid({
     tasksCount,
     sprintsCount,
     teamMembersCount,
-    onTabChange,
 }: MetricsGridProps) {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -24,21 +22,18 @@ export default function MetricsGrid({
                 value={milestonesCount}
                 icon={Target}
                 accentColor="blue"
-                onClick={() => onTabChange('milestones')}
             />
             <MetricCard
                 title="Tasks"
                 value={tasksCount}
                 icon={CheckSquare}
                 accentColor="green"
-                onClick={() => onTabChange('backlog')}
             />
             <MetricCard
                 title="Sprints"
                 value={sprintsCount}
                 icon={Zap}
                 accentColor="purple"
-                onClick={() => onTabChange('sprints')}
             />
             <MetricCard
                 title="Team Members"

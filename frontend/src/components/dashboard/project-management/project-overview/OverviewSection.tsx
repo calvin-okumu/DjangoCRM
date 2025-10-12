@@ -20,7 +20,6 @@ export default function OverviewSection({ project, activeTab, onTabChange }: Ove
                 tasksCount={0} // Placeholder
                 sprintsCount={0} // Placeholder
                 teamMembersCount={project.team_members.length}
-                onTabChange={onTabChange}
             />
             <ProjectProgress progress={project.progress} />
 

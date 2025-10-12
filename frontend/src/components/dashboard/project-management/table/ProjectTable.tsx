@@ -1,23 +1,30 @@
 "use client";
 
-import type { Project } from '@/api/types';
+import React, { useState } from 'react';
+import Table from '@/components/ui/Table';
 import Pagination from '@/components/shared/Pagination';
 import Loader from '@/components/shared/Loader';
-import Button from '@/components/ui/Button';
-import Table from '@/components/ui/Table';
-import ProjectModal from '../ProjectModal';
-import { useProjects } from '@/hooks/useProjects';
+import type { Project } from '@/api/types';
 import { Edit, Plus, Trash2 } from 'lucide-react';
-import React, { useState } from 'react';
+import Button from '@/components/ui/Button';
 import Link from 'next/link';
+import ProjectModal from '../ProjectModal';
 
-const ProjectTable: React.FC = () => {
+interface ProjectTableProps {
+    projects: Project[];
+    loading: boolean;
+    error: string | null;
+    onAddProject: (data: any) => void;
+    onEditProject: (id: number, data: any) => void;
+    onDeleteProject: (id: number) => void;
+}
+
+export default function ProjectTable({ projects, loading, error, onAddProject, onEditProject, onDeleteProject }: ProjectTableProps) {
     const [page, setPage] = useState(1);
     const [searchValue, setSearchValue] = useState('');
     const [modalOpen, setModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-    const { projects, loading, error, addProject, editProject, removeProject } = useProjects();
 
     const filteredProjects = projects.filter(project =>
         project.name.toLowerCase().includes(searchValue.toLowerCase()) ||
@@ -43,9 +50,9 @@ const ProjectTable: React.FC = () => {
     const handleSaveProject = async (data: any) => {
         try {
             if (modalMode === 'add') {
-                await addProject(data);
+                await onAddProject(data);
             } else if (selectedProject) {
-                await editProject(selectedProject.id, data);
+                await onEditProject(selectedProject.id, data);
             }
             setModalOpen(false);
         } catch (error) {
@@ -56,7 +63,7 @@ const ProjectTable: React.FC = () => {
 
     const handleDelete = (id: number) => {
         if (confirm("Are you sure you want to delete this project?")) {
-            removeProject(id);
+            onDeleteProject(id);
         }
     };
 
@@ -146,6 +153,4 @@ const ProjectTable: React.FC = () => {
             />
         </>
     );
-};
-
-export default ProjectTable;
+}

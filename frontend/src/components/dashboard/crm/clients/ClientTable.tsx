@@ -4,19 +4,21 @@ import React, { useState } from 'react';
 import Table from '@/components/ui/Table';
 import Pagination from '@/components/shared/Pagination';
 import Loader from '@/components/shared/Loader';
-import { useClients } from '@/hooks/useClients';
 import type { Client } from '@/api/types';
 import { Edit, Trash2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 interface ClientTableProps {
+    clients: Client[];
+    loading: boolean;
+    error: string | null;
     onEditClient: (client: Client) => void;
+    onDeleteClient: (id: number) => void;
     searchValue: string;
 }
 
-export default function ClientTable({ onEditClient, searchValue }: ClientTableProps) {
+export default function ClientTable({ clients, loading, error, onEditClient, onDeleteClient, searchValue }: ClientTableProps) {
     const [page, setPage] = useState(1);
-    const { clients, loading, error, removeClient } = useClients();
 
     const filteredClients = clients.filter(client =>
         client.name.toLowerCase().includes(searchValue.toLowerCase()) ||
@@ -33,7 +35,7 @@ export default function ClientTable({ onEditClient, searchValue }: ClientTablePr
 
     const handleDelete = (id: number) => {
         if (confirm("Are you sure you want to delete this client?")) {
-            removeClient(id);
+            onDeleteClient(id);
         }
     };
 

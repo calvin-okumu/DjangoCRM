@@ -83,11 +83,19 @@ export function useProjects() {
     const token = getToken();
     if (!token) return;
 
+    const originalProject = projects.find(p => p.id === id);
+    if (!originalProject) return;
+
+    // Optimistic update
+    setProjects(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
+
     setLoading(true);
     try {
       const updatedProject = await updateProject(token, id, data);
       setProjects(prev => prev.map(p => p.id === id ? updatedProject : p));
     } catch (err) {
+      // Revert on error
+      setProjects(prev => prev.map(p => p.id === id ? originalProject : p));
       setError(err instanceof Error ? err.message : "Failed to update project.");
     } finally {
       setLoading(false);
@@ -98,11 +106,16 @@ export function useProjects() {
     const token = getToken();
     if (!token) return;
 
+    const projectToRemove = projects.find(p => p.id === id);
+    if (!projectToRemove) return;
+
+    setProjects((prev) => prev.filter((p) => p.id !== id));
+
     setLoading(true);
     try {
       await deleteProject(token, id);
-      setProjects((prev) => prev.filter((p) => p.id !== id));
     } catch (err) {
+      setProjects((prev) => [...prev, projectToRemove]);
       setError(err instanceof Error ? err.message : "Failed to delete project.");
     } finally {
       setLoading(false);
