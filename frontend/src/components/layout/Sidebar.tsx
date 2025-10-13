@@ -1,25 +1,25 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { usePathname } from "next/navigation";
 import {
+    Archive,
+    Building,
+    Calendar,
+    ChevronDown,
+    DollarSign,
+    FileText,
+    Folder,
+    FolderOpen,
     Home,
     MessageCircle,
-    Building,
-    Folder,
-    ChevronDown,
-    FileText,
     StickyNote,
     Table,
     UserCheck,
-    FolderOpen,
     Users,
-    DollarSign,
-    Archive,
-    Calendar,
 } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 const navigation = [
     { name: "Home", href: "/dashboard", icon: Home },
@@ -46,7 +46,7 @@ const crmItems = [
 ];
 
 const projectItems = [
-    { name: "Project", href: "/dashboard/project_mgmt/project", icon: FolderOpen },
+    { name: "Project", href: "/dashboard/project-management", icon: FolderOpen },
 ];
 
 const contactItems = [
@@ -99,10 +99,10 @@ export default function Sidebar() {
                         height={32}
                         className="mr-2"
                     />
-                    <h1 className="text-2xl font-bold text-blue-600">Carlhub</h1>
-                </div>
+                     <h1 className="text-2xl font-bold text-blue-600">Carlhub</h1>
+                 </div>
 
-                {/* Navigation */}
+                 {/* Navigation */}
                 <div className="flex-1 overflow-y-auto pt-6">
                     <nav className="px-2 space-y-1">
                         {navigation.map((item) => {
@@ -181,247 +181,247 @@ export default function Sidebar() {
                                         </Link>
                                     ))}
                                 </div>
-                             )}
-                         </div>
+                            )}
+                        </div>
 
-                         {/* CRM Section */}
-                         {pathname.startsWith('/dashboard/crm') && (
-                             <div>
-                                 <div className="flex items-center px-3 py-2 text-sm font-medium text-gray-600">
-                                     <UserCheck className="mr-3 h-6 w-6 text-gray-400" />
-                                     CUSTOMER RELATIONS
-                                 </div>
-                                 <div className="ml-6 mt-1 space-y-1">
-                                     {crmItems.map((item) => {
-                                         const isActive = pathname === item.href;
+                        {/* CRM Section */}
+                        {pathname.startsWith('/dashboard/crm') && (
+                            <div>
+                                <div className="flex items-center px-3 py-2 text-sm font-medium text-gray-600">
+                                    <UserCheck className="mr-3 h-6 w-6 text-gray-400" />
+                                    CUSTOMER RELATIONS
+                                </div>
+                                <div className="ml-6 mt-1 space-y-1">
+                                    {crmItems.map((item) => {
+                                        const isActive = pathname === item.href;
 
-                                         return (
-                                             <Link
-                                                 key={item.name}
-                                                 href={item.href}
-                                                 className={`${isActive
-                                                     ? "bg-blue-50 border-r-2 border-blue-500 text-blue-700"
-                                                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                                                     } flex items-center px-3 py-2 text-sm rounded-md`}
-                                             >
-                                                 <item.icon
-                                                     className={`${isActive
-                                                         ? "text-blue-500"
-                                                         : "text-gray-400"
-                                                         } mr-3 h-4 w-4`}
-                                                 />
-                                                 {item.name}
-                                             </Link>
-                                         );
-                                     })}
-                                 </div>
-                             </div>
-                         )}
+                                        return (
+                                            <Link
+                                                key={item.name}
+                                                href={item.href}
+                                                className={`${isActive
+                                                    ? "bg-blue-50 border-r-2 border-blue-500 text-blue-700"
+                                                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                                    } flex items-center px-3 py-2 text-sm rounded-md`}
+                                            >
+                                                <item.icon
+                                                    className={`${isActive
+                                                        ? "text-blue-500"
+                                                        : "text-gray-400"
+                                                        } mr-3 h-4 w-4`}
+                                                />
+                                                {item.name}
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
 
-                         {/* Project Management Section */}
-                         {pathname.startsWith('/dashboard/project_mgmt') && (
-                             <div>
-                                 <div className="flex items-center px-3 py-2 text-sm font-medium text-gray-600">
-                                     <FolderOpen className="mr-3 h-6 w-6 text-gray-400" />
-                                     PROJECT MANAGEMENT
-                                 </div>
-                                 <div className="ml-6 mt-1 space-y-1">
-                                     {projectItems.map((item) => {
-                                         const isActive = pathname === item.href;
+                        {/* Project Management Section */}
+                        {pathname.startsWith('/dashboard/project-management') && (
+                            <div>
+                                <div className="flex items-center px-3 py-2 text-sm font-medium text-gray-600">
+                                    <FolderOpen className="mr-3 h-6 w-6 text-gray-400" />
+                                    PROJECT MANAGEMENT
+                                </div>
+                                <div className="ml-6 mt-1 space-y-1">
+                                    {projectItems.map((item) => {
+                                        const isActive = pathname === item.href;
 
-                                         return (
-                                             <Link
-                                                 key={item.name}
-                                                 href={item.href}
-                                                 className={`${isActive
-                                                     ? "bg-blue-50 border-r-2 border-blue-500 text-blue-700"
-                                                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                                                     } flex items-center px-3 py-2 text-sm rounded-md`}
-                                             >
-                                                 <item.icon
-                                                     className={`${isActive
-                                                         ? "text-blue-500"
-                                                         : "text-gray-400"
-                                                         } mr-3 h-4 w-4`}
-                                                 />
-                                                 {item.name}
-                                             </Link>
-                                         );
-                                     })}
-                                 </div>
-                             </div>
-                         )}
+                                        return (
+                                            <Link
+                                                key={item.name}
+                                                href={item.href}
+                                                className={`${isActive
+                                                    ? "bg-blue-50 border-r-2 border-blue-500 text-blue-700"
+                                                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                                    } flex items-center px-3 py-2 text-sm rounded-md`}
+                                            >
+                                                <item.icon
+                                                    className={`${isActive
+                                                        ? "text-blue-500"
+                                                        : "text-gray-400"
+                                                        } mr-3 h-4 w-4`}
+                                                />
+                                                {item.name}
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
 
-                         {/* Contact Management Section */}
-                         {pathname.startsWith('/dashboard/contacts') && (
-                             <div>
-                                 <div className="flex items-center px-3 py-2 text-sm font-medium text-gray-600">
-                                     <Users className="mr-3 h-6 w-6 text-gray-400" />
-                                     CONTACT MANAGEMENT
-                                 </div>
-                                 <div className="ml-6 mt-1 space-y-1">
-                                     {contactItems.map((item) => {
-                                         const isActive = pathname === item.href;
+                        {/* Contact Management Section */}
+                        {pathname.startsWith('/dashboard/contacts') && (
+                            <div>
+                                <div className="flex items-center px-3 py-2 text-sm font-medium text-gray-600">
+                                    <Users className="mr-3 h-6 w-6 text-gray-400" />
+                                    CONTACT MANAGEMENT
+                                </div>
+                                <div className="ml-6 mt-1 space-y-1">
+                                    {contactItems.map((item) => {
+                                        const isActive = pathname === item.href;
 
-                                         return (
-                                             <Link
-                                                 key={item.name}
-                                                 href={item.href}
-                                                 className={`${isActive
-                                                     ? "bg-blue-50 border-r-2 border-blue-500 text-blue-700"
-                                                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                                                     } flex items-center px-3 py-2 text-sm rounded-md`}
-                                             >
-                                                 <item.icon
-                                                     className={`${isActive
-                                                         ? "text-blue-500"
-                                                         : "text-gray-400"
-                                                         } mr-3 h-4 w-4`}
-                                                 />
-                                                 {item.name}
-                                             </Link>
-                                         );
-                                     })}
-                                 </div>
-                             </div>
-                         )}
+                                        return (
+                                            <Link
+                                                key={item.name}
+                                                href={item.href}
+                                                className={`${isActive
+                                                    ? "bg-blue-50 border-r-2 border-blue-500 text-blue-700"
+                                                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                                    } flex items-center px-3 py-2 text-sm rounded-md`}
+                                            >
+                                                <item.icon
+                                                    className={`${isActive
+                                                        ? "text-blue-500"
+                                                        : "text-gray-400"
+                                                        } mr-3 h-4 w-4`}
+                                                />
+                                                {item.name}
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
 
-                         {/* Vendor Management Section */}
-                         {pathname.startsWith('/dashboard/vendors') && (
-                             <div>
-                                 <div className="flex items-center px-3 py-2 text-sm font-medium text-gray-600">
-                                     <Building className="mr-3 h-6 w-6 text-gray-400" />
-                                     VENDOR MANAGEMENT
-                                 </div>
-                                 <div className="ml-6 mt-1 space-y-1">
-                                     {vendorItems.map((item) => {
-                                         const isActive = pathname === item.href;
+                        {/* Vendor Management Section */}
+                        {pathname.startsWith('/dashboard/vendors') && (
+                            <div>
+                                <div className="flex items-center px-3 py-2 text-sm font-medium text-gray-600">
+                                    <Building className="mr-3 h-6 w-6 text-gray-400" />
+                                    VENDOR MANAGEMENT
+                                </div>
+                                <div className="ml-6 mt-1 space-y-1">
+                                    {vendorItems.map((item) => {
+                                        const isActive = pathname === item.href;
 
-                                         return (
-                                             <Link
-                                                 key={item.name}
-                                                 href={item.href}
-                                                 className={`${isActive
-                                                     ? "bg-blue-50 border-r-2 border-blue-500 text-blue-700"
-                                                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                                                     } flex items-center px-3 py-2 text-sm rounded-md`}
-                                             >
-                                                 <item.icon
-                                                     className={`${isActive
-                                                         ? "text-blue-500"
-                                                         : "text-gray-400"
-                                                         } mr-3 h-4 w-4`}
-                                                 />
-                                                 {item.name}
-                                             </Link>
-                                         );
-                                     })}
-                                 </div>
-                             </div>
-                         )}
+                                        return (
+                                            <Link
+                                                key={item.name}
+                                                href={item.href}
+                                                className={`${isActive
+                                                    ? "bg-blue-50 border-r-2 border-blue-500 text-blue-700"
+                                                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                                    } flex items-center px-3 py-2 text-sm rounded-md`}
+                                            >
+                                                <item.icon
+                                                    className={`${isActive
+                                                        ? "text-blue-500"
+                                                        : "text-gray-400"
+                                                        } mr-3 h-4 w-4`}
+                                                />
+                                                {item.name}
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
 
-                         {/* Financial Management Section */}
-                         {pathname.startsWith('/dashboard/finance') && (
-                             <div>
-                                 <div className="flex items-center px-3 py-2 text-sm font-medium text-gray-600">
-                                     <DollarSign className="mr-3 h-6 w-6 text-gray-400" />
-                                     FINANCIAL MANAGEMENT
-                                 </div>
-                                 <div className="ml-6 mt-1 space-y-1">
-                                     {financeItems.map((item) => {
-                                         const isActive = pathname === item.href;
+                        {/* Financial Management Section */}
+                        {pathname.startsWith('/dashboard/finance') && (
+                            <div>
+                                <div className="flex items-center px-3 py-2 text-sm font-medium text-gray-600">
+                                    <DollarSign className="mr-3 h-6 w-6 text-gray-400" />
+                                    FINANCIAL MANAGEMENT
+                                </div>
+                                <div className="ml-6 mt-1 space-y-1">
+                                    {financeItems.map((item) => {
+                                        const isActive = pathname === item.href;
 
-                                         return (
-                                             <Link
-                                                 key={item.name}
-                                                 href={item.href}
-                                                 className={`${isActive
-                                                     ? "bg-blue-50 border-r-2 border-blue-500 text-blue-700"
-                                                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                                                     } flex items-center px-3 py-2 text-sm rounded-md`}
-                                             >
-                                                 <item.icon
-                                                     className={`${isActive
-                                                         ? "text-blue-500"
-                                                         : "text-gray-400"
-                                                         } mr-3 h-4 w-4`}
-                                                 />
-                                                 {item.name}
-                                             </Link>
-                                         );
-                                     })}
-                                 </div>
-                             </div>
-                         )}
+                                        return (
+                                            <Link
+                                                key={item.name}
+                                                href={item.href}
+                                                className={`${isActive
+                                                    ? "bg-blue-50 border-r-2 border-blue-500 text-blue-700"
+                                                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                                    } flex items-center px-3 py-2 text-sm rounded-md`}
+                                            >
+                                                <item.icon
+                                                    className={`${isActive
+                                                        ? "text-blue-500"
+                                                        : "text-gray-400"
+                                                        } mr-3 h-4 w-4`}
+                                                />
+                                                {item.name}
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
 
-                         {/* Asset Management Section */}
-                         {pathname.startsWith('/dashboard/assets') && (
-                             <div>
-                                 <div className="flex items-center px-3 py-2 text-sm font-medium text-gray-600">
-                                     <Archive className="mr-3 h-6 w-6 text-gray-400" />
-                                     ASSET MANAGEMENT
-                                 </div>
-                                 <div className="ml-6 mt-1 space-y-1">
-                                     {assetItems.map((item) => {
-                                         const isActive = pathname === item.href;
+                        {/* Asset Management Section */}
+                        {pathname.startsWith('/dashboard/assets') && (
+                            <div>
+                                <div className="flex items-center px-3 py-2 text-sm font-medium text-gray-600">
+                                    <Archive className="mr-3 h-6 w-6 text-gray-400" />
+                                    ASSET MANAGEMENT
+                                </div>
+                                <div className="ml-6 mt-1 space-y-1">
+                                    {assetItems.map((item) => {
+                                        const isActive = pathname === item.href;
 
-                                         return (
-                                             <Link
-                                                 key={item.name}
-                                                 href={item.href}
-                                                 className={`${isActive
-                                                     ? "bg-blue-50 border-r-2 border-blue-500 text-blue-700"
-                                                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                                                     } flex items-center px-3 py-2 text-sm rounded-md`}
-                                             >
-                                                 <item.icon
-                                                     className={`${isActive
-                                                         ? "text-blue-500"
-                                                         : "text-gray-400"
-                                                         } mr-3 h-4 w-4`}
-                                                 />
-                                                 {item.name}
-                                             </Link>
-                                         );
-                                     })}
-                                 </div>
-                             </div>
-                         )}
+                                        return (
+                                            <Link
+                                                key={item.name}
+                                                href={item.href}
+                                                className={`${isActive
+                                                    ? "bg-blue-50 border-r-2 border-blue-500 text-blue-700"
+                                                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                                    } flex items-center px-3 py-2 text-sm rounded-md`}
+                                            >
+                                                <item.icon
+                                                    className={`${isActive
+                                                        ? "text-blue-500"
+                                                        : "text-gray-400"
+                                                        } mr-3 h-4 w-4`}
+                                                />
+                                                {item.name}
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
 
-                         {/* Leave Management Section */}
-                         {pathname.startsWith('/dashboard/leave') && (
-                             <div>
-                                 <div className="flex items-center px-3 py-2 text-sm font-medium text-gray-600">
-                                     <Calendar className="mr-3 h-6 w-6 text-gray-400" />
-                                     LEAVE MANAGEMENT
-                                 </div>
-                                 <div className="ml-6 mt-1 space-y-1">
-                                     {leaveItems.map((item) => {
-                                         const isActive = pathname === item.href;
+                        {/* Leave Management Section */}
+                        {pathname.startsWith('/dashboard/leave') && (
+                            <div>
+                                <div className="flex items-center px-3 py-2 text-sm font-medium text-gray-600">
+                                    <Calendar className="mr-3 h-6 w-6 text-gray-400" />
+                                    LEAVE MANAGEMENT
+                                </div>
+                                <div className="ml-6 mt-1 space-y-1">
+                                    {leaveItems.map((item) => {
+                                        const isActive = pathname === item.href;
 
-                                         return (
-                                             <Link
-                                                 key={item.name}
-                                                 href={item.href}
-                                                 className={`${isActive
-                                                     ? "bg-blue-50 border-r-2 border-blue-500 text-blue-700"
-                                                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                                                     } flex items-center px-3 py-2 text-sm rounded-md`}
-                                             >
-                                                 <item.icon
-                                                     className={`${isActive
-                                                         ? "text-blue-500"
-                                                         : "text-gray-400"
-                                                         } mr-3 h-4 w-4`}
-                                                 />
-                                                 {item.name}
-                                             </Link>
-                                         );
-                                     })}
-                                 </div>
-                             </div>
-                         )}
-                     </nav>
+                                        return (
+                                            <Link
+                                                key={item.name}
+                                                href={item.href}
+                                                className={`${isActive
+                                                    ? "bg-blue-50 border-r-2 border-blue-500 text-blue-700"
+                                                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                                    } flex items-center px-3 py-2 text-sm rounded-md`}
+                                            >
+                                                <item.icon
+                                                    className={`${isActive
+                                                        ? "text-blue-500"
+                                                        : "text-gray-400"
+                                                        } mr-3 h-4 w-4`}
+                                                />
+                                                {item.name}
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </nav>
                 </div>
 
 

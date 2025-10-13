@@ -11,13 +11,13 @@ interface PaginationProps {
   totalItems: number;
 }
 
-const Pagination: React.FC<PaginationProps> = ({
+export default function Pagination({
   currentPage,
   totalPages,
   onPageChange,
   itemsPerPage,
   totalItems,
-}) => {
+}: PaginationProps) {
   const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
@@ -116,6 +116,4 @@ const Pagination: React.FC<PaginationProps> = ({
       </div>
     </div>
   );
-};
-
-export default Pagination;
+}

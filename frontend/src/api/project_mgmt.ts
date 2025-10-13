@@ -1,8 +1,9 @@
 import { Project, Milestone, Sprint, Task } from './types';
 import { API_BASE } from './index';
 
-export async function getProjects(token: string): Promise<Project[]> {
-  const response = await fetch(`${API_BASE}/projects/`, {
+export async function getProjects(token: string, tenant?: number): Promise<Project[]> {
+  const url = tenant ? `${API_BASE}/projects/?tenant=${tenant}` : `${API_BASE}/projects/`;
+  const response = await fetch(url, {
     method: "GET",
     headers: {
       Authorization: `Token ${token}`,
@@ -70,9 +71,58 @@ export async function createProject(token: string, projectData: {
   return data;
 }
 
+export async function updateProject(token: string, id: number, projectData: Partial<{
+  name: string;
+  client: number;
+  status: string;
+  priority: string;
+  start_date: string;
+  end_date: string;
+  budget?: string;
+  tags?: string;
+  team_members?: number[];
+  access_groups?: number[];
+}>): Promise<Project> {
+  const response = await fetch(`${API_BASE}/projects/${id}/`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Token ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(projectData),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Failed to update project");
+  }
+
+  return data;
+}
+
+export async function deleteProject(token: string, id: number): Promise<void> {
+  const response = await fetch(`${API_BASE}/projects/${id}/`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Token ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.error || "Failed to delete project");
+  }
+}
+
 // Milestone API functions
-export async function getMilestones(token: string, projectId?: number): Promise<Milestone[]> {
-  const url = projectId ? `${API_BASE}/milestones/?project=${projectId}` : `${API_BASE}/milestones/`;
+export async function getMilestones(token: string, projectId?: number, tenant?: number): Promise<Milestone[]> {
+  let url = `${API_BASE}/milestones/`;
+  const params = new URLSearchParams();
+  if (projectId) params.append('project', projectId.toString());
+  if (tenant) params.append('tenant', tenant.toString());
+  if (params.toString()) url += `?${params.toString()}`;
+
   const response = await fetch(url, {
     method: "GET",
     headers: {
@@ -112,11 +162,13 @@ export async function createMilestone(token: string, milestoneData: {
   name: string;
   description?: string;
   status: string;
+  progress: number;
   planned_start?: string;
   actual_start?: string;
   due_date?: string;
   assignee?: number;
   project: number;
+  tenant: number;
 }): Promise<Milestone> {
   const response = await fetch(`${API_BASE}/milestones/`, {
     method: "POST",
@@ -140,6 +192,7 @@ export async function updateMilestone(token: string, id: number, milestoneData: 
   name: string;
   description: string;
   status: string;
+  progress: number;
   planned_start: string;
   actual_start: string;
   due_date: string;
@@ -348,12 +401,14 @@ export async function unassignTaskFromSprint(token: string, sprintId: number, ta
 }
 
 // Task API functions
-export async function getTasks(token: string, milestoneId?: number, sprintId?: number): Promise<Task[]> {
+export async function getTasks(token: string, milestoneId?: number, sprintId?: number, projectId?: number, backlog?: boolean): Promise<Task[]> {
   let url = `${API_BASE}/tasks/`;
   const params = new URLSearchParams();
 
   if (milestoneId) params.append('milestone', milestoneId.toString());
   if (sprintId) params.append('sprint', sprintId.toString());
+  if (projectId) params.append('milestone__project', projectId.toString());
+  if (backlog !== undefined) params.append('backlog', backlog.toString());
 
   if (params.toString()) {
     url += `?${params.toString()}`;

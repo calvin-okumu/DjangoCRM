@@ -1,0 +1,110 @@
+"use client";
+
+import React, { useState } from 'react';
+import Table from '@/components/ui/Table';
+import Pagination from '@/components/shared/Pagination';
+import Loader from '@/components/shared/Loader';
+import type { Sprint } from '@/api/types';
+import { Edit, Trash2, AlertCircle, Columns } from 'lucide-react';
+import Button from '@/components/ui/Button';
+
+interface SprintTableProps {
+    sprints: Sprint[];
+    loading: boolean;
+    error: string | null;
+    onEditSprint: (sprint: Sprint) => void;
+    onDeleteSprint: (id: number) => void;
+    onAddSprint: () => void;
+    onOpenKanban: (sprint: Sprint) => void;
+    searchValue: string;
+}
+
+export default function SprintTable({ sprints, loading, error, onEditSprint, onDeleteSprint, onAddSprint, onOpenKanban, searchValue }: SprintTableProps) {
+    const [page, setPage] = useState(1);
+
+    const filteredSprints = sprints.filter(sprint =>
+        sprint.name.toLowerCase().includes(searchValue.toLowerCase())
+    );
+
+    const itemsPerPage = 10;
+    const totalPages = Math.ceil(filteredSprints.length / itemsPerPage);
+    const visibleSprints = filteredSprints.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+
+    const handleEdit = (sprint: Sprint) => {
+        onEditSprint(sprint);
+    };
+
+    const handleDelete = (id: number) => {
+        if (confirm("Are you sure you want to delete this sprint?")) {
+            onDeleteSprint(id);
+        }
+    };
+
+    const headers = ["Name", "Status", "Start Date", "End Date", "Milestone", "Tasks", "Progress", "Actions"];
+
+    const rows = visibleSprints.map(sprint => [
+        sprint.name,
+        <span
+            className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                sprint.status === 'completed'
+                    ? 'bg-green-100 text-green-800'
+                    : sprint.status === 'active'
+                    ? 'bg-blue-100 text-blue-800'
+                    : sprint.status === 'planned'
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : 'bg-gray-100 text-gray-800'
+            }`}
+        >
+            {sprint.status}
+        </span>,
+        sprint.start_date ? new Date(sprint.start_date).toLocaleDateString() : "-",
+        sprint.end_date ? new Date(sprint.end_date).toLocaleDateString() : "-",
+        sprint.milestone_name || "-",
+        sprint.tasks_count,
+        `${sprint.progress}%`,
+        <div className="flex gap-2">
+            <Button onClick={() => onOpenKanban(sprint)} variant="outline" size="sm">
+                <Columns className="h-4 w-4" />
+            </Button>
+            <Button onClick={() => handleEdit(sprint)} variant="outline" size="sm">
+                <Edit className="h-4 w-4" />
+            </Button>
+            <Button onClick={() => handleDelete(sprint.id)} variant="danger" size="sm">
+                <Trash2 className="h-4 w-4" />
+            </Button>
+        </div>
+    ]);
+
+    if (loading) {
+        return <Loader />;
+    }
+
+    if (error) {
+        return <div className="text-red-500">{error}</div>;
+    }
+
+    if (filteredSprints.length === 0) {
+        return (
+            <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+                <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500 mb-4">No sprints found</p>
+                <Button onClick={onAddSprint} variant="primary">
+                    Create Your First Sprint
+                </Button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+            <Table headers={headers} rows={rows} />
+            <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredSprints.length}
+            />
+        </div>
+    );
+};
