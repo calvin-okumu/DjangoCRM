@@ -104,6 +104,7 @@ check-servers:
 	@echo "Checking server availability..."
 	@curl -s http://localhost:8000 >/dev/null && echo "✅ Backend: http://localhost:8000" || echo "❌ Backend: http://localhost:8000 (not responding)"
 	@curl -s http://localhost:3000 >/dev/null && echo "✅ Frontend: http://localhost:3000" || echo "❌ Frontend: http://localhost:3000 (not responding)"
+	@redis-cli ping >/dev/null 2>&1 && echo "✅ Redis: available" || echo "❌ Redis: not responding"
 
 stop:
 	@echo "Stopping development servers..."
