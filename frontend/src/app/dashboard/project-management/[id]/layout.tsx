@@ -13,7 +13,15 @@ function ProjectLayoutWrapper({ children }: { children: React.ReactNode }) {
     const [activeTab, setActiveTab] = useState('overview');
 
     useEffect(() => {
-        setActiveTab(pathname.includes('/milestone') ? 'milestones' : 'overview');
+        if (pathname.includes('/milestone')) {
+            setActiveTab('milestones');
+        } else if (pathname.includes('/sprint')) {
+            setActiveTab('sprints');
+        } else if (pathname.includes('/backlog')) {
+            setActiveTab('backlog');
+        } else {
+            setActiveTab('overview');
+        }
     }, [pathname]);
 
     if (loading) return <Loader />;

@@ -7,6 +7,7 @@ import MilestoneTable from './MilestoneTable';
 import MilestoneModal from './MilestoneModal';
 import { useMilestones } from '@/hooks/useMilestones';
 import { getUserTenants } from '@/api/crm';
+import { useProject } from '@/context/ProjectContext';
 import type { Milestone, UserTenant } from '@/api/types';
 import { Plus } from 'lucide-react';
 
@@ -16,6 +17,7 @@ interface MilestoneSectionProps {
 }
 
 export default function MilestoneSection({ projectId, tenant }: MilestoneSectionProps) {
+    const { project } = useProject();
     const { milestones, loading, error, addMilestone, editMilestone, removeMilestone } = useMilestones(projectId, tenant);
     const [modalOpen, setModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
@@ -105,6 +107,8 @@ export default function MilestoneSection({ projectId, tenant }: MilestoneSection
                 projectId={projectId}
                 tenant={tenant}
                 assignees={users}
+                projectStart={project?.start_date}
+                projectEnd={project?.end_date}
                 onSave={handleSaveMilestone}
             />
         </div>

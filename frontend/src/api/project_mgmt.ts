@@ -401,12 +401,14 @@ export async function unassignTaskFromSprint(token: string, sprintId: number, ta
 }
 
 // Task API functions
-export async function getTasks(token: string, milestoneId?: number, sprintId?: number): Promise<Task[]> {
+export async function getTasks(token: string, milestoneId?: number, sprintId?: number, projectId?: number, backlog?: boolean): Promise<Task[]> {
   let url = `${API_BASE}/tasks/`;
   const params = new URLSearchParams();
 
   if (milestoneId) params.append('milestone', milestoneId.toString());
   if (sprintId) params.append('sprint', sprintId.toString());
+  if (projectId) params.append('milestone__project', projectId.toString());
+  if (backlog !== undefined) params.append('backlog', backlog.toString());
 
   if (params.toString()) {
     url += `?${params.toString()}`;

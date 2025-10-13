@@ -13,6 +13,8 @@ interface MilestoneModalProps {
     projectId: number;
     tenant: number;
     assignees: UserTenant[];
+    projectStart?: string;
+    projectEnd?: string;
     onSave: (data: {
         name: string;
         description?: string;
@@ -26,7 +28,7 @@ interface MilestoneModalProps {
     }) => void;
 }
 
-export default function MilestoneModal({ isOpen, onClose, mode, milestone, projectId, tenant, assignees, onSave }: MilestoneModalProps) {
+export default function MilestoneModal({ isOpen, onClose, mode, milestone, projectId, tenant, assignees, projectStart, projectEnd, onSave }: MilestoneModalProps) {
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -36,6 +38,7 @@ export default function MilestoneModal({ isOpen, onClose, mode, milestone, proje
         due_date: '',
         assignee: '',
     });
+    const [errors, setErrors] = useState<{[key: string]: string}>({});
 
     useEffect(() => {
         if (mode === 'edit' && milestone) {
@@ -59,16 +62,39 @@ export default function MilestoneModal({ isOpen, onClose, mode, milestone, proje
                 assignee: '',
             });
         }
+        setErrors({});
     }, [mode, milestone, isOpen]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        if (name === 'planned_start') {
+            if (value && projectStart && value < projectStart) {
+                setErrors(prev => ({ ...prev, planned_start: 'Milestone planned start date cannot be before the project start date.' }));
+            } else {
+                setErrors(prev => {
+                    const { planned_start, ...rest } = prev;
+                    return rest;
+                });
+            }
+        }
+        if (name === 'due_date') {
+            if (value && projectEnd && value > projectEnd) {
+                setErrors(prev => ({ ...prev, due_date: 'Milestone due date cannot be after the project end date.' }));
+            } else {
+                setErrors(prev => {
+                    const { due_date, ...rest } = prev;
+                    return rest;
+                });
+            }
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.name) return;
+
+        if (Object.keys(errors).length > 0) return;
 
         const data = {
             name: formData.name,
@@ -126,17 +152,20 @@ export default function MilestoneModal({ isOpen, onClose, mode, milestone, proje
                         <option value="completed">Completed</option>
                     </select>
                 </div>
-                <div>
-                    <label htmlFor="planned_start" className="block text-sm font-medium text-gray-700">Planned Start</label>
-                    <input
-                        type="date"
-                        id="planned_start"
-                        name="planned_start"
-                        value={formData.planned_start}
-                        onChange={handleChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    />
-                </div>
+                 <div>
+                     <label htmlFor="planned_start" className="block text-sm font-medium text-gray-700">Planned Start</label>
+                     <input
+                         type="date"
+                         id="planned_start"
+                         name="planned_start"
+                         value={formData.planned_start}
+                         onChange={handleChange}
+                         min={projectStart}
+                         max={projectEnd}
+                         className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${errors.planned_start ? 'border-red-500' : 'border-gray-300'}`}
+                     />
+                     {errors.planned_start && <p className="text-red-500 text-sm mt-1">{errors.planned_start}</p>}
+                 </div>
                 <div>
                     <label htmlFor="actual_start" className="block text-sm font-medium text-gray-700">Actual Start</label>
                     <input
@@ -148,17 +177,20 @@ export default function MilestoneModal({ isOpen, onClose, mode, milestone, proje
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     />
                 </div>
-                <div>
-                    <label htmlFor="due_date" className="block text-sm font-medium text-gray-700">Due Date</label>
-                    <input
-                        type="date"
-                        id="due_date"
-                        name="due_date"
-                        value={formData.due_date}
-                        onChange={handleChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    />
-                </div>
+                 <div>
+                     <label htmlFor="due_date" className="block text-sm font-medium text-gray-700">Due Date</label>
+                     <input
+                         type="date"
+                         id="due_date"
+                         name="due_date"
+                         value={formData.due_date}
+                         onChange={handleChange}
+                         min={projectStart}
+                         max={projectEnd}
+                         className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${errors.due_date ? 'border-red-500' : 'border-gray-300'}`}
+                     />
+                     {errors.due_date && <p className="text-red-500 text-sm mt-1">{errors.due_date}</p>}
+                 </div>
                 <div>
                     <label htmlFor="assignee" className="block text-sm font-medium text-gray-700">Assignee</label>
                     <select

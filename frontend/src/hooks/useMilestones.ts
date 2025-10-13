@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import type { Milestone } from "../api/types";
 import {
-    Milestone,
     createMilestone,
     deleteMilestone,
     getMilestones,
@@ -46,6 +46,7 @@ export function useMilestones(projectId: number, tenant?: number) {
     due_date?: string;
     assignee?: number;
     project: number;
+    tenant: number;
   }) => {
     const token = getToken();
     if (!token) return;

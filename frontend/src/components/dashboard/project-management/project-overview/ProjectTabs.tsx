@@ -61,7 +61,33 @@ export default function ProjectTabs({ activeTab, onTabChange, projectId }: Proje
                                 )}
                             </Link>
                         );
-                    } else {
+                     } else if (tab.id === 'sprints' && projectId) {
+                         return (
+                             <Link
+                                 key={tab.id}
+                                 href={`/dashboard/project-management/${projectId}/sprint`}
+                                 className={className}
+                             >
+                                 {tab.label}
+                                 {isActive && (
+                                     <div className="absolute left-0 right-0 -bottom-[1px] h-[2px] bg-blue-600 rounded-full" />
+                                 )}
+                             </Link>
+                         );
+                     } else if (tab.id === 'backlog' && projectId) {
+                         return (
+                             <Link
+                                 key={tab.id}
+                                 href={`/dashboard/project-management/${projectId}/backlog`}
+                                 className={className}
+                             >
+                                 {tab.label}
+                                 {isActive && (
+                                     <div className="absolute left-0 right-0 -bottom-[1px] h-[2px] bg-blue-600 rounded-full" />
+                                 )}
+                             </Link>
+                         );
+                     } else {
                         return (
                             <button
                                 key={tab.id}
