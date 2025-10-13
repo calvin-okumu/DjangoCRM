@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Sprint } from "../api/types";
 import {
-    createSprint,
-    deleteSprint,
-    getSprints,
-    updateSprint,
+  createSprint,
+  deleteSprint,
+  getSprints,
+  updateSprint,
 } from "../api/project_mgmt";
 
 function getToken(): string | null {
@@ -23,7 +23,6 @@ export function useSprints(projectId: number) {
     setLoading(true);
     try {
       const data = await getSprints(token, projectId);
-      console.log('Fetched sprints:', data);
       setSprints(data);
     } catch (err) {
       console.error(err);
@@ -55,50 +54,57 @@ export function useSprints(projectId: number) {
       start_date: data.start_date,
       end_date: data.end_date,
       milestone: data.milestone,
-      milestone_name: '', // will be set later
+      milestone_name: "", // will be set later
       tasks_count: 0,
       progress: 0,
       created_at: new Date().toISOString(),
     };
 
-    setSprints(prev => [...prev, tempSprint]);
+    setSprints((prev) => [...prev, tempSprint]);
 
     setLoading(true);
     try {
       const newSprint = await createSprint(token, data);
-      console.log('Created sprint:', newSprint);
-      setSprints(prev => prev.map(s => s.id === tempSprint.id ? newSprint : s));
+      console.log("Created sprint:", newSprint);
+      setSprints((prev) =>
+        prev.map((s) => (s.id === tempSprint.id ? newSprint : s)),
+      );
     } catch (err) {
-      setSprints(prev => prev.filter(s => s.id !== tempSprint.id));
+      setSprints((prev) => prev.filter((s) => s.id !== tempSprint.id));
       setError(err instanceof Error ? err.message : "Failed to create sprint.");
     } finally {
       setLoading(false);
     }
   };
 
-  const editSprint = async (id: number, data: Partial<{
-    name: string;
-    status: string;
-    start_date: string;
-    end_date: string;
-    milestone: number;
-  }>) => {
+  const editSprint = async (
+    id: number,
+    data: Partial<{
+      name: string;
+      status: string;
+      start_date: string;
+      end_date: string;
+      milestone: number;
+    }>,
+  ) => {
     const token = getToken();
     if (!token) return;
 
-    const originalSprint = sprints.find(s => s.id === id);
+    const originalSprint = sprints.find((s) => s.id === id);
     if (!originalSprint) return;
 
     // Optimistic update
-    setSprints(prev => prev.map(s => s.id === id ? { ...s, ...data } : s));
+    setSprints((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, ...data } : s)),
+    );
 
     setLoading(true);
     try {
       const updatedSprint = await updateSprint(token, id, data);
-      setSprints(prev => prev.map(s => s.id === id ? updatedSprint : s));
+      setSprints((prev) => prev.map((s) => (s.id === id ? updatedSprint : s)));
     } catch (err) {
       // Revert on error
-      setSprints(prev => prev.map(s => s.id === id ? originalSprint : s));
+      setSprints((prev) => prev.map((s) => (s.id === id ? originalSprint : s)));
       setError(err instanceof Error ? err.message : "Failed to update sprint.");
     } finally {
       setLoading(false);
@@ -109,7 +115,7 @@ export function useSprints(projectId: number) {
     const token = getToken();
     if (!token) return;
 
-    const sprintToRemove = sprints.find(s => s.id === id);
+    const sprintToRemove = sprints.find((s) => s.id === id);
     if (!sprintToRemove) return;
 
     setSprints((prev) => prev.filter((s) => s.id !== id));
@@ -136,3 +142,4 @@ export function useSprints(projectId: number) {
     setError,
   };
 }
+

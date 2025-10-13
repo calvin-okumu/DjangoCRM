@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Task } from "../api/types";
 import {
-    createTask,
-    deleteTask,
-    getTasks,
-    updateTask,
+  createTask,
+  deleteTask,
+  getTasks,
+  updateTask,
 } from "../api/project_mgmt";
 
 function getToken(): string | null {
@@ -22,8 +22,13 @@ export function useTasks(projectId: number, backlog: boolean = false) {
 
     setLoading(true);
     try {
-      const data = await getTasks(token, undefined, undefined, projectId, undefined);
-      console.log('Fetched tasks:', data);
+      const data = await getTasks(
+        token,
+        undefined,
+        undefined,
+        projectId,
+        undefined,
+      );
       setTasks(data);
     } catch (err) {
       console.error(err);
@@ -55,13 +60,13 @@ export function useTasks(projectId: number, backlog: boolean = false) {
     const tempTask: Task = {
       id: Date.now(), // temporary id
       title: data.title,
-      description: data.description || '',
+      description: data.description || "",
       status: data.status,
-      priority: 'medium', // default
+      priority: "medium", // default
       milestone: data.milestone,
-      milestone_name: '', // will be set later
+      milestone_name: "", // will be set later
       sprint: data.sprint,
-      sprint_name: data.sprint ? '' : undefined,
+      sprint_name: data.sprint ? "" : undefined,
       assignee: data.assignee,
       start_date: data.start_date,
       end_date: data.end_date,
@@ -71,48 +76,51 @@ export function useTasks(projectId: number, backlog: boolean = false) {
       updated_at: new Date().toISOString(),
     };
 
-    setTasks(prev => [...prev, tempTask]);
+    setTasks((prev) => [...prev, tempTask]);
 
     setLoading(true);
     try {
       const newTask = await createTask(token, data);
-      console.log('Created task:', newTask);
-      setTasks(prev => prev.map(t => t.id === tempTask.id ? newTask : t));
+      console.log("Created task:", newTask);
+      setTasks((prev) => prev.map((t) => (t.id === tempTask.id ? newTask : t)));
     } catch (err) {
-      setTasks(prev => prev.filter(t => t.id !== tempTask.id));
+      setTasks((prev) => prev.filter((t) => t.id !== tempTask.id));
       setError(err instanceof Error ? err.message : "Failed to create task.");
     } finally {
       setLoading(false);
     }
   };
 
-  const editTask = async (id: number, data: Partial<{
-    title: string;
-    description: string;
-    status: string;
-    milestone: number;
-    sprint: number;
-    assignee: number;
-    start_date: string;
-    end_date: string;
-    estimated_hours: number;
-  }>) => {
+  const editTask = async (
+    id: number,
+    data: Partial<{
+      title: string;
+      description: string;
+      status: string;
+      milestone: number;
+      sprint: number;
+      assignee: number;
+      start_date: string;
+      end_date: string;
+      estimated_hours: number;
+    }>,
+  ) => {
     const token = getToken();
     if (!token) return;
 
-    const originalTask = tasks.find(t => t.id === id);
+    const originalTask = tasks.find((t) => t.id === id);
     if (!originalTask) return;
 
     // Optimistic update
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, ...data } : t));
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...data } : t)));
 
     setLoading(true);
     try {
       const updatedTask = await updateTask(token, id, data);
-      setTasks(prev => prev.map(t => t.id === id ? updatedTask : t));
+      setTasks((prev) => prev.map((t) => (t.id === id ? updatedTask : t)));
     } catch (err) {
       // Revert on error
-      setTasks(prev => prev.map(t => t.id === id ? originalTask : t));
+      setTasks((prev) => prev.map((t) => (t.id === id ? originalTask : t)));
       setError(err instanceof Error ? err.message : "Failed to update task.");
     } finally {
       setLoading(false);
@@ -123,7 +131,7 @@ export function useTasks(projectId: number, backlog: boolean = false) {
     const token = getToken();
     if (!token) return;
 
-    const taskToRemove = tasks.find(t => t.id === id);
+    const taskToRemove = tasks.find((t) => t.id === id);
     if (!taskToRemove) return;
 
     setTasks((prev) => prev.filter((t) => t.id !== id));
@@ -150,3 +158,4 @@ export function useTasks(projectId: number, backlog: boolean = false) {
     setError,
   };
 }
+

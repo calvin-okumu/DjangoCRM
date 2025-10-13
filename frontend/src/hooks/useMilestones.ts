@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Milestone } from "../api/types";
 import {
-    createMilestone,
-    deleteMilestone,
-    getMilestones,
-    updateMilestone,
+  createMilestone,
+  deleteMilestone,
+  getMilestones,
+  updateMilestone,
 } from "../api/project_mgmt";
 
 function getToken(): string | null {
@@ -23,7 +23,6 @@ export function useMilestones(projectId: number, tenant?: number) {
     setLoading(true);
     try {
       const data = await getMilestones(token, projectId, tenant);
-      console.log('Fetched milestones:', data);
       setMilestones(data);
     } catch (err) {
       console.error(err);
@@ -55,7 +54,7 @@ export function useMilestones(projectId: number, tenant?: number) {
     const tempMilestone: Milestone = {
       id: Date.now(), // temporary id
       name: data.name,
-      description: data.description || '',
+      description: data.description || "",
       status: data.status,
       planned_start: data.planned_start,
       actual_start: data.actual_start,
@@ -63,53 +62,71 @@ export function useMilestones(projectId: number, tenant?: number) {
       assignee: data.assignee,
       progress: 0,
       project: data.project,
-      project_name: '', // will be set later
+      project_name: "", // will be set later
       sprints_count: 0,
       created_at: new Date().toISOString(),
     };
 
-    setMilestones(prev => [...prev, tempMilestone]);
+    setMilestones((prev) => [...prev, tempMilestone]);
 
     setLoading(true);
     try {
-      const newMilestone = await createMilestone(token, { ...data, progress: 0 });
-      console.log('Created milestone:', newMilestone);
-      setMilestones(prev => prev.map(m => m.id === tempMilestone.id ? newMilestone : m));
+      const newMilestone = await createMilestone(token, {
+        ...data,
+        progress: 0,
+      });
+      console.log("Created milestone:", newMilestone);
+      setMilestones((prev) =>
+        prev.map((m) => (m.id === tempMilestone.id ? newMilestone : m)),
+      );
     } catch (err) {
-      setMilestones(prev => prev.filter(m => m.id !== tempMilestone.id));
-      setError(err instanceof Error ? err.message : "Failed to create milestone.");
+      setMilestones((prev) => prev.filter((m) => m.id !== tempMilestone.id));
+      setError(
+        err instanceof Error ? err.message : "Failed to create milestone.",
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const editMilestone = async (id: number, data: Partial<{
-    name: string;
-    description: string;
-    status: string;
-    planned_start: string;
-    actual_start: string;
-    due_date: string;
-    assignee: number;
-    project: number;
-  }>) => {
+  const editMilestone = async (
+    id: number,
+    data: Partial<{
+      name: string;
+      description: string;
+      status: string;
+      planned_start: string;
+      actual_start: string;
+      due_date: string;
+      assignee: number;
+      project: number;
+    }>,
+  ) => {
     const token = getToken();
     if (!token) return;
 
-    const originalMilestone = milestones.find(m => m.id === id);
+    const originalMilestone = milestones.find((m) => m.id === id);
     if (!originalMilestone) return;
 
     // Optimistic update
-    setMilestones(prev => prev.map(m => m.id === id ? { ...m, ...data } : m));
+    setMilestones((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, ...data } : m)),
+    );
 
     setLoading(true);
     try {
       const updatedMilestone = await updateMilestone(token, id, data);
-      setMilestones(prev => prev.map(m => m.id === id ? updatedMilestone : m));
+      setMilestones((prev) =>
+        prev.map((m) => (m.id === id ? updatedMilestone : m)),
+      );
     } catch (err) {
       // Revert on error
-      setMilestones(prev => prev.map(m => m.id === id ? originalMilestone : m));
-      setError(err instanceof Error ? err.message : "Failed to update milestone.");
+      setMilestones((prev) =>
+        prev.map((m) => (m.id === id ? originalMilestone : m)),
+      );
+      setError(
+        err instanceof Error ? err.message : "Failed to update milestone.",
+      );
     } finally {
       setLoading(false);
     }
@@ -119,7 +136,7 @@ export function useMilestones(projectId: number, tenant?: number) {
     const token = getToken();
     if (!token) return;
 
-    const milestoneToRemove = milestones.find(m => m.id === id);
+    const milestoneToRemove = milestones.find((m) => m.id === id);
     if (!milestoneToRemove) return;
 
     setMilestones((prev) => prev.filter((m) => m.id !== id));
@@ -129,7 +146,9 @@ export function useMilestones(projectId: number, tenant?: number) {
       await deleteMilestone(token, id);
     } catch (err) {
       setMilestones((prev) => [...prev, milestoneToRemove]);
-      setError(err instanceof Error ? err.message : "Failed to delete milestone.");
+      setError(
+        err instanceof Error ? err.message : "Failed to delete milestone.",
+      );
     } finally {
       setLoading(false);
     }
@@ -146,3 +165,4 @@ export function useMilestones(projectId: number, tenant?: number) {
     setError,
   };
 }
+
