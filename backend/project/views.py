@@ -291,6 +291,13 @@ class MilestoneViewSet(viewsets.ModelViewSet):
         else:
             return Milestone.objects.none()  # Unauthenticated, no access
 
+    def perform_create(self, serializer):
+        project = serializer.validated_data.get('project')
+        if project:
+            serializer.save(tenant=project.tenant)
+        else:
+            serializer.save()
+
 
 @extend_schema_view(
     list=extend_schema(
@@ -358,6 +365,13 @@ class SprintViewSet(viewsets.ModelViewSet):
                 return Sprint.objects.none()  # No tenants, no sprints
         else:
             return Sprint.objects.none()  # Unauthenticated, no access
+
+    def perform_create(self, serializer):
+        milestone = serializer.validated_data.get('milestone')
+        if milestone:
+            serializer.save(tenant=milestone.tenant)
+        else:
+            serializer.save()
 
     @action(detail=True, methods=['post'])
     def create_task(self, request, pk=None):
@@ -460,6 +474,13 @@ class TaskViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(sprint__isnull=False)
 
         return queryset
+
+    def perform_create(self, serializer):
+        milestone = serializer.validated_data.get('milestone')
+        if milestone:
+            serializer.save(tenant=milestone.tenant)
+        else:
+            serializer.save()
 
     def perform_create(self, serializer):
         instance = serializer.save()
