@@ -30,7 +30,10 @@ from .models import (
     Sprint,
     Task,
 )
-from .permissions import IsAPIManager, IsClientManager, IsProjectManager, IsTenantOwner
+from .permissions import (
+    CanManageClients, CanManageInvoices, CanManageMilestones, CanManagePayments,
+    CanManageProjects, CanManageSprints, CanManageTasks, IsTenantOwner, IsTenantCreator
+)
 from .serializers import (
     ClientSerializer,
     CustomUserSerializer,
@@ -81,7 +84,7 @@ class TenantViewSet(viewsets.ModelViewSet):
     """
     queryset = Tenant.objects.all()
     serializer_class = TenantSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsTenantCreator]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["name"]
     search_fields = ["name"]
@@ -123,7 +126,7 @@ class ClientViewSet(viewsets.ModelViewSet):
     """
     queryset = Client.objects.all()
     serializer_class = ClientSerializer
-    permission_classes = [permissions.IsAuthenticated, IsClientManager]
+    permission_classes = [permissions.IsAuthenticated, CanManageClients]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["status", "tenant"]
     search_fields = ["name", "email"]
@@ -141,6 +144,33 @@ class ClientViewSet(viewsets.ModelViewSet):
                 return Client.objects.none()  # No tenants, no clients
         else:
             return Client.objects.none()  # Unauthenticated, no access
+
+    def perform_create(self, serializer):
+        # Determine the tenant
+        if hasattr(self.request, 'tenant') and self.request.tenant:
+            tenant = self.request.tenant
+        else:
+            # Development/Test mode: try to get tenant from user or create default
+            from accounts.models import Tenant, UserTenant
+            try:
+                user_tenant = UserTenant.objects.filter(user=self.request.user, is_owner=True).first()
+                if user_tenant:
+                    tenant = user_tenant.tenant
+                else:
+                    # Create a default tenant for testing
+                    tenant, created = Tenant.objects.get_or_create(
+                        name="Default Test Tenant",
+                        defaults={'domain': 'test.com'}
+                    )
+            except Exception as e:
+                # Fallback for any issues
+                tenant, created = Tenant.objects.get_or_create(
+                    name="Default Test Tenant",
+                    defaults={'domain': 'test.com'}
+                )
+                tenant = tenant
+
+        serializer.save(tenant=tenant)
 
 
 @extend_schema_view(
@@ -179,7 +209,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     """
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
-    permission_classes = [permissions.IsAuthenticated, IsProjectManager, IsTenantOwner]
+    permission_classes = [permissions.IsAuthenticated, CanManageProjects]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["status", "priority", "client"]
     search_fields = ["name", "description"]
@@ -203,37 +233,37 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return super().list(request, *args, **kwargs)
 
     def perform_create(self, serializer):
+        # Determine the tenant
         if hasattr(self.request, 'tenant') and self.request.tenant:
-            serializer.save(tenant=self.request.tenant)
+            tenant = self.request.tenant
         else:
             # Development/Test mode: try to get tenant from user or create default
             from accounts.models import Tenant, UserTenant
             try:
                 user_tenant = UserTenant.objects.filter(user=self.request.user, is_owner=True).first()
                 if user_tenant:
-                    serializer.save(tenant=user_tenant.tenant)
+                    tenant = user_tenant.tenant
                 else:
                     # Create a default tenant for testing
                     tenant, created = Tenant.objects.get_or_create(
                         name="Default Test Tenant",
                         defaults={'domain': 'test.com'}
                     )
-                    serializer.save(tenant=tenant)
-
             except Exception as e:
                 # Fallback for any issues
                 tenant, created = Tenant.objects.get_or_create(
                     name="Default Test Tenant",
                     defaults={'domain': 'test.com'}
                 )
-                serializer.save(tenant=tenant)
-            except:
-                # Fallback for any issues
-                tenant, created = Tenant.objects.get_or_create(
-                    name="Default Test Tenant",
-                    defaults={'domain': 'test.com'}
-                )
-                serializer.save(tenant=tenant)
+                tenant = tenant
+
+        # Validate that the client belongs to the same tenant
+        client = serializer.validated_data.get('client')
+        if client and client.tenant != tenant:
+            from rest_framework import serializers
+            raise serializers.ValidationError("Client does not belong to the current tenant.")
+
+        serializer.save(tenant=tenant)
 
 
 @extend_schema_view(
@@ -272,7 +302,7 @@ class MilestoneViewSet(viewsets.ModelViewSet):
     """
     queryset = Milestone.objects.all()
     serializer_class = MilestoneSerializer
-    permission_classes = [permissions.IsAuthenticated, IsTenantOwner]
+    permission_classes = [permissions.IsAuthenticated, CanManageTasks]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["status", "project"]
     search_fields = ["name", "description"]
@@ -347,24 +377,34 @@ class SprintViewSet(viewsets.ModelViewSet):
     """
     queryset = Sprint.objects.all()
     serializer_class = SprintSerializer
-    permission_classes = [permissions.IsAuthenticated, IsTenantOwner]
+    permission_classes = [permissions.IsAuthenticated, CanManageSprints]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ["status", "milestone"]
+    filterset_fields = ["status", "milestone", "milestone__project"]
     search_fields = ["name"]
     ordering_fields = ["name", "start_date"]
 
     def get_queryset(self):
+        queryset = Sprint.objects.select_related('milestone').prefetch_related('tasks')
+
+        # Handle nested routing for project-specific sprints
+        project_pk = self.kwargs.get('project_pk')
+        if project_pk:
+            queryset = queryset.filter(milestone__project_id=project_pk)
+
+        # Apply tenant filtering
         if self.request.tenant:
-            return Sprint.objects.filter(tenant=self.request.tenant).select_related('milestone').prefetch_related('tasks')
+            queryset = queryset.filter(tenant=self.request.tenant)
         elif self.request.user.is_authenticated:
             # In dev mode, filter by user's tenants
             user_tenants = UserTenant.objects.filter(user=self.request.user).values_list('tenant', flat=True)
             if user_tenants:
-                return Sprint.objects.filter(tenant__in=user_tenants).select_related('milestone').prefetch_related('tasks')
+                queryset = queryset.filter(tenant__in=user_tenants)
             else:
                 return Sprint.objects.none()  # No tenants, no sprints
         else:
             return Sprint.objects.none()  # Unauthenticated, no access
+
+        return queryset
 
     def perform_create(self, serializer):
         milestone = serializer.validated_data.get('milestone')
@@ -446,7 +486,7 @@ class TaskViewSet(viewsets.ModelViewSet):
     """
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
-    permission_classes = [permissions.IsAuthenticated, IsTenantOwner]
+    permission_classes = [permissions.IsAuthenticated, CanManageTasks]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["status", "milestone", "sprint", "assignee", "milestone__project"]
     search_fields = ["title", "description"]
@@ -481,10 +521,6 @@ class TaskViewSet(viewsets.ModelViewSet):
             serializer.save(tenant=milestone.tenant)
         else:
             serializer.save()
-
-    def perform_create(self, serializer):
-        instance = serializer.save()
-        instance.full_clean()
 
     def perform_update(self, serializer):
         instance = serializer.save()
@@ -526,7 +562,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     """
     queryset = Invoice.objects.all()
     serializer_class = InvoiceSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAPIManager, IsTenantOwner]
+    permission_classes = [permissions.IsAuthenticated, CanManageInvoices]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["paid", "client", "project"]
     search_fields = ["client__name"]
@@ -544,6 +580,44 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                 return Invoice.objects.none()  # No tenants, no invoices
         else:
             return Invoice.objects.none()  # Unauthenticated, no access
+
+    def perform_create(self, serializer):
+        # Determine the tenant
+        if hasattr(self.request, 'tenant') and self.request.tenant:
+            tenant = self.request.tenant
+        else:
+            # Development/Test mode: try to get tenant from user or create default
+            from accounts.models import Tenant, UserTenant
+            try:
+                user_tenant = UserTenant.objects.filter(user=self.request.user, is_owner=True).first()
+                if user_tenant:
+                    tenant = user_tenant.tenant
+                else:
+                    # Create a default tenant for testing
+                    tenant, created = Tenant.objects.get_or_create(
+                        name="Default Test Tenant",
+                        defaults={'domain': 'test.com'}
+                    )
+            except Exception:
+                # Fallback for any issues
+                tenant, created = Tenant.objects.get_or_create(
+                    name="Default Test Tenant",
+                    defaults={'domain': 'test.com'}
+                )
+
+        # Validate that the client belongs to the same tenant
+        client = serializer.validated_data.get('client')
+        if client and client.tenant != tenant:
+            from rest_framework import serializers
+            raise serializers.ValidationError("Client does not belong to the current tenant.")
+
+        # Validate that the project (if provided) belongs to the same tenant
+        project = serializer.validated_data.get('project')
+        if project and project.tenant != tenant:
+            from rest_framework import serializers
+            raise serializers.ValidationError("Project does not belong to the current tenant.")
+
+        serializer.save(tenant=tenant)
 
 
 @extend_schema_view(
@@ -581,7 +655,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
     """
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAPIManager, IsTenantOwner]
+    permission_classes = [permissions.IsAuthenticated, CanManagePayments]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["invoice"]
     search_fields = ["invoice__id"]
@@ -599,6 +673,39 @@ class PaymentViewSet(viewsets.ModelViewSet):
                 return Payment.objects.none()  # No tenants, no payments
         else:
             return Payment.objects.none()  # Unauthenticated, no access
+
+    def perform_create(self, serializer):
+        # Determine the tenant
+        if hasattr(self.request, 'tenant') and self.request.tenant:
+            tenant = self.request.tenant
+        else:
+            # Development/Test mode: try to get tenant from user or create default
+            from accounts.models import Tenant, UserTenant
+            try:
+                user_tenant = UserTenant.objects.filter(user=self.request.user, is_owner=True).first()
+                if user_tenant:
+                    tenant = user_tenant.tenant
+                else:
+                    # Create a default tenant for testing
+                    tenant, created = Tenant.objects.get_or_create(
+                        name="Default Test Tenant",
+                        defaults={'domain': 'test.com'}
+                    )
+            except Exception as e:
+                # Fallback for any issues
+                tenant, created = Tenant.objects.get_or_create(
+                    name="Default Test Tenant",
+                    defaults={'domain': 'test.com'}
+                )
+                tenant = tenant
+
+        # Validate that the invoice belongs to the same tenant
+        invoice = serializer.validated_data.get('invoice')
+        if invoice and invoice.tenant != tenant:
+            from rest_framework import serializers
+            raise serializers.ValidationError("Invoice does not belong to the current tenant.")
+
+        serializer.save(tenant=tenant)
 
 
 @extend_schema_view(
@@ -690,7 +797,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
     """
     queryset = Invitation.objects.all()
     serializer_class = InvitationSerializer
-    permission_classes = [permissions.IsAuthenticated, IsTenantOwner]
+    permission_classes = [permissions.IsAuthenticated, CanManageTasks]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ["tenant", "is_used", "role"]
     search_fields = ["email", "tenant__name"]
@@ -927,7 +1034,8 @@ def signup_view(request):
             phone=phone,
             website=website,
             industry=industry,
-            company_size=company_size
+            company_size=company_size,
+            created_by=user
         )
         role = 'Tenant Owner'
 
@@ -1020,10 +1128,21 @@ def approve_member_view(request):
     member_user_tenant.is_approved = True
     member_user_tenant.save()
 
-    # Assign group
+    # Assign group based on role
     from django.contrib.auth.models import Group
-    group, _ = Group.objects.get_or_create(name=member_user_tenant.role)
-    member_user_tenant.user.groups.add(group)
+    group_name = {
+        'Tenant Owner': 'Tenant Owners',
+        'Employee': 'Employees',
+        'Manager': 'Project Managers'
+    }.get(member_user_tenant.role, 'Employees')
+
+    try:
+        group = Group.objects.get(name=group_name)
+        member_user_tenant.user.groups.add(group)
+    except Group.DoesNotExist:
+        # Fallback: create group if it doesn't exist
+        group, created = Group.objects.get_or_create(name=group_name)
+        member_user_tenant.user.groups.add(group)
 
     return Response({'message': 'Member approved and added to group'})
 

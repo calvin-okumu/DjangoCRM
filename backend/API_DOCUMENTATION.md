@@ -66,6 +66,16 @@ The application automatically creates 5 default user groups during database migr
 
 Groups provide role-based access control while maintaining tenant data isolation.
 
+## Permissions
+
+### Tenant Management Permissions
+- **View Tenant Details**: All users in the "Tenant Owners" group can view tenant information
+- **Update Tenant Details**: Only the user who originally created the tenant (stored in `created_by` field) can modify tenant details
+- **Create Tenant**: Automatic during signup process for new users
+- **Delete Tenant**: Only the original creator can delete the tenant
+
+These restrictions ensure that tenant configuration remains under the control of the person who set up the organization, while allowing all owners to access tenant information.
+
 ## Installation and Setup
 
 ### Prerequisites
@@ -168,7 +178,10 @@ The complete API documentation is available through Swagger UI:
 - `POST /api/invite-member/` - Send invitation to join tenant (tenant owners only)
 
 #### CRM Data Endpoints
-- `GET|POST|PUT|DELETE /api/tenants/` - Tenant management
+- `GET /api/tenants/` - View tenant details (all tenant owners)
+- `POST /api/tenants/` - Create new tenant (during signup)
+- `PUT /api/tenants/{id}/` - Update tenant details (original creator only)
+- `DELETE /api/tenants/{id}/` - Delete tenant (original creator only)
 - `GET|POST|PUT|DELETE /api/clients/` - Client management
 - `GET|POST|PUT|DELETE /api/projects/` - Project lifecycle management
 - `GET|POST|PUT|DELETE /api/milestones/` - Project milestone tracking
@@ -266,6 +279,7 @@ For production deployment with multi-tenancy, you may need to configure CORS to 
   - '51-200': 51-200 employees
   - '201-1000': 201-1000 employees
   - '1000+': 1000+ employees
+- `created_by`: User who originally created this tenant (read-only, set during signup)
 - `created_at`: Creation timestamp
 
 #### UserTenant
@@ -427,6 +441,30 @@ Use the interactive Swagger UI for manual API testing:
 - **ReDoc**: `http://127.0.0.1:8000/api/schema/redoc/`
 
 The Swagger UI provides interactive forms for testing all endpoints with proper authentication.
+
+### Nested API Endpoints
+
+The API supports nested routes for hierarchical data access:
+
+- **Project-Scoped Sprints**: `/api/projects/{project_id}/sprints/`
+  - Lists all sprints for milestones within a specific project
+  - Automatically filters by project ownership and tenant permissions
+  - Supports all standard CRUD operations scoped to the project
+
+Example usage:
+```bash
+# Get all sprints for project ID 1
+GET /api/projects/1/sprints/
+
+# Create a new sprint for project ID 1
+POST /api/projects/1/sprints/
+{
+  "name": "Sprint 1",
+  "milestone": 1,
+  "start_date": "2024-01-01",
+  "end_date": "2024-01-14"
+}
+```
 
 ## Testing
 

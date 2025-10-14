@@ -328,7 +328,8 @@ class ClientAPITests(APITestCase):
     def setUp(self):
         # Create user with proper permissions
         self.user = CustomUser.objects.create_user(email='testuser@example.com', password='testpass')
-        self.group = Group.objects.create(name='Client Management Administrators')
+        # Assign Tenant Owners group which has all permissions
+        self.group = Group.objects.get(name='Tenant Owners')
         self.user.groups.add(self.group)
         self.client.force_authenticate(user=self.user)
 
@@ -617,14 +618,50 @@ class PermissionTests(APITestCase):
         self.project_manager = CustomUser.objects.create_user(email='project_mgr@example.com', password='pass')
         self.api_manager = CustomUser.objects.create_user(email='api_mgr@example.com', password='pass')
 
-        # Create groups
-        client_group = Group.objects.create(name='Client Management Administrators')
-        project_group = Group.objects.create(name='Business Strategy Administrators')
-        api_group = Group.objects.create(name='API Control Administrators')
+        # Use the default groups created by migration
+        from django.contrib.auth.models import Permission
+        from django.contrib.contenttypes.models import ContentType
+        from project.models import Client, Project, Invoice
 
-        self.client_manager.groups.add(client_group)
-        self.project_manager.groups.add(project_group)
-        self.api_manager.groups.add(api_group, project_group)  # API manager has multiple permissions
+        tenant_owners_group = Group.objects.get(name='Tenant Owners')
+        project_managers_group = Group.objects.get(name='Project Managers')
+
+        # Manually assign permissions to groups for testing
+        # Client permissions
+        client_content_type = ContentType.objects.get_for_model(Client)
+        for perm_codename in ['add_client', 'change_client', 'delete_client', 'view_client']:
+            try:
+                perm = Permission.objects.get(content_type=client_content_type, codename=perm_codename)
+                tenant_owners_group.permissions.add(perm)
+                if perm_codename in ['add_client', 'change_client', 'view_client']:  # Project managers can view/add/change clients
+                    project_managers_group.permissions.add(perm)
+            except Permission.DoesNotExist:
+                pass
+
+        # Project permissions
+        project_content_type = ContentType.objects.get_for_model(Project)
+        for perm_codename in ['add_project', 'change_project', 'delete_project', 'view_project']:
+            try:
+                perm = Permission.objects.get(content_type=project_content_type, codename=perm_codename)
+                tenant_owners_group.permissions.add(perm)
+                project_managers_group.permissions.add(perm)
+            except Permission.DoesNotExist:
+                pass
+
+        # Invoice permissions
+        invoice_content_type = ContentType.objects.get_for_model(Invoice)
+        for perm_codename in ['add_invoice', 'change_invoice', 'delete_invoice', 'view_invoice']:
+            try:
+                perm = Permission.objects.get(content_type=invoice_content_type, codename=perm_codename)
+                tenant_owners_group.permissions.add(perm)
+            except Permission.DoesNotExist:
+                pass
+
+        # Assign users to appropriate groups
+        self.client_manager.groups.add(tenant_owners_group)
+        self.project_manager.groups.add(project_managers_group)
+        self.api_manager.groups.add(tenant_owners_group)
+        # regular_user gets no special groups - should have limited access
 
         # Create test data
         self.org = Tenant.objects.create(name="Test Org")
@@ -633,8 +670,15 @@ class PermissionTests(APITestCase):
             email="test@example.com",
             tenant=self.org
         )
-        self.project = Project.objects.create(name="Test Project", client=self.client_obj)
-        self.invoice = Invoice.objects.create(client=self.client_obj, amount=Decimal('1000.00'))
+        self.project = Project.objects.create(name="Test Project", client=self.client_obj, tenant=self.org)
+        self.invoice = Invoice.objects.create(client=self.client_obj, project=self.project, tenant=self.org, amount=Decimal('1000.00'))
+
+        # Create UserTenant relationships for the test users
+        from accounts.models import UserTenant
+        UserTenant.objects.create(user=self.client_manager, tenant=self.org, is_owner=True, is_approved=True, role='Tenant Owner')
+        UserTenant.objects.create(user=self.project_manager, tenant=self.org, is_owner=False, is_approved=True, role='Project Manager')
+        UserTenant.objects.create(user=self.api_manager, tenant=self.org, is_owner=True, is_approved=True, role='Tenant Owner')
+        # regular_user has no UserTenant relationship - should have no access
 
     def test_client_permissions(self):
         """Test client management permissions"""

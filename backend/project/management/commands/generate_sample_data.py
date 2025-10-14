@@ -51,6 +51,10 @@ class Command(BaseCommand):
             for i in range(3 - Tenant.objects.count()):
                 domain = f'tenant{i+1}.sample.com'
                 tenant = TenantFactory.create(domain=domain)
+                # Set created_by to the first user for sample data
+                if users:
+                    tenant.created_by = users[0]  # Assign to first user as creator
+                    tenant.save()
                 tenants.append(tenant)
             self.stdout.write(f'Created {len(tenants)} tenants')
         else:
