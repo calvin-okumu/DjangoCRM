@@ -25,9 +25,11 @@ The system includes:
 - **Default Groups**: 5 pre-configured user groups for role-based access control with automatic assignment
 - **Client Management**: Customer database with contact information and project history
 - **Project Management**: Complete project lifecycle management with milestones, sprints, tasks, and progress tracking
+- **Sprint Automation**: Smart sprint lifecycle management with automatic activation/completion based on task status
+- **Bulk Operations**: Efficient bulk update operations for sprints, tasks, and progress recalculation
 - **Financial Management**: Invoice and payment processing with client billing capabilities
 - **API**: Comprehensive RESTful API with full Swagger/OpenAPI documentation and interactive testing
-- **Testing**: Complete test suite with 48 tests covering all functionality
+- **Testing**: Complete test suite with comprehensive coverage of all functionality
 
 ## Architecture
 
@@ -75,6 +77,44 @@ Groups provide role-based access control while maintaining tenant data isolation
 - **Delete Tenant**: Only the original creator can delete the tenant
 
 These restrictions ensure that tenant configuration remains under the control of the person who set up the organization, while allowing all owners to access tenant information.
+
+## Sprint Automation
+
+DjangoCRM includes intelligent sprint automation features that enhance agile workflow management by automatically managing sprint lifecycle based on task activity.
+
+### Automatic Sprint Activation
+
+When a task moves to "in_progress" status, the system automatically activates the sprint if:
+- The sprint is currently in "planned" status
+- This is the first task in the sprint to move to "in_progress"
+- The sprint belongs to the same tenant as the task
+
+**Example Flow:**
+1. Sprint is created with status "planned"
+2. First task in sprint moves to "in_progress"
+3. Sprint automatically changes to "active" status
+4. Notification is logged for tracking
+
+### Automatic Sprint Completion
+
+When all tasks in an active sprint are completed, the system automatically marks the sprint as "completed":
+
+- Monitors all tasks in active sprints
+- When the last task moves to "done" status
+- Automatically completes the sprint
+- Logs completion notification
+
+**Validation Rules:**
+- Only active sprints can be auto-completed
+- All tasks must be in "done" status
+- Sprint must have at least one task
+
+### Benefits
+
+- **Reduced Manual Work**: Eliminates need to manually change sprint statuses
+- **Consistency**: Ensures sprint statuses accurately reflect work progress
+- **Real-time Updates**: Immediate response to task status changes
+- **Error Prevention**: Prevents invalid status transitions
 
 ## Installation and Setup
 
@@ -198,6 +238,11 @@ The complete API documentation is available through Swagger UI:
 - `POST /api/sprints/{id}/assign_task/` - Assign existing task to sprint
 - `POST /api/sprints/{id}/unassign_task/` - Remove task from sprint
 
+#### Bulk Operations
+- `POST /api/sprints/bulk_update_sprints/` - Bulk update multiple sprints with same status
+- `POST /api/tasks/bulk_update_tasks/` - Bulk update multiple tasks with status/sprint assignment
+- `POST /api/projects/{id}/refresh_project_progress/` - Manually recalculate project progress
+
 All endpoints are fully documented in the Swagger UI with request/response schemas, authentication requirements, and interactive testing capabilities.
 
 ### Signup Process
@@ -244,6 +289,121 @@ The signup endpoint (`POST /api/signup/`) supports two flows:
 
 **Response:**
 Returns authentication token and user/tenant information on successful signup. For invitations, the user account is created but access is restricted until approved by a tenant owner.
+
+## Bulk Operations
+
+DjangoCRM provides efficient bulk operations for managing multiple items simultaneously, improving productivity for large-scale project management.
+
+### Bulk Update Sprints
+
+**Endpoint:** `POST /api/sprints/bulk_update_sprints/`
+
+Update multiple sprints to the same status in a single request. Useful for managing sprint lifecycles across multiple milestones.
+
+**Request Body:**
+```json
+{
+  "sprint_ids": [1, 2, 3],
+  "status": "active"
+}
+```
+
+**Parameters:**
+- `sprint_ids` (required): Array of sprint IDs to update
+- `status` (required): New status for all sprints. Valid values: `"planned"`, `"active"`, `"completed"`
+
+**Validation Rules:**
+- All sprints must belong to the current tenant
+- Status transitions must be valid:
+  - `"planned"` → `"active"` only
+  - `"active"` → `"completed"` only
+- Invalid transitions return detailed error messages
+
+**Response:**
+```json
+{
+  "message": "Successfully updated 3 sprints to status \"active\"",
+  "updated_count": 3
+}
+```
+
+**Error Response:**
+```json
+{
+  "error": "Invalid status transitions",
+  "details": [
+    "Sprint 1 (Sprint Alpha) must be planned to activate",
+    "Sprint 2 (Sprint Beta) must be active to complete"
+  ]
+}
+```
+
+### Bulk Update Tasks
+
+**Endpoint:** `POST /api/tasks/bulk_update_tasks/`
+
+Update multiple tasks with status changes and/or sprint assignments in a single request.
+
+**Request Body:**
+```json
+{
+  "task_ids": [1, 2, 3],
+  "status": "in_progress",
+  "sprint_id": 5
+}
+```
+
+**Parameters:**
+- `task_ids` (required): Array of task IDs to update
+- `status` (optional): New status for tasks. Valid values: `"todo"`, `"in_progress"`, `"done"`
+- `sprint_id` (optional): Sprint ID to assign tasks to. Set to `null` to unassign from sprint
+
+**Validation Rules:**
+- All tasks must belong to the current tenant
+- If `sprint_id` is provided, all tasks must belong to the same milestone as the target sprint
+- Sprint must exist and belong to the current tenant
+
+**Response:**
+```json
+{
+  "message": "Successfully updated 3 tasks",
+  "updated_count": 3,
+  "updates": {
+    "status": "in_progress",
+    "sprint_id": 5
+  }
+}
+```
+
+### Refresh Project Progress
+
+**Endpoint:** `POST /api/projects/{id}/refresh_project_progress/`
+
+Manually recalculate and update project progress based on current milestone and sprint completion status.
+
+**Use Cases:**
+- Fix progress calculation inconsistencies
+- Force refresh after bulk operations
+- Recalculate after data imports or migrations
+
+**Process:**
+1. Recalculates progress for all milestones in the project
+2. Updates project progress as average of milestone progress
+3. Returns updated progress values
+
+**Response:**
+```json
+{
+  "message": "Project progress recalculated successfully",
+  "project_progress": 75,
+  "milestones_updated": 4
+}
+```
+
+**Benefits:**
+- **Data Integrity**: Ensures progress calculations are accurate
+- **Performance**: Optimized database queries for bulk updates
+- **Reliability**: Handles edge cases and validation errors gracefully
 
 ## CORS Configuration
 
@@ -425,6 +585,9 @@ python manage.py test --keepdb
 - **Client API Tests**: Client management with permissions
 - **Project API Tests**: Project lifecycle management
 - **Milestone/Sprint/Task Tests**: Agile workflow management
+- **Sprint Automation Tests**: Smart sprint activation/completion signals
+- **Bulk Operations Tests**: Bulk update functionality for sprints and tasks
+- **Progress Calculation Tests**: Automated progress updates and manual refresh
 - **Invoice/Payment Tests**: Financial operations
 - **Permission Tests**: Role-based access control
 - **Model Tests**: Data validation and relationships
@@ -476,6 +639,9 @@ python manage.py test
 ### Test Files
 - `accounts/tests.py`: User and tenant-related tests
 - `project/tests.py`: Project management tests
+- `test_api.py`: Basic API functionality and authentication tests
+- `test_bulk_operations.py`: Bulk operations and sprint automation tests
+- `test_progress_updates.py`: Progress calculation and automation signal tests
 - `test_*.py`: Additional test files for specific functionality
 
 ### Test Coverage
