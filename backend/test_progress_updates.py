@@ -11,7 +11,7 @@ BASE_URL = "http://127.0.0.1:8000"
 def get_token():
     response = requests.post(
         f"{BASE_URL}/api/login/",
-        json={"email": "user1@example.com", "password": "password123"},
+        json={"email": "user1@tenant1.sample.com", "password": "password123"},
         headers={"Content-Type": "application/json"}
     )
     if response.status_code == 200:

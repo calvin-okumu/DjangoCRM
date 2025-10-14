@@ -265,6 +265,38 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         serializer.save(tenant=tenant)
 
+    @action(detail=True, methods=['post'])
+    def refresh_project_progress(self, request, pk=None):
+        """
+        Manually recalculate and update project progress.
+        Useful for fixing any progress calculation inconsistencies.
+        """
+        project = self.get_object()
+
+        # Recalculate milestone progress first
+        for milestone in project.milestones.all():
+            total_sprints = milestone.sprints.count()
+            completed_sprints = milestone.sprints.filter(status='completed').count()
+            new_milestone_progress = int((completed_sprints / total_sprints * 100)) if total_sprints > 0 else 0
+
+            if milestone.progress != new_milestone_progress:
+                milestone.progress = new_milestone_progress
+                milestone.save(update_fields=['progress'])
+
+        # Recalculate project progress as average of milestone progress
+        milestones = project.milestones.all()
+        new_project_progress = sum(m.progress for m in milestones) // len(milestones) if milestones else 0
+
+        if project.progress != new_project_progress:
+            project.progress = new_project_progress
+            project.save(update_fields=['progress'])
+
+        return Response({
+            'message': 'Project progress recalculated successfully',
+            'project_progress': project.progress,
+            'milestones_updated': len(milestones)
+        }, status=status.HTTP_200_OK)
+
 
 @extend_schema_view(
     list=extend_schema(
@@ -450,6 +482,49 @@ class SprintViewSet(viewsets.ModelViewSet):
         except Task.DoesNotExist:
             return Response({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
 
+    @action(detail=False, methods=['post'])
+    def bulk_update_sprints(self, request):
+        """
+        Bulk update multiple sprints with the same status.
+        Expects: {"sprint_ids": [1, 2, 3], "status": "active"}
+        """
+        sprint_ids = request.data.get('sprint_ids', [])
+        new_status = request.data.get('status')
+
+        if not sprint_ids or not new_status:
+            return Response({'error': 'sprint_ids and status are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate status choices
+        valid_statuses = ['planned', 'active', 'completed']
+        if new_status not in valid_statuses:
+            return Response({'error': f'Invalid status. Must be one of: {valid_statuses}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Get sprints that belong to current tenant
+        queryset = self.get_queryset()
+        sprints_to_update = queryset.filter(id__in=sprint_ids)
+
+        if not sprints_to_update.exists():
+            return Response({'error': 'No valid sprints found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check for status transition validation
+        invalid_transitions = []
+        for sprint in sprints_to_update:
+            if new_status == 'completed' and sprint.status != 'active':
+                invalid_transitions.append(f"Sprint {sprint.id} ({sprint.name}) must be active to complete")
+            elif new_status == 'active' and sprint.status != 'planned':
+                invalid_transitions.append(f"Sprint {sprint.id} ({sprint.name}) must be planned to activate")
+
+        if invalid_transitions:
+            return Response({'error': 'Invalid status transitions', 'details': invalid_transitions}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Perform bulk update
+        updated_count = sprints_to_update.update(status=new_status)
+
+        return Response({
+            'message': f'Successfully updated {updated_count} sprints to status "{new_status}"',
+            'updated_count': updated_count
+        }, status=status.HTTP_200_OK)
+
 
 @extend_schema_view(
     list=extend_schema(
@@ -525,6 +600,59 @@ class TaskViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         instance = serializer.save()
         instance.full_clean()
+
+    @action(detail=False, methods=['post'])
+    def bulk_update_tasks(self, request):
+        """
+        Bulk update multiple tasks with status and/or sprint assignment.
+        Expects: {"task_ids": [1, 2, 3], "status": "in_progress", "sprint_id": 5}
+        """
+        task_ids = request.data.get('task_ids', [])
+        new_status = request.data.get('status')
+        sprint_id = request.data.get('sprint_id')
+
+        if not task_ids:
+            return Response({'error': 'task_ids are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate status if provided
+        if new_status:
+            valid_statuses = ['todo', 'in_progress', 'done']
+            if new_status not in valid_statuses:
+                return Response({'error': f'Invalid status. Must be one of: {valid_statuses}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Get tasks that belong to current tenant
+        queryset = self.get_queryset()
+        tasks_to_update = queryset.filter(id__in=task_ids)
+
+        if not tasks_to_update.exists():
+            return Response({'error': 'No valid tasks found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Validate sprint if provided
+        if sprint_id:
+            try:
+                sprint = Sprint.objects.get(id=sprint_id, tenant=request.tenant if hasattr(request, 'tenant') and request.tenant else None)
+                # Ensure sprint belongs to same milestone as tasks
+                task_milestones = set(tasks_to_update.values_list('milestone', flat=True))
+                if len(task_milestones) > 1 or sprint.milestone.id not in task_milestones:
+                    return Response({'error': 'All tasks must belong to the same milestone as the target sprint'}, status=status.HTTP_400_BAD_REQUEST)
+            except Sprint.DoesNotExist:
+                return Response({'error': 'Sprint not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Prepare update data
+        update_data = {}
+        if new_status:
+            update_data['status'] = new_status
+        if sprint_id is not None:
+            update_data['sprint_id'] = sprint_id
+
+        # Perform bulk update
+        updated_count = tasks_to_update.update(**update_data)
+
+        return Response({
+            'message': f'Successfully updated {updated_count} tasks',
+            'updated_count': updated_count,
+            'updates': update_data
+        }, status=status.HTTP_200_OK)
 
 
 @extend_schema_view(

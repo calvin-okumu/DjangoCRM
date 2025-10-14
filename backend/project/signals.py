@@ -78,6 +78,40 @@ def notify_sprint_status_change(sender, instance, **kwargs):
             else:
                 print(f"Notification: Sprint '{instance.name}' completed.")  # Fallback for dev
 
+@receiver(post_save, sender=Task)
+def auto_activate_sprint(sender, instance, **kwargs):
+    """
+    Auto-activate sprint when first task moves to in_progress.
+    Only activates if sprint is currently planned.
+    """
+    if instance.sprint and instance.status == 'in_progress':
+        sprint = instance.sprint
+        if sprint.status == 'planned':
+            # Check if this is the first in_progress task
+            other_in_progress = sprint.tasks.filter(status='in_progress').exclude(id=instance.id).exists()
+            if not other_in_progress:
+                sprint.status = 'active'
+                sprint.save(update_fields=['status'])
+                print(f"Auto-activated sprint '{sprint.name}' due to task '{instance.title}'")
+
+@receiver(post_save, sender=Task)
+def auto_complete_sprint(sender, instance, **kwargs):
+    """
+    Auto-complete sprint when all tasks are done.
+    Only completes if sprint is active and all tasks are completed.
+    """
+    if instance.sprint and instance.status == 'done':
+        sprint = instance.sprint
+        if sprint.status == 'active':
+            # Check if all tasks are done
+            total_tasks = sprint.tasks.count()
+            completed_tasks = sprint.tasks.filter(status='done').count()
+
+            if total_tasks > 0 and total_tasks == completed_tasks:
+                sprint.status = 'completed'
+                sprint.save(update_fields=['status'])
+                print(f"Auto-completed sprint '{sprint.name}' - all {total_tasks} tasks done")
+
 @receiver(post_save, sender=Milestone)
 def notify_milestone_due(sender, instance, created, **kwargs):
     """
