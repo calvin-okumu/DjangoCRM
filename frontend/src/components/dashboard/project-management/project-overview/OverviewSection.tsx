@@ -7,13 +7,11 @@ import ProjectInformation from './ProjectInformation';
 import { getSprints } from '@/api/project_mgmt';
 import type { Project } from '@/api/types';
 
-interface OverviewSectionProps {
-    project: Project;
-    activeTab: string;
-    onTabChange: (tab: string) => void;
-}
+ interface OverviewSectionProps {
+     project: Project;
+ }
 
-export default function OverviewSection({ project, activeTab, onTabChange }: OverviewSectionProps) {
+ export default function OverviewSection({ project }: OverviewSectionProps) {
     const [sprintsCount, setSprintsCount] = useState(0);
 
     useEffect(() => {

@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import { Mail, TrendingUp, DollarSign, Calendar } from 'lucide-react';
-import MetricsBar from '../components/MetricsBar';
-import ClientsSection from '../components/ClientsSection';
-import AddClientModal from '../components/AddClientModal';
+import MetricsBar from '@/components/dashboard/crm/components/MetricsBar';
+import ClientsSection from '@/components/dashboard/crm/components/ClientsSection';
+import ClientModal from '@/components/dashboard/crm/clients/ClientModal';
+import type { CreateClientData, UpdateClientData } from '@/api/types';
 
 export default function CampaignsPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -88,71 +89,12 @@ export default function CampaignsPage() {
                 filters={filters}
                 emptyState={emptyState}
             />
-            <AddClientModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                title="Create New Campaign"
-                fields={[
-                    {
-                        name: "campaignName",
-                        label: "Campaign Name",
-                        type: "text",
-                        required: true,
-                    },
-                    {
-                        name: "campaignType",
-                        label: "Campaign Type",
-                        type: "select",
-                        options: [
-                            { value: "email", label: "Email Marketing" },
-                            { value: "social", label: "Social Media" },
-                            { value: "paid", label: "Paid Advertising" },
-                            { value: "content", label: "Content Marketing" },
-                            { value: "event", label: "Event Marketing" },
-                        ],
-                        defaultValue: "email",
-                    },
-                    {
-                        name: "targetAudience",
-                        label: "Target Audience",
-                        type: "select",
-                        options: [
-                            { value: "all", label: "All Prospects" },
-                            { value: "new_leads", label: "New Leads" },
-                            { value: "existing_customers", label: "Existing Customers" },
-                            { value: "inactive_users", label: "Inactive Users" },
-                            { value: "vip_customers", label: "VIP Customers" },
-                        ],
-                        defaultValue: "all",
-                    },
-                    {
-                        name: "budget",
-                        label: "Budget",
-                        type: "text",
-                        placeholder: "e.g. $5,000",
-                    },
-                    {
-                        name: "startDate",
-                        label: "Start Date",
-                        type: "text",
-                        placeholder: "YYYY-MM-DD",
-                    },
-                    {
-                        name: "endDate",
-                        label: "End Date",
-                        type: "text",
-                        placeholder: "YYYY-MM-DD",
-                    },
-                    {
-                        name: "goals",
-                        label: "Campaign Goals",
-                        type: "textarea",
-                        placeholder: "Describe your campaign objectives and KPIs...",
-                    },
-                ]}
-                onSubmit={(data: Record<string, string>) => console.log("Creating campaign:", data)}
-                submitButtonText="Create Campaign"
-            />
+             <ClientModal
+                 isOpen={isModalOpen}
+                 onClose={() => setIsModalOpen(false)}
+                 mode="add"
+                 onSave={(data: CreateClientData | UpdateClientData) => console.log("Creating campaign:", data)}
+             />
         </div>
     );
 }

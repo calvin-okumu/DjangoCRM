@@ -4,9 +4,9 @@ import OverviewSection from '@/components/dashboard/project-management/project-o
 import { useProject } from '@/context/ProjectContext';
 
 export default function ProjectPage() {
-    const { project, activeTab, onTabChange } = useProject();
+     const { project } = useProject();
 
     if (!project) return null;
 
-    return <OverviewSection project={project} activeTab={activeTab} onTabChange={onTabChange} />;
+     return <OverviewSection project={project} />;
 }

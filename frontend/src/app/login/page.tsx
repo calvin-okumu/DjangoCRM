@@ -33,7 +33,7 @@ export default function LoginPage() {
             }));
 
             setSuccess("Login successful! Redirecting...");
-            setTimeout(() => router.push("/dashboard"), 500);
+            setTimeout(() => router.push("/dashboard"), 20);
         } catch (err: unknown) {
             if (err instanceof Error) {
                 setError(err.message);

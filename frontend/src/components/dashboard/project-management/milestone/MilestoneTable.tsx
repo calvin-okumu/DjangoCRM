@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import Table from '@/components/ui/Table';
 import Pagination from '@/components/shared/Pagination';
 import Loader from '@/components/shared/Loader';
@@ -18,57 +18,69 @@ interface MilestoneTableProps {
     searchValue: string;
 }
 
-export default function MilestoneTable({ milestones, loading, error, onEditMilestone, onDeleteMilestone, onAddMilestone, searchValue }: MilestoneTableProps) {
+const MilestoneTable = React.memo(function MilestoneTable({ milestones, loading, error, onEditMilestone, onDeleteMilestone, onAddMilestone, searchValue }: MilestoneTableProps) {
     const [page, setPage] = useState(1);
 
-    const filteredMilestones = milestones.filter(milestone =>
-        milestone.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-        (milestone.description && milestone.description.toLowerCase().includes(searchValue.toLowerCase()))
+    const filteredMilestones = useMemo(() =>
+        milestones.filter(milestone =>
+            milestone.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+            (milestone.description && milestone.description.toLowerCase().includes(searchValue.toLowerCase()))
+        ),
+        [milestones, searchValue]
     );
 
     const itemsPerPage = 10;
-    const totalPages = Math.ceil(filteredMilestones.length / itemsPerPage);
-    const visibleMilestones = filteredMilestones.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+    const totalPages = useMemo(() =>
+        Math.ceil(filteredMilestones.length / itemsPerPage),
+        [filteredMilestones.length, itemsPerPage]
+    );
+    const visibleMilestones = useMemo(() =>
+        filteredMilestones.slice((page - 1) * itemsPerPage, page * itemsPerPage),
+        [filteredMilestones, page, itemsPerPage]
+    );
 
-    const handleEdit = (milestone: Milestone) => {
+    const handleEdit = useCallback((milestone: Milestone) => {
         onEditMilestone(milestone);
-    };
+    }, [onEditMilestone]);
 
-    const handleDelete = (id: number) => {
+    const handleDelete = useCallback((id: number) => {
         if (confirm("Are you sure you want to delete this milestone?")) {
             onDeleteMilestone(id);
         }
-    };
+    }, [onDeleteMilestone]);
 
     const headers = ["Name", "Description", "Status", "Due Date", "Progress", "Actions"];
 
-    const rows = visibleMilestones.map(milestone => [
-        milestone.name,
-        milestone.description || "-",
-        <span
-            className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                milestone.status === 'completed'
-                    ? 'bg-green-100 text-green-800'
-                    : milestone.status === 'in_progress'
-                    ? 'bg-blue-100 text-blue-800'
-                    : milestone.status === 'pending'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-gray-100 text-gray-800'
-            }`}
-        >
-            {milestone.status.replace('_', ' ')}
-        </span>,
-        milestone.due_date ? new Date(milestone.due_date).toLocaleDateString() : "-",
-        `${milestone.progress}%`,
-        <div className="flex gap-2">
-            <Button onClick={() => handleEdit(milestone)} variant="outline" size="sm">
-                <Edit className="h-4 w-4" />
-            </Button>
-            <Button onClick={() => handleDelete(milestone.id)} variant="danger" size="sm">
-                <Trash2 className="h-4 w-4" />
-            </Button>
-        </div>
-    ]);
+    const rows = visibleMilestones.map((milestone) => ({
+        key: milestone.id,
+        data: [
+            milestone.name,
+            milestone.description || "-",
+            <span
+                className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                    milestone.status === 'completed'
+                        ? 'bg-green-100 text-green-800'
+                        : milestone.status === 'in_progress'
+                        ? 'bg-blue-100 text-blue-800'
+                        : milestone.status === 'pending'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-gray-100 text-gray-800'
+                }`}
+            >
+                {milestone.status.replace('_', ' ')}
+            </span>,
+            milestone.due_date ? new Date(milestone.due_date).toLocaleDateString() : "-",
+            `${milestone.progress}%`,
+            <div className="flex gap-2">
+                <Button onClick={() => handleEdit(milestone)} variant="outline" size="sm">
+                    <Edit className="h-4 w-4" />
+                </Button>
+                <Button onClick={() => handleDelete(milestone.id)} variant="danger" size="sm">
+                    <Trash2 className="h-4 w-4" />
+                </Button>
+            </div>
+        ]
+    }));
 
     if (loading) {
         return <Loader />;
@@ -102,4 +114,6 @@ export default function MilestoneTable({ milestones, loading, error, onEditMiles
             />
         </div>
     );
-};
+});
+
+export default MilestoneTable;

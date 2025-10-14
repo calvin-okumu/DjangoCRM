@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import { Funnel, Users, Target, CheckCircle } from 'lucide-react';
-import MetricsBar from '../components/MetricsBar';
-import ClientsSection from '../components/ClientsSection';
-import AddClientModal from '../components/AddClientModal';
+import MetricsBar from '@/components/dashboard/crm/components/MetricsBar';
+import ClientsSection from '@/components/dashboard/crm/components/ClientsSection';
+import ClientModal from '@/components/dashboard/crm/clients/ClientModal';
+import type { CreateClientData, UpdateClientData } from '@/api/types';
 
 export default function SalesFunnelPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -89,85 +90,12 @@ export default function SalesFunnelPage() {
                 filters={filters}
                 emptyState={emptyState}
             />
-            <AddClientModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                title="Add New Lead"
-                fields={[
-                    {
-                        name: "leadName",
-                        label: "Lead Name",
-                        type: "text",
-                        required: true,
-                    },
-                    {
-                        name: "leadSource",
-                        label: "Lead Source",
-                        type: "select",
-                        options: [
-                            { value: "website", label: "Website" },
-                            { value: "social_media", label: "Social Media" },
-                            { value: "referral", label: "Referral" },
-                            { value: "cold_outreach", label: "Cold Outreach" },
-                            { value: "trade_show", label: "Trade Show" },
-                            { value: "advertising", label: "Advertising" },
-                        ],
-                        defaultValue: "website",
-                    },
-                    {
-                        name: "contactInfo",
-                        label: "Contact Information",
-                        type: "text",
-                        placeholder: "Email or phone number",
-                        required: true,
-                    },
-                    {
-                        name: "company",
-                        label: "Company",
-                        type: "text",
-                        placeholder: "Company name (if applicable)",
-                    },
-                    {
-                        name: "estimatedValue",
-                        label: "Estimated Deal Value",
-                        type: "text",
-                        placeholder: "e.g. $25,000",
-                    },
-                    {
-                        name: "currentStage",
-                        label: "Current Stage",
-                        type: "select",
-                        options: [
-                            { value: "lead", label: "Lead" },
-                            { value: "qualified_prospect", label: "Qualified Prospect" },
-                            { value: "opportunity", label: "Opportunity" },
-                            { value: "negotiation", label: "Negotiation" },
-                            { value: "closed_won", label: "Closed Won" },
-                        ],
-                        defaultValue: "lead",
-                    },
-                    {
-                        name: "priority",
-                        label: "Priority Level",
-                        type: "select",
-                        options: [
-                            { value: "low", label: "Low" },
-                            { value: "medium", label: "Medium" },
-                            { value: "high", label: "High" },
-                            { value: "urgent", label: "Urgent" },
-                        ],
-                        defaultValue: "medium",
-                    },
-                    {
-                        name: "notes",
-                        label: "Lead Notes",
-                        type: "textarea",
-                        placeholder: "Additional information about this lead...",
-                    },
-                ]}
-                onSubmit={(data: Record<string, string>) => console.log("Adding lead:", data)}
-                submitButtonText="Add Lead"
-            />
+             <ClientModal
+                 isOpen={isModalOpen}
+                 onClose={() => setIsModalOpen(false)}
+                 mode="add"
+                 onSave={(data: CreateClientData | UpdateClientData) => console.log("Adding lead:", data)}
+             />
         </div>
     );
 }

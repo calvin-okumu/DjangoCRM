@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import { DollarSign, TrendingUp, Target, Users } from 'lucide-react';
-import MetricsBar from '../components/MetricsBar';
-import ClientsSection from '../components/ClientsSection';
-import AddClientModal from '../components/AddClientModal';
+import MetricsBar from '@/components/dashboard/crm/components/MetricsBar';
+import ClientsSection from '@/components/dashboard/crm/components/ClientsSection';
+import ClientModal from '@/components/dashboard/crm/clients/ClientModal';
+import type { CreateClientData, UpdateClientData } from '@/api/types';
 
 export default function SalesPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -89,72 +90,12 @@ export default function SalesPage() {
                 filters={filters}
                 emptyState={emptyState}
             />
-            <AddClientModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                title="Create New Deal"
-                fields={[
-                    {
-                        name: "dealName",
-                        label: "Deal Name",
-                        type: "text",
-                        required: true,
-                    },
-                    {
-                        name: "dealValue",
-                        label: "Deal Value",
-                        type: "text",
-                        placeholder: "e.g. $10,000",
-                        required: true,
-                    },
-                    {
-                        name: "stage",
-                        label: "Sales Stage",
-                        type: "select",
-                        options: [
-                            { value: "prospecting", label: "Prospecting" },
-                            { value: "qualification", label: "Qualification" },
-                            { value: "proposal", label: "Proposal" },
-                            { value: "negotiation", label: "Negotiation" },
-                            { value: "closed_won", label: "Closed Won" },
-                            { value: "closed_lost", label: "Closed Lost" },
-                        ],
-                        defaultValue: "prospecting",
-                    },
-                    {
-                        name: "probability",
-                        label: "Win Probability (%)",
-                        type: "text",
-                        placeholder: "e.g. 75",
-                    },
-                    {
-                        name: "expectedCloseDate",
-                        label: "Expected Close Date",
-                        type: "text",
-                        placeholder: "YYYY-MM-DD",
-                    },
-                    {
-                        name: "contactName",
-                        label: "Contact Name",
-                        type: "text",
-                        placeholder: "Primary contact for this deal",
-                    },
-                    {
-                        name: "companyName",
-                        label: "Company Name",
-                        type: "text",
-                        placeholder: "Company associated with the deal",
-                    },
-                    {
-                        name: "notes",
-                        label: "Deal Notes",
-                        type: "textarea",
-                        placeholder: "Additional details about this sales opportunity...",
-                    },
-                ]}
-                onSubmit={(data: Record<string, string>) => console.log("Creating deal:", data)}
-                submitButtonText="Create Deal"
-            />
+             <ClientModal
+                 isOpen={isModalOpen}
+                 onClose={() => setIsModalOpen(false)}
+                 mode="add"
+                 onSave={(data: CreateClientData | UpdateClientData) => console.log("Creating deal:", data)}
+             />
         </div>
     );
 }

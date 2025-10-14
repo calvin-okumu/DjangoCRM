@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import Table from '@/components/ui/Table';
 import Pagination from '@/components/shared/Pagination';
 import Loader from '@/components/shared/Loader';
@@ -18,31 +18,42 @@ interface BacklogTableProps {
     searchValue: string;
 }
 
-export default function BacklogTable({ tasks, loading, error, onEditTask, onDeleteTask, onAddTask, searchValue }: BacklogTableProps) {
+const BacklogTable = React.memo(function BacklogTable({ tasks, loading, error, onEditTask, onDeleteTask, onAddTask, searchValue }: BacklogTableProps) {
     const [page, setPage] = useState(1);
 
-    const filteredTasks = tasks.filter(task =>
-        task.title.toLowerCase().includes(searchValue.toLowerCase()) ||
-        (task.description && task.description.toLowerCase().includes(searchValue.toLowerCase()))
+    const filteredTasks = useMemo(() =>
+        tasks.filter(task =>
+            task.title.toLowerCase().includes(searchValue.toLowerCase()) ||
+            (task.description && task.description.toLowerCase().includes(searchValue.toLowerCase()))
+        ),
+        [tasks, searchValue]
     );
 
     const itemsPerPage = 10;
-    const totalPages = Math.ceil(filteredTasks.length / itemsPerPage);
-    const visibleTasks = filteredTasks.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+    const totalPages = useMemo(() =>
+        Math.ceil(filteredTasks.length / itemsPerPage),
+        [filteredTasks.length, itemsPerPage]
+    );
+    const visibleTasks = useMemo(() =>
+        filteredTasks.slice((page - 1) * itemsPerPage, page * itemsPerPage),
+        [filteredTasks, page, itemsPerPage]
+    );
 
-    const handleEdit = (task: Task) => {
+    const handleEdit = useCallback((task: Task) => {
         onEditTask(task);
-    };
+    }, [onEditTask]);
 
-    const handleDelete = (id: number) => {
+    const handleDelete = useCallback((id: number) => {
         if (confirm("Are you sure you want to delete this task?")) {
             onDeleteTask(id);
         }
-    };
+    }, [onDeleteTask]);
 
     const headers = ["Title", "Description", "Status", "Priority", "Milestone", "Assignee", "Actions"];
 
-    const rows = visibleTasks.map(task => [
+    const rows = visibleTasks.map(task => ({
+        key: task.id,
+        data: [
         task.title,
         task.description || "-",
         <span
@@ -81,7 +92,8 @@ export default function BacklogTable({ tasks, loading, error, onEditTask, onDele
                 <Trash2 className="h-4 w-4" />
             </Button>
         </div>
-    ]);
+        ]
+    }));
 
     if (loading) {
         return <Loader />;
@@ -115,4 +127,6 @@ export default function BacklogTable({ tasks, loading, error, onEditTask, onDele
             />
         </div>
     );
-};
+});
+
+export default BacklogTable;

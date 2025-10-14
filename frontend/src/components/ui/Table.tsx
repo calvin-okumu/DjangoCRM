@@ -1,9 +1,9 @@
 import React from 'react';
 
 interface TableProps {
-  headers: string[];
-  rows: (string | number | React.ReactNode)[][];
-  className?: string;
+   headers: string[];
+   rows: { key: string | number; data: (string | number | React.ReactNode)[] }[];
+   className?: string;
 }
 
 export default function Table({ headers, rows, className = '' }: TableProps) {
@@ -22,17 +22,17 @@ export default function Table({ headers, rows, className = '' }: TableProps) {
              ))}
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {rows.map((row, rowIndex) => (
-            <tr key={rowIndex} className="hover:bg-gray-50">
-              {row.map((cell, cellIndex) => (
-                <td key={cellIndex} className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {cell}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
+         <tbody className="bg-white divide-y divide-gray-200">
+           {rows.map((row) => (
+             <tr key={row.key} className="hover:bg-gray-50">
+               {row.data.map((cell, cellIndex) => (
+                 <td key={cellIndex} className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                   {cell}
+                 </td>
+               ))}
+             </tr>
+           ))}
+         </tbody>
       </table>
     </div>
   );
