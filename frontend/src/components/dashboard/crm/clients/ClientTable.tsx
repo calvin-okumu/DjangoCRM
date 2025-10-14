@@ -41,7 +41,9 @@ export default function ClientTable({ clients, loading, error, onEditClient, onD
 
     const headers = ["Name", "Email", "Phone", "Status", "Created", "Actions"];
 
-    const rows = visibleClients.map(client => [
+    const rows = visibleClients.map(client => ({
+        key: client.id,
+        data: [
         client.name,
         client.email,
         client.phone || "-",
@@ -65,7 +67,8 @@ export default function ClientTable({ clients, loading, error, onEditClient, onD
                 <Trash2 className="h-4 w-4" />
             </Button>
         </div>
-    ]);
+        ]
+    }));
 
     if (loading) {
         return <Loader />;

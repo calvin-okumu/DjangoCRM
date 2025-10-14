@@ -38,9 +38,9 @@ export function useTasks(projectId: number, backlog: boolean = false) {
     }
   }, [backlog, projectId]);
 
-  useEffect(() => {
-    fetchTasks();
-  }, [fetchTasks]);
+   useEffect(() => {
+       fetchTasks();
+   }, [fetchTasks, backlog]);
 
   const addTask = async (data: {
     title: string;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import Table from '@/components/ui/Table';
 import Pagination from '@/components/shared/Pagination';
 import Loader from '@/components/shared/Loader';
@@ -26,50 +26,58 @@ export default function ProjectTable({ projects, loading, error, onAddProject, o
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
-    const filteredProjects = projects.filter(project =>
-        project.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-        project.client_name.toLowerCase().includes(searchValue.toLowerCase())
-    );
+     const filteredProjects = useMemo(() =>
+         projects.filter(project =>
+             project.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+             project.client_name.toLowerCase().includes(searchValue.toLowerCase())
+         ),
+         [projects, searchValue]
+     );
 
-    const itemsPerPage = 10;
-    const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
-    const visibleProjects = filteredProjects.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+     const itemsPerPage = 10;
+     const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
+     const visibleProjects = useMemo(() =>
+         filteredProjects.slice((page - 1) * itemsPerPage, page * itemsPerPage),
+         [filteredProjects, page, itemsPerPage]
+     );
 
-    const handleNewProject = () => {
-        setModalMode('add');
-        setSelectedProject(null);
-        setModalOpen(true);
-    };
+     const handleNewProject = useCallback(() => {
+         setModalMode('add');
+         setSelectedProject(null);
+         setModalOpen(true);
+     }, []);
 
-    const handleEdit = (project: Project) => {
-        setModalMode('edit');
-        setSelectedProject(project);
-        setModalOpen(true);
-    };
+     const handleEdit = useCallback((project: Project) => {
+         setModalMode('edit');
+         setSelectedProject(project);
+         setModalOpen(true);
+     }, []);
 
-    const handleSaveProject = async (data: any) => {
-        try {
-            if (modalMode === 'add') {
-                await onAddProject(data);
-            } else if (selectedProject) {
-                await onEditProject(selectedProject.id, data);
-            }
-            setModalOpen(false);
-        } catch (error) {
-            console.error('Error saving project:', error);
-            // TODO: Show error message
-        }
-    };
+     const handleSaveProject = useCallback(async (data: any) => {
+         try {
+             if (modalMode === 'add') {
+                 await onAddProject(data);
+             } else if (selectedProject) {
+                 await onEditProject(selectedProject.id, data);
+             }
+             setModalOpen(false);
+         } catch (error) {
+             console.error('Error saving project:', error);
+             // TODO: Show error message
+         }
+     }, [modalMode, selectedProject, onAddProject, onEditProject]);
 
-    const handleDelete = (id: number) => {
-        if (confirm("Are you sure you want to delete this project?")) {
-            onDeleteProject(id);
-        }
-    };
+     const handleDelete = useCallback((id: number) => {
+         if (confirm("Are you sure you want to delete this project?")) {
+             onDeleteProject(id);
+         }
+     }, [onDeleteProject]);
 
     const headers = ["Name", "Client", "Status", "Priority", "Start Date", "End Date", "Budget", "Progress", "Milestones", "Actions"];
 
-    const rows = visibleProjects.map(p => [
+    const rows = visibleProjects.map(p => ({
+        key: p.id,
+        data: [
         <Link href={`/dashboard/project-management/${p.id}`} className="text-blue-600 hover:text-blue-800 hover:underline">
             {p.name}
         </Link>,
@@ -109,7 +117,8 @@ export default function ProjectTable({ projects, loading, error, onAddProject, o
                 <Trash2 className="h-4 w-4" />
             </Button>
         </div>
-    ]);
+        ]
+    }));
 
     if (loading) {
         return <Loader />;

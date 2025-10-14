@@ -1,51 +1,57 @@
-"use client";
+ "use client";
 
-import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { ProjectProvider } from '@/context/ProjectContext';
-import ProjectLayout from '@/components/dashboard/project-management/ProjectLayout';
-import { useProject } from '@/context/ProjectContext';
-import Loader from '@/components/shared/Loader';
+ import { useState } from 'react';
+ import { ProjectProvider } from '@/context/ProjectContext';
+ import ProjectLayout from '@/components/dashboard/project-management/ProjectLayout';
+ import { useProject } from '@/context/ProjectContext';
+ import Loader from '@/components/shared/Loader';
+ import OverviewSection from '@/components/dashboard/project-management/project-overview/OverviewSection';
+ import MilestoneSection from '@/components/dashboard/project-management/milestone/MilestoneSection';
+ import BacklogSection from '@/components/dashboard/project-management/backlog/Backlogsection';
+ import SprintSection from '@/components/dashboard/project-management/sprint/SprintSection';
 
-function ProjectLayoutWrapper({ children }: { children: React.ReactNode }) {
-    const { project, loading, error } = useProject();
-    const pathname = usePathname();
-    const [activeTab, setActiveTab] = useState('overview');
+ function ProjectLayoutWrapper() {
+     const { project, loading, error } = useProject();
+     const [activeTab, setActiveTab] = useState('overview');
 
-    useEffect(() => {
-        if (pathname.includes('/milestone')) {
-            setActiveTab('milestones');
-        } else if (pathname.includes('/sprint')) {
-            setActiveTab('sprints');
-        } else if (pathname.includes('/backlog')) {
-            setActiveTab('backlog');
-        } else {
-            setActiveTab('overview');
-        }
-    }, [pathname]);
+     if (loading) return <Loader />;
+     if (error) return <div>{error}</div>;
+     if (!project) return <div>Project not found</div>;
 
-    if (loading) return <Loader />;
-    if (error) return <div>{error}</div>;
-    if (!project) return <div>Project not found</div>;
+     const renderContent = () => {
+         switch (activeTab) {
+              case 'overview':
+                  return <OverviewSection project={project} />;
+             case 'milestones':
+                 return <MilestoneSection projectId={project.id} />;
+             case 'backlog':
+                 return <BacklogSection projectId={project.id} />;
+             case 'sprints':
+                 return <SprintSection projectId={project.id} />;
+             case 'documents':
+                 return <div className="p-6 text-center text-gray-500">Documents section coming soon.</div>;
+             case 'completed-tasks':
+                 return <div className="p-6 text-center text-gray-500">Completed Tasks section coming soon.</div>;
+              default:
+                  return <OverviewSection project={project} />;
+         }
+     };
 
-    return (
-        <ProjectLayout
-            project={project}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            projectId={project.id.toString()}
-        >
-            {children}
-        </ProjectLayout>
-    );
-}
+     return (
+         <ProjectLayout
+             project={project}
+             activeTab={activeTab}
+             onTabChange={setActiveTab}
+         >
+             {renderContent()}
+         </ProjectLayout>
+     );
+ }
 
-export default function Layout({ children }: { children: React.ReactNode }) {
-    return (
-        <ProjectProvider>
-            <ProjectLayoutWrapper>
-                {children}
-            </ProjectLayoutWrapper>
-        </ProjectProvider>
-    );
-}
+ export default function Layout() {
+     return (
+         <ProjectProvider activeTab="" onTabChange={() => {}}>
+             <ProjectLayoutWrapper />
+         </ProjectProvider>
+     );
+ }

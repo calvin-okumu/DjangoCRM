@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import Table from '@/components/ui/Table';
 import Pagination from '@/components/shared/Pagination';
 import Loader from '@/components/shared/Loader';
@@ -19,30 +19,41 @@ interface SprintTableProps {
     searchValue: string;
 }
 
-export default function SprintTable({ sprints, loading, error, onEditSprint, onDeleteSprint, onAddSprint, onOpenKanban, searchValue }: SprintTableProps) {
+const SprintTable = React.memo(function SprintTable({ sprints, loading, error, onEditSprint, onDeleteSprint, onAddSprint, onOpenKanban, searchValue }: SprintTableProps) {
     const [page, setPage] = useState(1);
 
-    const filteredSprints = sprints.filter(sprint =>
-        sprint.name.toLowerCase().includes(searchValue.toLowerCase())
+    const filteredSprints = useMemo(() =>
+        sprints.filter(sprint =>
+            sprint.name.toLowerCase().includes(searchValue.toLowerCase())
+        ),
+        [sprints, searchValue]
     );
 
     const itemsPerPage = 10;
-    const totalPages = Math.ceil(filteredSprints.length / itemsPerPage);
-    const visibleSprints = filteredSprints.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+    const totalPages = useMemo(() =>
+        Math.ceil(filteredSprints.length / itemsPerPage),
+        [filteredSprints.length, itemsPerPage]
+    );
+    const visibleSprints = useMemo(() =>
+        filteredSprints.slice((page - 1) * itemsPerPage, page * itemsPerPage),
+        [filteredSprints, page, itemsPerPage]
+    );
 
-    const handleEdit = (sprint: Sprint) => {
+    const handleEdit = useCallback((sprint: Sprint) => {
         onEditSprint(sprint);
-    };
+    }, [onEditSprint]);
 
-    const handleDelete = (id: number) => {
+    const handleDelete = useCallback((id: number) => {
         if (confirm("Are you sure you want to delete this sprint?")) {
             onDeleteSprint(id);
         }
-    };
+    }, [onDeleteSprint]);
 
     const headers = ["Name", "Status", "Start Date", "End Date", "Milestone", "Tasks", "Progress", "Actions"];
 
-    const rows = visibleSprints.map(sprint => [
+    const rows = visibleSprints.map(sprint => ({
+        key: sprint.id,
+        data: [
         sprint.name,
         <span
             className={`px-2 py-1 text-xs font-semibold rounded-full ${
@@ -73,7 +84,8 @@ export default function SprintTable({ sprints, loading, error, onEditSprint, onD
                 <Trash2 className="h-4 w-4" />
             </Button>
         </div>
-    ]);
+        ]
+    }));
 
     if (loading) {
         return <Loader />;
@@ -107,4 +119,6 @@ export default function SprintTable({ sprints, loading, error, onEditSprint, onD
             />
         </div>
     );
-};
+});
+
+export default SprintTable;

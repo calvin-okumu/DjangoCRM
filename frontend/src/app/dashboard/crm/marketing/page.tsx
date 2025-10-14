@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import { Users, Target } from 'lucide-react';
-import MetricsBar from '../components/MetricsBar';
-import ClientsSection from '../components/ClientsSection';
-import AddClientModal from '../components/AddClientModal';
+import MetricsBar from '@/components/dashboard/crm/components/MetricsBar';
+import ClientsSection from '@/components/dashboard/crm/components/ClientsSection';
+import ClientModal from '@/components/dashboard/crm/clients/ClientModal';
+import type { CreateClientData, UpdateClientData } from '@/api/types';
 
 export default function MarketingPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -73,39 +74,12 @@ export default function MarketingPage() {
                 filters={filters}
                 emptyState={emptyState}
             />
-            <AddClientModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                title="Create New Segment"
-                fields={[
-                    {
-                        name: "segmentName",
-                        label: "Segment Name",
-                        type: "text",
-                        required: true,
-                    },
-                    {
-                        name: "segmentType",
-                        label: "Segment Type",
-                        type: "select",
-                        options: [
-                            { value: "demographic", label: "Demographic" },
-                            { value: "behavioral", label: "Behavioral" },
-                            { value: "firmographic", label: "Firmographic" },
-                            { value: "geographic", label: "Geographic" },
-                        ],
-                        defaultValue: "demographic",
-                    },
-                    {
-                        name: "description",
-                        label: "Description",
-                        type: "textarea",
-                        placeholder: "Describe the criteria for this audience segment...",
-                    },
-                ]}
-                onSubmit={(data: Record<string, string>) => console.log("Creating segment:", data)}
-                submitButtonText="Create Segment"
-            />
+             <ClientModal
+                 isOpen={isModalOpen}
+                 onClose={() => setIsModalOpen(false)}
+                 mode="add"
+                 onSave={(data: CreateClientData | UpdateClientData) => console.log("Creating segment:", data)}
+             />
         </div>
     );
 }

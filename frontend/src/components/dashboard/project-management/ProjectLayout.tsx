@@ -5,28 +5,26 @@ import type { Project } from '@/api/types';
 import ProjectHeader from './project-overview/ProjectHeader';
 import ProjectTabs from './project-overview/ProjectTabs';
 
-interface ProjectLayoutProps {
-    project: Project;
-    activeTab: string;
-    onTabChange: (tab: string) => void;
-    projectId: string;
-    children: React.ReactNode;
-}
+ interface ProjectLayoutProps {
+     project: Project;
+     activeTab: string;
+     onTabChange: (tab: string) => void;
+     children: React.ReactNode;
+ }
 
-export default function ProjectLayout({
-    project,
-    activeTab,
-    onTabChange,
-    projectId,
-    children
-}: ProjectLayoutProps) {
-    return (
-        <div className="min-h-screen bg-gray-50">
-            <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <ProjectHeader project={project} />
-                <ProjectTabs activeTab={activeTab} onTabChange={onTabChange} projectId={projectId} />
-                {children}
-            </div>
-        </div>
-    );
-}
+ export default function ProjectLayout({
+     project,
+     activeTab,
+     onTabChange,
+     children
+ }: ProjectLayoutProps) {
+     return (
+         <div className="min-h-screen bg-gray-50">
+             <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                 <ProjectHeader project={project} />
+                 <ProjectTabs activeTab={activeTab} onTabChange={onTabChange} />
+                 {children}
+             </div>
+         </div>
+     );
+ }

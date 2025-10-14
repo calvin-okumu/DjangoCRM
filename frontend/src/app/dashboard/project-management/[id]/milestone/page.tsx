@@ -8,5 +8,5 @@ export default function MilestonePage() {
 
     if (!project) return null;
 
-    return <MilestoneSection projectId={project.id} tenant={project.tenant} />;
+    return <MilestoneSection projectId={project.id} />;
 }
