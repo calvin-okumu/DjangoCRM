@@ -6,31 +6,57 @@ from django.dispatch import receiver
 from .models import Milestone, Project, Sprint, Task
 
 
-@receiver([post_save, post_delete], sender=Task)
-def update_progress_on_task_change(sender, instance, **kwargs):
+@receiver(post_save, sender=Sprint)
+def update_milestone_on_sprint_status_change(sender, instance, **kwargs):
     """
-    Update progress for sprint, milestone, and project when task changes.
-    Also auto-complete sprint if all tasks are done.
+    Update milestone progress when sprint status changes to/from completed.
+    Only triggers on actual status changes to avoid unnecessary updates.
     """
-    # Update sprint progress and status
-    if instance.sprint:
-        instance.sprint.progress = instance.sprint.calculate_progress()
-        # Auto-complete sprint if all tasks are done
-        all_done = instance.sprint.tasks.exists() and all(task.status == 'done' for task in instance.sprint.tasks.all())
-        if all_done and instance.sprint.status != 'completed':
-            instance.sprint.status = 'completed'
-        elif not all_done and instance.sprint.status == 'completed':
-            # Revert if not all done (e.g., task changed back)
-            instance.sprint.status = 'active'  # Or keep as is, but perhaps set to active
-        instance.sprint.save(update_fields=['progress', 'status'])
+    if not hasattr(instance, '_progress_updated'):  # Prevent recursion
+        try:
+            milestone = instance.milestone
+            if milestone:
+                # Calculate new progress based on completed sprints
+                total_sprints = milestone.sprints.count()
+                completed_sprints = milestone.sprints.filter(status='completed').count()
+                new_progress = int((completed_sprints / total_sprints * 100)) if total_sprints > 0 else 0
 
-    # Update milestone progress
-    instance.milestone.progress = instance.milestone.calculate_progress()
-    instance.milestone.save(update_fields=['progress'])
+                # Only update if progress changed
+                if milestone.progress != new_progress:
+                    milestone._progress_updated = True  # Prevent recursion
+                    milestone.progress = new_progress
+                    milestone.save(update_fields=['progress'])
 
-    # Update project progress
-    instance.milestone.project.progress = instance.milestone.project.calculate_progress()
-    instance.milestone.project.save(update_fields=['progress'])
+        except Exception as e:
+            # Log error but don't break the save
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to update milestone progress for sprint {instance.id}: {e}")
+
+@receiver(post_save, sender=Milestone)
+def update_project_on_milestone_progress_change(sender, instance, **kwargs):
+    """
+    Update project progress when milestone progress changes.
+    Only triggers on actual progress changes to avoid unnecessary updates.
+    """
+    if not hasattr(instance, '_progress_updated'):  # Prevent recursion
+        try:
+            project = instance.project
+            if project:
+                # Calculate new progress as average of milestone progress
+                milestones = project.milestones.all()
+                new_progress = sum(m.progress for m in milestones) // len(milestones) if milestones else 0
+
+                # Only update if progress changed
+                if project.progress != new_progress:
+                    project._progress_updated = True  # Prevent recursion
+                    project.progress = new_progress
+                    project.save(update_fields=['progress'])
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to update project progress for milestone {instance.id}: {e}")
 
 @receiver(pre_save, sender=Sprint)
 def notify_sprint_status_change(sender, instance, **kwargs):
