@@ -37,4 +37,5 @@ tzdata==2025.2
 uritemplate==4.2.0
 urllib3==2.5.0
 django-redis==5.4.0
+drf-nested-routers==0.95.0
 isort==5.13.2

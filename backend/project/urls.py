@@ -1,5 +1,6 @@
 from django.urls import include, path
 from rest_framework import routers
+from rest_framework_nested import routers as nested_routers
 
 from . import views
 
@@ -16,8 +17,13 @@ router.register(r'members', views.UserTenantViewSet)
 router.register(r'invitations', views.InvitationViewSet)
 router.register(r'users', views.UserViewSet)
 
+# Nested routers for hierarchical relationships
+projects_router = nested_routers.NestedSimpleRouter(router, r'projects', lookup='project')
+projects_router.register(r'sprints', views.SprintViewSet, basename='project-sprints')
+
 urlpatterns = [
     path('', include(router.urls)),
+    path('', include(projects_router.urls)),
     path('login/', views.login_view, name='login'),
     path('signup/', views.signup_view, name='signup'),
     path('approve-member/', views.approve_member_view, name='approve_member'),

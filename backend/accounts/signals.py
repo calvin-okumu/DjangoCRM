@@ -9,7 +9,13 @@ from .models import UserTenant
 def assign_default_group(sender, instance, created, **kwargs):
     """Assign default group when UserTenant is created and approved"""
     if created and instance.is_approved:
-        group_name = 'Tenant Owners' if instance.is_owner else 'Employees'
+        # Map role to group name
+        group_name = {
+            'Tenant Owner': 'Tenant Owners',
+            'Employee': 'Employees',
+            'Manager': 'Project Managers'
+        }.get(instance.role, 'Employees')
+
         try:
             group = Group.objects.get(name=group_name)
             instance.user.groups.add(group)

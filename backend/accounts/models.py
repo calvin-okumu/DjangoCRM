@@ -71,6 +71,13 @@ class Tenant(models.Model):
         ('201-1000', '201-1000 employees'),
         ('1000+', '1000+ employees'),
     ])
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text='User who originally created this tenant during signup'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
