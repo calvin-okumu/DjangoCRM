@@ -6,12 +6,13 @@ interface KanbanColumnProps {
     title: string;
     tasks: Task[];
     status: string;
+    color: string;
     onTaskClick: (task: Task) => void;
 }
 
-export default function KanbanColumn({ title, tasks, status, onTaskClick }: KanbanColumnProps) {
+export default function KanbanColumn({ title, tasks, status, color, onTaskClick }: KanbanColumnProps) {
     return (
-        <div className="flex-shrink-0 w-80 bg-gray-100 rounded-lg p-4">
+         <div className={`${color} rounded-lg p-4 h-full`}>
             <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center justify-between">
                 {title}
                 <span className="text-sm text-gray-500 bg-white px-2 py-1 rounded">

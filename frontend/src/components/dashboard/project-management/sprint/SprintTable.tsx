@@ -7,8 +7,6 @@ import type { Sprint } from '@/api/types';
 import { Edit, Trash2, AlertCircle, Columns } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import Modal from '@/components/ui/Modal';
-import KanbanSection from './kanban/KanbanSection';
 
 interface SprintTableProps {
     sprints: Sprint[];
@@ -17,14 +15,13 @@ interface SprintTableProps {
     onEditSprint: (sprint: Sprint) => void;
     onDeleteSprint: (id: number) => void;
     onAddSprint: () => void;
+    onOpenKanban: (sprintId: number) => void;
     projectId: number;
     searchValue: string;
 }
 
-const SprintTable = React.memo(function SprintTable({ sprints, loading, error, onEditSprint, onDeleteSprint, onAddSprint, projectId, searchValue }: SprintTableProps) {
+const SprintTable = React.memo(function SprintTable({ sprints, loading, error, onEditSprint, onDeleteSprint, onAddSprint, onOpenKanban, projectId, searchValue }: SprintTableProps) {
     const [page, setPage] = useState(1);
-    const [kanbanModalOpen, setKanbanModalOpen] = useState(false);
-    const [selectedSprintId, setSelectedSprintId] = useState<number | null>(null);
 
     const filteredSprints = useMemo(() =>
         sprints.filter(sprint =>
@@ -94,17 +91,17 @@ const SprintTable = React.memo(function SprintTable({ sprints, loading, error, o
                 </div>
             </div>
             <div className="flex gap-2">
-                {projectId && sprint.id ? (
-                    <Button onClick={() => { setSelectedSprintId(sprint.id); setKanbanModalOpen(true); }} variant="outline" size="sm">
-                        <Columns className="h-4 w-4 mr-2" />
-                        Open Kanban
-                    </Button>
-                ) : (
-                    <span className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-400 bg-gray-100 cursor-not-allowed">
-                        <Columns className="h-4 w-4 mr-2" />
-                        Open Kanban (Invalid)
-                    </span>
-                )}
+                  {projectId && sprint.id ? (
+                      <Button onClick={() => onOpenKanban(sprint.id)} variant="outline" size="sm">
+                          <Columns className="h-4 w-4 mr-2" />
+                          Open Kanban
+                      </Button>
+                  ) : (
+                      <span className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-400 bg-gray-100 cursor-not-allowed">
+                          <Columns className="h-4 w-4 mr-2" />
+                          Open Kanban (Invalid)
+                      </span>
+                  )}
                 <Button onClick={() => handleEdit(sprint)} variant="outline" size="sm">
                     <Edit className="h-4 w-4 mr-2" />
                     Edit
@@ -149,13 +146,7 @@ const SprintTable = React.memo(function SprintTable({ sprints, loading, error, o
                 itemsPerPage={itemsPerPage}
                 totalItems={filteredSprints.length}
             />
-            {kanbanModalOpen && selectedSprintId && (
-                <Modal isOpen={kanbanModalOpen} onClose={() => setKanbanModalOpen(false)} title="Kanban Board" size="xl">
-                    <div className="max-h-[70vh] overflow-auto">
-                        <KanbanSection projectId={projectId} sprintId={selectedSprintId} isModal={true} />
-                    </div>
-                </Modal>
-            )}
+
         </div>
     );
 });
