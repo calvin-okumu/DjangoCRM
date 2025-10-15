@@ -6,7 +6,7 @@ interface ModalProps {
     onClose: () => void;
     title: string;
     children: React.ReactNode;
-    size?: 'sm' | 'md' | 'lg' | 'xl';
+    size?: 'sm' | 'md' | 'lg' | 'xl' | 'full' | 'fullscreen' | 'max';
 }
 
 export default function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
@@ -17,6 +17,9 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
         md: 'max-w-lg',
         lg: 'max-w-2xl',
         xl: 'max-w-4xl',
+        full: 'max-w-6xl',
+        fullscreen: 'max-w-7xl',
+        max: 'max-w-none w-5/6',
     };
 
     return (
@@ -31,6 +34,14 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
             <div
                 className={`relative z-10 bg-white rounded-2xl shadow-lg w-full ${sizeClasses[size]} p-6`}
             >
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none"
+                >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
                 {children}
                 <div className="mt-6 flex justify-end">

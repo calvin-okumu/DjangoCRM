@@ -5,9 +5,10 @@ import SearchInput from '@/components/shared/SearchInput';
 import Button from '@/components/ui/Button';
 import SprintTable from './SprintTable';
 import SprintModal from './SprintModal';
+import Modal from '@/components/ui/Modal';
+import KanbanSection from './kanban/KanbanSection';
 import { useSprints } from '@/hooks/useSprints';
 import { getMilestones } from '@/api/project_mgmt';
-import { useRouter } from 'next/navigation';
 import type { Sprint, Milestone } from '@/api/types';
 import { Plus } from 'lucide-react';
 
@@ -17,10 +18,11 @@ interface SprintSectionProps {
 
 export default function SprintSection({ projectId }: SprintSectionProps) {
     const { sprints, loading, error, addSprint, editSprint, removeSprint } = useSprints(projectId);
-    const router = useRouter();
     const [modalOpen, setModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [selectedSprint, setSelectedSprint] = useState<Sprint | null>(null);
+    const [kanbanModalOpen, setKanbanModalOpen] = useState(false);
+    const [selectedSprintId, setSelectedSprintId] = useState<number | null>(null);
     const [searchValue, setSearchValue] = useState('');
     const [milestones, setMilestones] = useState<Milestone[]>([]);
 
@@ -44,6 +46,11 @@ export default function SprintSection({ projectId }: SprintSectionProps) {
         setModalMode('add');
         setSelectedSprint(null);
         setModalOpen(true);
+    };
+
+    const handleOpenKanban = (sprintId: number) => {
+        setSelectedSprintId(sprintId);
+        setKanbanModalOpen(true);
     };
 
     const handleEditSprint = (sprint: Sprint) => {
@@ -78,9 +85,7 @@ export default function SprintSection({ projectId }: SprintSectionProps) {
         }
     };
 
-    const handleOpenKanban = (sprint: Sprint) => {
-        router.push(`/dashboard/project-management/${projectId}/sprint/${sprint.id}/kanban`);
-    };
+
 
     return (
         <div className="space-y-6">
@@ -103,6 +108,7 @@ export default function SprintSection({ projectId }: SprintSectionProps) {
                 onDeleteSprint={handleDelete}
                 onAddSprint={handleAddSprint}
                 onOpenKanban={handleOpenKanban}
+                projectId={projectId}
                 searchValue={searchValue}
             />
             <SprintModal
@@ -114,6 +120,14 @@ export default function SprintSection({ projectId }: SprintSectionProps) {
                 milestones={milestones}
                 onSave={handleSaveSprint}
             />
+            <Modal
+                isOpen={kanbanModalOpen}
+                onClose={() => setKanbanModalOpen(false)}
+                title="Kanban Board"
+                size="fullscreen"
+            >
+                {selectedSprintId && <KanbanSection projectId={projectId} sprintId={selectedSprintId} onBack={() => setKanbanModalOpen(false)} />}
+            </Modal>
         </div>
     );
 };
