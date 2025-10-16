@@ -8,9 +8,10 @@ interface KanbanColumnProps {
     status: string;
     color: string;
     onTaskClick: (task: Task) => void;
+    onStatusChange: (taskId: number, newStatus: string) => void;
 }
 
-export default function KanbanColumn({ title, tasks, status, color, onTaskClick }: KanbanColumnProps) {
+export default function KanbanColumn({ title, tasks, status, color, onTaskClick, onStatusChange }: KanbanColumnProps) {
     return (
          <div className={`${color} rounded-lg p-4 h-full`}>
             <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center justify-between">
@@ -20,9 +21,9 @@ export default function KanbanColumn({ title, tasks, status, color, onTaskClick 
                 </span>
             </h2>
             <div className="space-y-3 min-h-[400px]">
-                {tasks.map(task => (
-                    <KanbanTaskCard key={task.id} task={task} onClick={() => onTaskClick(task)} />
-                ))}
+                 {tasks.map(task => (
+                     <KanbanTaskCard key={task.id} task={task} onClick={() => onTaskClick(task)} onStatusChange={onStatusChange} />
+                 ))}
                 {tasks.length === 0 && (
                     <div className="text-gray-400 text-sm text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
                         No tasks

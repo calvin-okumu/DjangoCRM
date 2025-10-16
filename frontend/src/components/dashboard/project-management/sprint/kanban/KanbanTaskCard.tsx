@@ -1,10 +1,12 @@
 import React from 'react';
 import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
 import type { Task } from '@/api/types';
 
 interface KanbanTaskCardProps {
     task: Task;
     onClick: () => void;
+    onStatusChange: (taskId: number, newStatus: string) => void;
 }
 
 const PriorityBadge = ({ priority }: { priority: string }) => {
@@ -21,7 +23,36 @@ const PriorityBadge = ({ priority }: { priority: string }) => {
     );
 };
 
-export default function KanbanTaskCard({ task, onClick }: KanbanTaskCardProps) {
+export default function KanbanTaskCard({ task, onClick, onStatusChange }: KanbanTaskCardProps) {
+    const getNextStatuses = (currentStatus: string) => {
+        const statusFlow: Record<string, string[]> = {
+            'to_do': ['in_progress'],
+            'in_progress': ['review'],
+            'review': ['testing'],
+            'testing': ['done']
+        };
+        return statusFlow[currentStatus] || [];
+    };
+
+    const nextStatuses = getNextStatuses(task.status);
+
+    const getButtonText = (status: string) => {
+        if (status === 'in_progress') return 'Move to Progress';
+        if (status === 'review') return 'Move to Review';
+        if (status === 'testing') return 'Move to Testing';
+        if (status === 'done') return 'Mark as Done';
+        return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    };
+
+    const getButtonColor = (status: string) => {
+        const colorMap: Record<string, string> = {
+            'in_progress': 'bg-pink-500 hover:bg-pink-600 text-white',
+            'review': 'bg-blue-500 hover:bg-blue-600 text-white',
+            'testing': 'bg-green-500 hover:bg-green-600 text-white',
+            'done': 'bg-emerald-500 hover:bg-emerald-600 text-white'
+        };
+        return colorMap[status] || 'bg-gray-500 hover:bg-gray-600 text-white';
+    };
     return (
         <Card className="mb-3 cursor-pointer hover:shadow-md transition-shadow" onClick={onClick}>
             <div className="p-3">
@@ -34,6 +65,21 @@ export default function KanbanTaskCard({ task, onClick }: KanbanTaskCardProps) {
                         {task.estimated_hours && <span className="ml-2">{task.estimated_hours}h</span>}
                     </div>
                 </div>
+                {nextStatuses.length > 0 && (
+                    <div className="flex gap-1 mt-2" onClick={(e) => e.stopPropagation()}>
+                        {nextStatuses.map(status => (
+                            <Button
+                                key={status}
+                                onClick={() => onStatusChange(task.id, status)}
+                                variant="outline"
+                                size="sm"
+                                className={`text-xs px-2 py-1 ${getButtonColor(status)}`}
+                            >
+                                {getButtonText(status)}
+                            </Button>
+                        ))}
+                    </div>
+                )}
             </div>
         </Card>
     );

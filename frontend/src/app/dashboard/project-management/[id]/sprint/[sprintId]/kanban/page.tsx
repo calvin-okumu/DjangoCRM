@@ -8,9 +8,7 @@ const KanbanPage = () => {
     const params = useParams();
     const searchParams = useSearchParams();
     const projectId = parseInt(params.id as string);
-    const sprintId = parseInt(searchParams.get('sprintId') as string);
-
-    console.log('KanbanPage: projectId:', projectId, 'sprintId:', sprintId);
+    const sprintId = parseInt(params.sprintId as string);
 
     if (isNaN(projectId) || isNaN(sprintId)) {
         return (
