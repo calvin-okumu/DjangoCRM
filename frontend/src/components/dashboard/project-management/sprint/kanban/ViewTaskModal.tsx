@@ -9,9 +9,48 @@ interface TaskModalProps {
     isOpen: boolean;
     onClose: () => void;
     task: Task;
+    onStatusChange?: (taskId: number, newStatus: string) => void;
+    onDelete?: (taskId: number) => void;
 }
 
-export default function TaskModal({ isOpen, onClose, task }: TaskModalProps) {
+export default function TaskModal({ isOpen, onClose, task, onStatusChange, onDelete }: TaskModalProps) {
+    const getNextStatus = (currentStatus: string) => {
+        const statusFlow = {
+            'todo': 'in_progress',
+            'in_progress': 'review',
+            'review': 'testing',
+            'testing': 'done',
+            'done': 'completed'
+        };
+        return statusFlow[currentStatus as keyof typeof statusFlow];
+    };
+
+    const getButtonText = (currentStatus: string) => {
+        const buttonTexts = {
+            'todo': 'Move to In Progress',
+            'in_progress': 'Move to Review',
+            'review': 'Move to Testing',
+            'testing': 'Mark as Done',
+            'done': 'Move to Completed'
+        };
+        return buttonTexts[currentStatus as keyof typeof buttonTexts];
+    };
+
+    const handleStatusChange = () => {
+        const nextStatus = getNextStatus(task.status);
+        if (nextStatus && onStatusChange) {
+            onStatusChange(task.id, nextStatus);
+            onClose();
+        }
+    };
+
+    const handleDelete = () => {
+        if (onDelete) {
+            onDelete(task.id);
+            onClose();
+        }
+    };
+
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={task.title} size="md">
             <div className="space-y-4">
@@ -47,11 +86,22 @@ export default function TaskModal({ isOpen, onClose, task }: TaskModalProps) {
                     <label className="block text-sm font-medium text-gray-700">Estimated Hours</label>
                     <p className="mt-1 text-sm text-gray-900">{task.estimated_hours || 'Not set'}</p>
                 </div>
-                <div className="flex justify-end space-x-3 pt-4">
-                    <Button onClick={onClose} variant="outline">
-                        Close
-                    </Button>
-                </div>
+                 <div className="flex justify-end space-x-3 pt-4">
+                     {task.status === 'completed' ? (
+                         <Button onClick={handleDelete} variant="danger">
+                             Delete Task
+                         </Button>
+                     ) : (
+                         getNextStatus(task.status) && (
+                             <Button onClick={handleStatusChange} variant="primary">
+                                 {getButtonText(task.status)}
+                             </Button>
+                         )
+                     )}
+                     <Button onClick={onClose} variant="outline">
+                         Close
+                     </Button>
+                 </div>
             </div>
         </Modal>
     );

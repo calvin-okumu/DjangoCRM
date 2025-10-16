@@ -5,7 +5,7 @@ import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import type { Task, Sprint, UserTenant } from '@/api/types';
 
-interface BacklogModalProps {
+interface CreateTaskModalProps {
     isOpen: boolean;
     onClose: () => void;
     mode: 'add' | 'edit';
@@ -23,15 +23,16 @@ interface BacklogModalProps {
         end_date?: string;
         estimated_hours?: number;
     }) => void;
+    defaultSprintId?: number; // For pre-filling sprint in Kanban
 }
 
-export default function BacklogModal({ isOpen, onClose, mode, task, sprints, assignees, onSave }: BacklogModalProps) {
+export default function CreateTaskModal({ isOpen, onClose, mode, task, sprints, assignees, onSave, defaultSprintId }: CreateTaskModalProps) {
     const [formData, setFormData] = useState({
         title: '',
         description: '',
-                status: 'todo',
+        status: 'to_do',
         priority: 'medium',
-        sprint: '',
+        sprint: defaultSprintId?.toString() || '',
         assignee: '',
         start_date: '',
         end_date: '',
@@ -63,9 +64,9 @@ export default function BacklogModal({ isOpen, onClose, mode, task, sprints, ass
             setFormData({
                 title: '',
                 description: '',
-        status: 'todo',
+                status: 'to_do',
                 priority: 'medium',
-                sprint: '',
+                sprint: defaultSprintId?.toString() || '',
                 assignee: '',
                 start_date: '',
                 end_date: '',
@@ -75,7 +76,7 @@ export default function BacklogModal({ isOpen, onClose, mode, task, sprints, ass
             setMaxDate('');
         }
         setErrors({});
-    }, [mode, task, isOpen, sprints]);
+    }, [mode, task, isOpen, sprints, defaultSprintId]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -198,12 +199,10 @@ export default function BacklogModal({ isOpen, onClose, mode, task, sprints, ass
                             onChange={handleChange}
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         >
-                            <option value="todo">To Do</option>
+                            <option value="to_do">To Do</option>
                             <option value="in_progress">In Progress</option>
                             <option value="review">Review</option>
                             <option value="testing">Testing</option>
-                            <option value="done">Done</option>
-                            <option value="completed">Completed</option>
                         </select>
                     </div>
                     <div>
@@ -222,15 +221,16 @@ export default function BacklogModal({ isOpen, onClose, mode, task, sprints, ass
                     </div>
                 </div>
                 <div>
-                    <label htmlFor="sprint" className="block text-sm font-medium text-gray-700">Sprint (Optional)</label>
+                    <label htmlFor="sprint" className="block text-sm font-medium text-gray-700">Sprint</label>
                     <select
                         id="sprint"
                         name="sprint"
                         value={formData.sprint}
                         onChange={handleChange}
+                        required
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     >
-                        <option value="">No Sprint</option>
+                        <option value="">Select Sprint</option>
                         {sprints.map(sprint => (
                             <option key={sprint.id} value={sprint.id}>
                                 {sprint.name}
@@ -255,36 +255,36 @@ export default function BacklogModal({ isOpen, onClose, mode, task, sprints, ass
                         ))}
                     </select>
                 </div>
-                 <div className="grid grid-cols-2 gap-4">
-                     <div>
-                         <label htmlFor="start_date" className="block text-sm font-medium text-gray-700">Start Date</label>
-                         <input
-                             type="date"
-                             id="start_date"
-                             name="start_date"
-                             value={formData.start_date}
-                             onChange={handleChange}
-                             min={minDate}
-                             max={maxDate}
-                             className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${errors.start_date ? 'border-red-500' : 'border-gray-300'}`}
-                         />
-                         {errors.start_date && <p className="text-red-500 text-sm mt-1">{errors.start_date}</p>}
-                     </div>
-                     <div>
-                         <label htmlFor="end_date" className="block text-sm font-medium text-gray-700">End Date</label>
-                         <input
-                             type="date"
-                             id="end_date"
-                             name="end_date"
-                             value={formData.end_date}
-                             onChange={handleChange}
-                             min={minDate}
-                             max={maxDate}
-                             className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${errors.end_date ? 'border-red-500' : 'border-gray-300'}`}
-                         />
-                         {errors.end_date && <p className="text-red-500 text-sm mt-1">{errors.end_date}</p>}
-                     </div>
-                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="start_date" className="block text-sm font-medium text-gray-700">Start Date</label>
+                        <input
+                            type="date"
+                            id="start_date"
+                            name="start_date"
+                            value={formData.start_date}
+                            onChange={handleChange}
+                            min={minDate}
+                            max={maxDate}
+                            className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${errors.start_date ? 'border-red-500' : 'border-gray-300'}`}
+                        />
+                        {errors.start_date && <p className="text-red-500 text-sm mt-1">{errors.start_date}</p>}
+                    </div>
+                    <div>
+                        <label htmlFor="end_date" className="block text-sm font-medium text-gray-700">End Date</label>
+                        <input
+                            type="date"
+                            id="end_date"
+                            name="end_date"
+                            value={formData.end_date}
+                            onChange={handleChange}
+                            min={minDate}
+                            max={maxDate}
+                            className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${errors.end_date ? 'border-red-500' : 'border-gray-300'}`}
+                        />
+                        {errors.end_date && <p className="text-red-500 text-sm mt-1">{errors.end_date}</p>}
+                    </div>
+                </div>
                 <div>
                     <label htmlFor="estimated_hours" className="block text-sm font-medium text-gray-700">Estimated Hours</label>
                     <input

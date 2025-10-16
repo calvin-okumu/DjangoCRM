@@ -17,7 +17,8 @@ export async function getProjects(token: string, tenant?: number): Promise<Proje
     throw new Error(data.error || "Failed to fetch projects");
   }
 
-  return data;
+  // Handle paginated response
+  return data.results || data;
 }
 
 export async function getProject(token: string, id: number): Promise<Project> {
@@ -137,7 +138,8 @@ export async function getMilestones(token: string, projectId?: number, tenant?: 
     throw new Error(data.error || "Failed to fetch milestones");
   }
 
-  return data;
+  // Handle paginated response
+  return data.results || data;
 }
 
 export async function getMilestone(token: string, id: number): Promise<Milestone> {
@@ -248,7 +250,8 @@ export async function getSprints(token: string, projectId?: number): Promise<Spr
     throw new Error(data.error || "Failed to fetch sprints");
   }
 
-  return data;
+  // Handle paginated response
+  return data.results || data;
 }
 
 export async function getSprint(token: string, id: number): Promise<Sprint> {
@@ -428,7 +431,8 @@ export async function getTasks(token: string, milestoneId?: number, sprintId?: n
     throw new Error(data.error || "Failed to fetch tasks");
   }
 
-  return data;
+  // Handle paginated response
+  return data.results || data;
 }
 
 export async function getTask(token: string, id: number): Promise<Task> {

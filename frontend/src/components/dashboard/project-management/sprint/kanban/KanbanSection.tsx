@@ -1,16 +1,17 @@
 "use client";
 
-import { getSprint, getTasks, createTask, getSprints, assignTaskToSprint } from '@/api/project_mgmt';
 import { getUserTenants } from '@/api/crm';
+import { assignTaskToSprint, createTask, deleteTask, getSprint, getSprints, getTasks, updateTask } from '@/api/project_mgmt';
 import type { Sprint, Task, UserTenant } from '@/api/types';
 import Loader from '@/components/shared/Loader';
 import Button from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import TaskModal from '@/components/shared/TaskModal';
 import KanbanBoard from './KanbanBoard';
 import KanbanHeader from './KanbanHeader';
-import TaskModal from './TaskModal';
-import BacklogModal from '../../backlog/BacklogModal';
+import ViewTaskModal from './ViewTaskModal';
+import CreateTaskModal from '@/components/shared/CreateTaskModal';
 
 interface KanbanSectionProps {
     projectId: number;
@@ -34,6 +35,7 @@ export default function KanbanSection({ projectId, sprintId, onBack }: KanbanSec
     const [selectedTasks, setSelectedTasks] = useState<number[]>([]);
     const [sprints, setSprints] = useState<Sprint[]>([]);
     const [users, setUsers] = useState<UserTenant[]>([]);
+    const [addError, setAddError] = useState<string | null>(null);
 
     const fetchData = useCallback(async () => {
         const token = localStorage.getItem('access_token');
@@ -54,7 +56,6 @@ export default function KanbanSection({ projectId, sprintId, onBack }: KanbanSec
             ]);
             setSprint(sprintData);
             setTasks(tasksData);
-            console.log('Fetched sprint and tasks successfully');
         } catch (err) {
             console.error('Fetch error:', err);
             setError(err instanceof Error ? err.message : 'Failed to fetch data. Please check your connection or try again.');
@@ -64,7 +65,6 @@ export default function KanbanSection({ projectId, sprintId, onBack }: KanbanSec
     }, [sprintId]);
 
     useEffect(() => {
-        console.log('KanbanSection useEffect, sprintId:', sprintId);
         if (sprintId) {
             fetchData();
         }
@@ -82,7 +82,9 @@ export default function KanbanSection({ projectId, sprintId, onBack }: KanbanSec
                 ]);
                 setSprints(sprintsData);
                 setUsers(usersData);
-                setBacklogTasks(backlogData);
+                // Filter out tasks that are already in this sprint (safety check)
+                const filteredBacklog = backlogData.filter(task => task.sprint !== sprintId);
+                setBacklogTasks(filteredBacklog);
             } catch (err) {
                 console.error('Failed to fetch modal data:', err);
             }
@@ -108,6 +110,36 @@ export default function KanbanSection({ projectId, sprintId, onBack }: KanbanSec
         setSelectedTask(null);
     };
 
+    const handleStatusChange = async (taskId: number, newStatus: string) => {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+
+        try {
+            await updateTask(token, taskId, { status: newStatus });
+            // Refetch tasks
+            fetchData();
+        } catch (error) {
+            console.error('Error updating task status:', error);
+            alert('Failed to update task status. Please try again.');
+        }
+    };
+
+    const handleDeleteTask = async (taskId: number) => {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+
+        if (!confirm('Are you sure you want to delete this task?')) return;
+
+        try {
+            await deleteTask(token, taskId);
+            // Refetch tasks
+            fetchData();
+        } catch (error) {
+            console.error('Error deleting task:', error);
+            // TODO: Show error message
+        }
+    };
+
     const handleCreateTask = () => {
         setCreateModalMode('add');
         setCreateSelectedTask(null);
@@ -116,6 +148,7 @@ export default function KanbanSection({ projectId, sprintId, onBack }: KanbanSec
 
     const handleAddTask = () => {
         setSelectedTasks([]);
+        setAddError(null);
         setAddModalOpen(true);
     };
 
@@ -131,16 +164,18 @@ export default function KanbanSection({ projectId, sprintId, onBack }: KanbanSec
         const token = localStorage.getItem('access_token');
         if (!token) return;
 
+        setAddError(null);
         try {
             await Promise.all(
                 selectedTasks.map(taskId => assignTaskToSprint(token, sprintId, taskId))
             );
             setAddModalOpen(false);
+            setSelectedTasks([]);
             // Refetch tasks
             fetchData();
         } catch (error) {
             console.error('Error adding tasks:', error);
-            // TODO: Show error message
+            setAddError(error instanceof Error ? error.message : 'Failed to add tasks');
         }
     };
 
@@ -187,7 +222,8 @@ export default function KanbanSection({ projectId, sprintId, onBack }: KanbanSec
                                 setError(null);
                                 setLoading(true);
                                 setSprint(null);
-                                setTasks([]);
+
+
                                 fetchData();
                             }}
                             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -219,15 +255,17 @@ export default function KanbanSection({ projectId, sprintId, onBack }: KanbanSec
                     <Button className='bg-green-600 hover:bg-green-400' onClick={handleAddTask}>Add Task</Button>
                     <Button onClick={handleCreateTask}>Create Task</Button>
                 </div>
-                <KanbanBoard tasks={tasks} onTaskClick={handleTaskClick} />
-                {selectedTask && (
-                    <TaskModal
-                        isOpen={isModalOpen}
-                        onClose={handleCloseModal}
-                        task={selectedTask}
-                    />
-                )}
-                <BacklogModal
+                <KanbanBoard tasks={tasks} onTaskClick={handleTaskClick} onStatusChange={handleStatusChange} />
+                  {selectedTask && (
+                      <ViewTaskModal
+                          isOpen={isModalOpen}
+                          onClose={handleCloseModal}
+                          task={selectedTask}
+                          onStatusChange={handleStatusChange}
+                          onDelete={handleDeleteTask}
+                      />
+                  )}
+                <CreateTaskModal
                     isOpen={createModalOpen}
                     onClose={() => setCreateModalOpen(false)}
                     mode={createModalMode}
@@ -235,6 +273,7 @@ export default function KanbanSection({ projectId, sprintId, onBack }: KanbanSec
                     sprints={sprints}
                     assignees={users}
                     onSave={handleSaveTask}
+                    defaultSprintId={sprintId}
                 />
                 {addModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -249,6 +288,11 @@ export default function KanbanSection({ projectId, sprintId, onBack }: KanbanSec
                                 </svg>
                             </button>
                             <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Tasks from Backlog</h3>
+                            {addError && (
+                                <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                                    {addError}
+                                </div>
+                            )}
                             <div className="max-h-96 overflow-y-auto">
                                 {backlogTasks.length === 0 ? (
                                     <p className="text-gray-500">No backlog tasks available.</p>

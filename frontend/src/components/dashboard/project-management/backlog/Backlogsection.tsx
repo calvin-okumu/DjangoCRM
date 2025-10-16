@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import SearchInput from '@/components/shared/SearchInput';
 import Button from '@/components/ui/Button';
 import BacklogTable from './BacklogTable';
-import BacklogModal from './BacklogModal';
+import CreateTaskModal from '@/components/shared/CreateTaskModal';
 import { useTasks } from '@/hooks/useTasks';
 import { getMilestones, getSprints } from '@/api/project_mgmt';
 import { getUserTenants } from '@/api/crm';
@@ -105,7 +105,7 @@ export default function BacklogSection({ projectId }: BacklogSectionProps) {
                 onAddTask={handleAddTask}
                 searchValue={searchValue}
             />
-            <BacklogModal
+            <CreateTaskModal
                 isOpen={modalOpen}
                 onClose={() => setModalOpen(false)}
                 mode={modalMode}
