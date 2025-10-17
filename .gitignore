@@ -129,4 +129,4 @@ yarn-debug.log*
 yarn-error.log*
 
 # Static files
-staticfiles/
+staticfiles/README_UPDATED.md

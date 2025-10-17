@@ -18,8 +18,70 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Import logging configuration after BASE_DIR is defined
+import importlib.util
+import logging
+
+# Load logging configuration module
+logging_config_path = BASE_DIR / "saasCRM" / "logging.py"
+if logging_config_path.exists():
+    spec = importlib.util.spec_from_file_location("logging_config", logging_config_path)
+    if spec and spec.loader:
+        logging_config = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(logging_config)
+        setup_logging = logging_config.setup_logging
+    else:
+        # Fallback function
+        def setup_logging(base_dir):
+            return {
+                'version': 1,
+                'disable_existing_loggers': False,
+                'handlers': {'console': {'class': 'logging.StreamHandler'}},
+                'root': {'handlers': ['console'], 'level': 'INFO'},
+            }
+else:
+    # Fallback function if file doesn't exist
+    def setup_logging(base_dir):
+        return {
+            'version': 1,
+            'disable_existing_loggers': False,
+            'handlers': {'console': {'class': 'logging.StreamHandler'}},
+            'root': {'handlers': ['console'], 'level': 'INFO'},
+        }
+
 # Load environment variables from .env file
 load_dotenv(dotenv_path=BASE_DIR / '.env')
+
+# Import logging configuration
+import importlib.util
+import logging
+
+# Load logging configuration module
+logging_config_path = BASE_DIR / "saasCRM" / "logging.py"
+if logging_config_path.exists():
+    spec = importlib.util.spec_from_file_location("logging_config", logging_config_path)
+    if spec and spec.loader:
+        logging_config = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(logging_config)
+        setup_logging = logging_config.setup_logging
+    else:
+        # Fallback function
+        def setup_logging(base_dir):
+            return {
+                'version': 1,
+                'disable_existing_loggers': False,
+                'handlers': {'console': {'class': 'logging.StreamHandler'}},
+                'root': {'handlers': ['console'], 'level': 'INFO'},
+            }
+else:
+    # Fallback function if file doesn't exist
+    def setup_logging(base_dir):
+        return {
+            'version': 1,
+            'disable_existing_loggers': False,
+            'handlers': {'console': {'class': 'logging.StreamHandler'}},
+            'root': {'handlers': ['console'], 'level': 'INFO'},
+        }
 
 
 # Quick-start development settings - unsuitable for production
@@ -303,63 +365,4 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 
 # Logging configuration
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
-        },
-    },
-    'filters': {
-        'info_only': {
-            '()': 'django.utils.log.CallbackFilter',
-            'callback': lambda record: record.levelno == 20,  # INFO
-        },
-        'warning_only': {
-            '()': 'django.utils.log.CallbackFilter',
-            'callback': lambda record: record.levelno == 30,  # WARNING
-        },
-        'error_only': {
-            '()': 'django.utils.log.CallbackFilter',
-            'callback': lambda record: record.levelno >= 40,  # ERROR and above
-        },
-    },
-    'handlers': {
-        'info_file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR.parent / 'logs' / 'backend' / 'info.log',
-            'formatter': 'verbose',
-            'filters': ['info_only'],
-            'maxBytes': 10485760,  # 10MB
-            'backupCount': 5,
-        },
-        'warning_file': {
-            'level': 'WARNING',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR.parent / 'logs' / 'backend' / 'warning.log',
-            'formatter': 'verbose',
-            'filters': ['warning_only'],
-            'maxBytes': 10485760,  # 10MB
-            'backupCount': 5,
-        },
-        'error_file': {
-            'level': 'ERROR',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR.parent / 'logs' / 'backend' / 'error.log',
-            'formatter': 'verbose',
-            'filters': ['error_only'],
-            'maxBytes': 10485760,  # 10MB
-            'backupCount': 5,
-        },
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'root': {
-        'handlers': ['console', 'info_file', 'warning_file', 'error_file'],
-        'level': 'INFO',
-    },
-}
+LOGGING = setup_logging(BASE_DIR)

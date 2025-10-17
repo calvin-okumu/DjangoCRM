@@ -166,6 +166,9 @@ class Sprint(models.Model):
     milestone = models.ForeignKey(
         Milestone, on_delete=models.CASCADE, related_name="sprints", db_index=True
     )
+    progress = models.PositiveIntegerField(
+        default=0, validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def clean(self):
@@ -200,11 +203,6 @@ class Sprint(models.Model):
                 raise ValidationError(
                     f"Invalid status transition from '{old_instance.status}' to '{self.status}'"
                 )
-
-    @property
-    def progress(self):
-        """Binary progress: 0% unless completed"""
-        return 100 if self.status == 'completed' else 0
 
     def __str__(self):
         return f"{self.name} ({self.milestone.name})"

@@ -13,6 +13,7 @@ A comprehensive guide to setting up, developing, and deploying the DjangoCRM mul
 - [Testing](#testing)
 - [Deployment](#deployment)
 - [API Usage](#api-usage)
+- [Progress Tracking](#progress-tracking)
 - [Troubleshooting](#troubleshooting)
 
 ## Overview
@@ -23,7 +24,7 @@ Key features:
 - Multi-tenant architecture with subdomain-based access
 - Role-based access control with 5 default user groups
 - Client and project management
-- Agile task tracking with progress calculation
+- Agile task tracking with automated progress calculation
 - Invoice and payment processing
 - RESTful API with comprehensive documentation
 
@@ -99,21 +100,21 @@ npm run setup
 #### Backend (.env)
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `SECRET_KEY` | Django secret key | Required |
-| `DEBUG` | Debug mode | `True` |
-| `ALLOWED_HOSTS` | Allowed domains | `localhost,127.0.0.1` |
-| `DB_NAME` | Database name | `saascrm_db` |
-| `DB_USER` | Database user | `saascrm_user` |
-| `DB_PASSWORD` | Database password | Required |
-| `DB_HOST` | Database host | `localhost` |
-| `DB_PORT` | Database port | `5432` |
-| `MULTI_TENANCY_ENABLED` | Enable tenant isolation | `False` |
+| SECRET_KEY | Django secret key | Required |
+| DEBUG | Debug mode | True |
+| ALLOWED_HOSTS | Allowed domains | localhost,127.0.0.1 |
+| DB_NAME | Database name | saascrm_db |
+| DB_USER | Database user | saascrm_user |
+| DB_PASSWORD | Database password | Required |
+| DB_HOST | Database host | localhost |
+| DB_PORT | Database port | 5432 |
+| MULTI_TENANCY_ENABLED | Enable tenant isolation | False |
 
 #### Frontend (.env.local)
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `NEXT_PUBLIC_API_URL` | Backend API URL | `http://localhost:8000/api` |
-| `NEXT_PUBLIC_APP_ENV` | Environment | `development` |
+| NEXT_PUBLIC_API_URL | Backend API URL | http://localhost:8000/api |
+| NEXT_PUBLIC_APP_ENV | Environment | development |
 
 ### Database Setup
 
@@ -196,16 +197,16 @@ make docker-up
 ```
 
 ### Production Setup
-1. Set `MULTI_TENANCY_ENABLED=True`
+1. Set MULTI_TENANCY_ENABLED=True
 2. Configure subdomain routing
-3. Build frontend: `make build-frontend`
-4. Collect static files: `python manage.py collectstatic`
+3. Build frontend: make build-frontend
+4. Collect static files: python manage.py collectstatic
 5. Use production server (gunicorn/uwsgi)
 
 ### CI/CD
 Automated deployments via GitHub Actions:
-- `main` branch → Production
-- `dev` branch → Staging
+- main branch → Production
+- dev branch → Staging
 - Pull requests → CI testing
 
 ## API Usage
@@ -225,20 +226,87 @@ curl -H "Authorization: Token YOUR_TOKEN" \
 ### Key Endpoints
 | Endpoint | Methods | Description |
 |----------|---------|-------------|
-| `/api/login/` | POST | Authentication |
-| `/api/signup/` | POST | User registration |
-| `/api/tenants/` | GET, POST | Tenant management |
-| `/api/clients/` | GET, POST, PUT, DELETE | Client CRUD |
-| `/api/projects/` | GET, POST, PUT, DELETE | Project management |
-| `/api/tasks/` | GET, POST, PUT, DELETE | Task management |
-| `/api/invoices/` | GET, POST, PUT, DELETE | Invoice processing |
+| /api/login/ | POST | Authentication |
+| /api/signup/ | POST | User registration |
+| /api/tenants/ | GET, POST | Tenant management |
+| /api/clients/ | GET, POST, PUT, DELETE | Client CRUD |
+| /api/projects/ | GET, POST, PUT, DELETE | Project management |
+| /api/tasks/ | GET, POST, PUT, DELETE | Task management |
+| /api/invoices/ | GET, POST, PUT, DELETE | Invoice processing |
 
 ### Documentation
 - Interactive API Docs: http://localhost:8000/docs/
 - Swagger UI: http://localhost:8000/api/schema/swagger-ui/
 - OpenAPI Schema: http://localhost:8000/api/schema/
 
-For detailed API documentation, see `backend/API_DOCUMENTATION.md`.
+For detailed API documentation, see backend/API_DOCUMENTATION.md.
+
+## Progress Tracking
+
+DjangoCRM includes sophisticated automated progress tracking that provides real-time visibility into project completion across all levels of the hierarchy.
+
+### Progress Hierarchy
+
+#### Task Level Progress
+Tasks have progress based on their current status:
+- **To Do**: 0% (not started)
+- **In Progress**: 25% (work has begun)
+- **In Review**: 50% (work completed, awaiting review)
+- **Testing**: 75% (in testing phase)
+- **Done**: 100% (completed)
+
+#### Sprint Level Progress
+Sprints use binary progress calculation:
+- **0%**: Sprint is planned or active (not yet completed)
+- **100%**: Sprint status is "completed"
+
+#### Milestone Level Progress
+Milestone progress = (Completed Sprints / Total Sprints) × 100
+
+#### Project Level Progress
+Project progress = Average of all milestone progress values
+
+### Automatic Updates
+
+Progress values update automatically through Django signals:
+- Task status changes trigger sprint completion checks
+- Sprint completions update milestone progress
+- Milestone changes update project progress
+- All updates cascade upward in real-time
+
+### Manual Refresh
+
+For data consistency, use the manual refresh endpoint:
+```bash
+curl -X POST http://localhost:8000/api/projects/{id}/refresh_project_progress/ \
+  -H "Authorization: Token YOUR_TOKEN"
+```
+
+### Frontend Integration
+
+Progress data is available in all API responses. Frontend applications can:
+
+```javascript
+// Fetch project with progress
+const project = await fetch('/api/projects/1/');
+console.log(`Project Progress: ${project.progress}%`);
+
+// Display progress bars
+<ProgressBar value={project.progress} max={100} />
+
+// Real-time updates
+setInterval(() => {
+  fetch('/api/projects/1/').then(r => r.json())
+    .then(data => updateProgress(data.progress));
+}, 30000);
+```
+
+### Benefits
+
+- **Real-time Visibility**: Progress updates automatically as work progresses
+- **Hierarchical Tracking**: Understand progress at task, sprint, milestone, and project levels
+- **Data Integrity**: Signals ensure progress stays synchronized
+- **Performance**: Efficient database queries for bulk updates
 
 ## Troubleshooting
 
@@ -247,22 +315,22 @@ For detailed API documentation, see `backend/API_DOCUMENTATION.md`.
 **Backend Won't Start**
 - Check database connection and credentials
 - Ensure port 8000 is available
-- Verify Python dependencies: `pip install -r requirements.txt`
+- Verify Python dependencies: pip install -r requirements.txt
 
 **Frontend Won't Start**
 - Confirm port 3000 is free
-- Check `NEXT_PUBLIC_API_URL` in `.env.local`
-- Reinstall dependencies: `npm install`
+- Check NEXT_PUBLIC_API_URL in .env.local
+- Reinstall dependencies: npm install
 
 **Tests Failing**
 - Ensure database is running
 - Check environment variables
-- Run setup: `./setup.sh`
+- Run setup: ./setup.sh
 
 **Docker Issues**
 - Verify Docker daemon is running
-- Check port conflicts in `docker-compose.yml`
-- Clear cache: `docker system prune`
+- Check port conflicts in docker-compose.yml
+- Clear cache: docker system prune
 
 ### Useful Commands
 ```bash

@@ -1,39 +1,39 @@
 services:
-   db:
-     image: postgres:15
-     environment:
-       POSTGRES_DB: ${DB_NAME}
-       POSTGRES_USER: ${DB_USER}
-       POSTGRES_PASSWORD: ${DB_PASSWORD}
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
-     healthcheck:
-       test: ["CMD-SHELL", "pg_isready -U saascrm_user -d saascrm_db"]
-       interval: 10s
-       timeout: 5s
-       retries: 5
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saascrm_user -d saascrm_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-   redis:
-     image: redis:alpine
-     ports:
-       - "6379:6379"
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
 
-   backend:
+  backend:
     build: ./backend
-     environment:
-       - DJANGO_ENV=development
-       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
-       - SECRET_KEY=${SECRET_KEY}
-       - RUN_SETUP=true
+    environment:
+      - DJANGO_ENV=development
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - SECRET_KEY=${SECRET_KEY}
+      - RUN_SETUP=true
     ports:
       - "8000:8000"
-     depends_on:
-       db:
-         condition: service_healthy
-       redis:
-         condition: service_started
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     volumes:
       - ./backend:/app
     command: python manage.py runserver 0.0.0.0:8000
