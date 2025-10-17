@@ -10,12 +10,22 @@ import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import ProjectModal from '../ProjectModal';
 
+interface ProjectFormData {
+    name: string;
+    client: number;
+    status: 'active' | 'completed' | 'on-hold';
+    priority: 'high' | 'medium' | 'low';
+    start_date: string;
+    end_date: string;
+    budget?: string;
+}
+
 interface ProjectTableProps {
     projects: Project[];
     loading: boolean;
     error: string | null;
-    onAddProject: (data: any) => void;
-    onEditProject: (id: number, data: any) => void;
+    onAddProject: (data: ProjectFormData) => void;
+    onEditProject: (id: number, data: ProjectFormData) => void;
     onDeleteProject: (id: number) => void;
 }
 
@@ -53,7 +63,7 @@ export default function ProjectTable({ projects, loading, error, onAddProject, o
          setModalOpen(true);
      }, []);
 
-     const handleSaveProject = useCallback(async (data: any) => {
+      const handleSaveProject = useCallback(async (data: ProjectFormData) => {
          try {
              if (modalMode === 'add') {
                  await onAddProject(data);
@@ -78,11 +88,12 @@ export default function ProjectTable({ projects, loading, error, onAddProject, o
     const rows = visibleProjects.map(p => ({
         key: p.id,
         data: [
-        <Link href={`/dashboard/project-management/${p.id}`} className="text-blue-600 hover:text-blue-800 hover:underline">
+        <Link key={p.id + '-name'} href={`/dashboard/project-management/${p.id}`} className="text-blue-600 hover:text-blue-800 hover:underline">
             {p.name}
         </Link>,
         p.client_name,
         <span
+            key={p.id + '-status'}
             className={`px-2 py-1 text-xs font-semibold rounded-full ${p.status === "active"
                 ? "bg-green-100 text-green-800"
                 : p.status === "completed"
@@ -95,6 +106,7 @@ export default function ProjectTable({ projects, loading, error, onAddProject, o
             {p.status}
         </span>,
         <span
+            key={p.id + '-priority'}
             className={`px-2 py-1 text-xs font-semibold rounded-full ${p.priority === "high"
                 ? "bg-red-100 text-red-800"
                 : p.priority === "medium"
@@ -109,7 +121,7 @@ export default function ProjectTable({ projects, loading, error, onAddProject, o
         p.budget ? `$${p.budget}` : "-",
         `${p.progress}%`,
         p.milestones_count,
-        <div className="flex gap-2">
+        <div key={p.id + '-actions'} className="flex gap-2">
             <Button onClick={() => handleEdit(p)} variant="outline" size="sm">
                 <Edit className="h-4 w-4" />
             </Button>

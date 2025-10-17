@@ -1,12 +1,15 @@
 // Export types
 export type {
   Client,
+  CreateClientData,
   LoginResponse,
   Milestone,
   Project,
   SignupResponse,
   Sprint,
   Task,
+  UpdateClientData,
+  User,
   UserTenant,
 } from "./types";
 

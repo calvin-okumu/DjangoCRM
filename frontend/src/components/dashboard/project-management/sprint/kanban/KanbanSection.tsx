@@ -7,7 +7,7 @@ import Loader from '@/components/shared/Loader';
 import Button from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import TaskModal from '@/components/shared/TaskModal';
+
 import KanbanBoard from './KanbanBoard';
 import KanbanHeader from './KanbanHeader';
 import ViewTaskModal from './ViewTaskModal';

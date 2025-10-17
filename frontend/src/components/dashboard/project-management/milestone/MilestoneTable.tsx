@@ -57,6 +57,7 @@ const MilestoneTable = React.memo(function MilestoneTable({ milestones, loading,
             milestone.name,
             milestone.description || "-",
             <span
+                key={milestone.id + '-status'}
                 className={`px-2 py-1 text-xs font-semibold rounded-full ${
                     milestone.status === 'completed'
                         ? 'bg-green-100 text-green-800'
@@ -71,7 +72,7 @@ const MilestoneTable = React.memo(function MilestoneTable({ milestones, loading,
             </span>,
             milestone.due_date ? new Date(milestone.due_date).toLocaleDateString() : "-",
             `${milestone.progress}%`,
-            <div className="flex gap-2">
+            <div key={milestone.id + '-actions'} className="flex gap-2">
                 <Button onClick={() => handleEdit(milestone)} variant="outline" size="sm">
                     <Edit className="h-4 w-4" />
                 </Button>
