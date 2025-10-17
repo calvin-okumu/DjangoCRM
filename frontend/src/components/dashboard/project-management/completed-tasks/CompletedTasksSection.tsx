@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { getTasks, deleteTask, API_BASE } from '@/api/project_mgmt';
+import { getTasks, deleteTask } from '@/api/project_mgmt';
+import { API_BASE } from '@/api';
 import type { Task } from '@/api/types';
 import Loader from '@/components/shared/Loader';
 import Button from '@/components/ui/Button';

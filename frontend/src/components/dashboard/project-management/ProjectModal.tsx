@@ -6,12 +6,22 @@ import Button from '@/components/ui/Button';
 import { useClients } from '@/hooks/useClients';
 import type { Project } from '@/api/types';
 
+interface ProjectFormData {
+    name: string;
+    client: number;
+    status: 'active' | 'completed' | 'on-hold';
+    priority: 'high' | 'medium' | 'low';
+    start_date: string;
+    end_date: string;
+    budget?: string;
+}
+
 interface ProjectModalProps {
     isOpen: boolean;
     onClose: () => void;
     mode: 'add' | 'edit';
     project?: Project;
-    onSave: (data: any) => void;
+    onSave: (data: ProjectFormData) => void;
 }
 
 export default function ProjectModal({ isOpen, onClose, mode, project, onSave }: ProjectModalProps) {

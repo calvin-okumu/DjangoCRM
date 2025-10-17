@@ -11,7 +11,7 @@ export async function getUsers(token: string): Promise<User[]> {
     },
   });
 
-  let data: UserTenant[];
+  let data: unknown;
   try {
     data = await response.json();
   } catch {
@@ -19,11 +19,12 @@ export async function getUsers(token: string): Promise<User[]> {
   }
 
   if (!response.ok) {
-    throw new Error(data.error || `Failed to fetch members from ${url}: ${response.status} ${response.statusText}`);
+    const errorData = data as {error?: string};
+    throw new Error(errorData.error || `Failed to fetch members from ${url}: ${response.status} ${response.statusText}`);
   }
 
   // Transform UserTenant[] to User[]
-  return data.map((ut: UserTenant) => ({
+  return (data as UserTenant[]).map((ut: UserTenant) => ({
     id: ut.user,
     email: ut.user_email,
     first_name: ut.user_first_name,

@@ -48,6 +48,7 @@ export default function ClientTable({ clients, loading, error, onEditClient, onD
         client.email,
         client.phone || "-",
         <span
+            key={client.id + '-status'}
             className={`px-2 py-1 text-xs font-semibold rounded-full ${
                 client.status === 'active'
                     ? 'bg-green-100 text-green-800'
@@ -59,7 +60,7 @@ export default function ClientTable({ clients, loading, error, onEditClient, onD
             {client.status}
         </span>,
         new Date(client.created_at).toLocaleDateString(),
-        <div className="flex gap-2">
+        <div key={client.id + '-actions'} className="flex gap-2">
             <Button onClick={() => handleEdit(client)} variant="outline" size="sm">
                 <Edit className="h-4 w-4" />
             </Button>

@@ -57,6 +57,7 @@ const BacklogTable = React.memo(function BacklogTable({ tasks, loading, error, o
         task.title,
         task.description || "-",
         <span
+            key={task.id + '-status'}
             className={`px-2 py-1 text-xs font-semibold rounded-full ${
                 task.status === 'done'
                     ? 'bg-green-100 text-green-800'
@@ -72,6 +73,7 @@ const BacklogTable = React.memo(function BacklogTable({ tasks, loading, error, o
             {task.status.replace('_', ' ')}
         </span>,
         <span
+            key={task.id + '-priority'}
             className={`px-2 py-1 text-xs font-semibold rounded-full ${
                 task.priority === 'high'
                     ? 'bg-red-100 text-red-800'
@@ -84,7 +86,7 @@ const BacklogTable = React.memo(function BacklogTable({ tasks, loading, error, o
         </span>,
         task.milestone_name || "-",
         task.assignee ? "Assigned" : "-", // Placeholder
-        <div className="flex gap-2">
+        <div key={task.id + '-actions'} className="flex gap-2">
             <Button onClick={() => handleEdit(task)} variant="outline" size="sm">
                 <Edit className="h-4 w-4" />
             </Button>
