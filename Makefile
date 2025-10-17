@@ -152,16 +152,27 @@ build-frontend:
 
 # Docker commands
 docker-up:
-	@echo "Starting Docker services..."
-	@docker-compose up -d
+	@echo "Starting development Docker services..."
+	@docker compose up -d
 	@echo "Services started:"
-	@echo "  - PostgreSQL: localhost:5432"
+	@echo "  - PostgreSQL: localhost:5433"
 	@echo "  - Backend: http://localhost:8000"
 	@echo "  - Frontend: http://localhost:3000"
 
 docker-down:
+docker-up-staging:
+	@echo "Starting staging Docker services..."
+	@docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
+	@echo "Staging services started:"
+	@echo "  - PostgreSQL: localhost:5433"
+	@echo "  - Backend: http://localhost:8000"
+	@echo "  - Frontend: http://localhost:80"
+
+docker-down-staging:
+	@echo "Stopping staging Docker services..."
+	@docker compose -f docker-compose.yml -f docker-compose.staging.yml down
 	@echo "Stopping Docker services..."
-	@docker-compose down
+	@docker compose down
 
 docker-logs:
 	@echo "Showing Docker logs..."
