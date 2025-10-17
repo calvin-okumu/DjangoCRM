@@ -1,4 +1,5 @@
 from datetime import timedelta
+import random
 
 import factory
 from django.contrib.auth.models import Group
@@ -9,6 +10,12 @@ from accounts.models import CustomUser, Tenant, UserTenant
 from .models import Client, Invoice, Milestone, Payment, Project, Sprint, Task
 
 fake = Faker()
+
+def generate_valid_phone():
+    """Generate phone number matching model regex ^\+?1?\d{9,15}$"""
+    digit_count = random.randint(9, 15)
+    digits = ''.join(random.choices('0123456789', k=digit_count))
+    return f"+1{digits}" if random.choice([True, False]) else digits
 
 class GroupFactory(factory.django.DjangoModelFactory):
     class Meta:
@@ -38,7 +45,7 @@ class TenantFactory(factory.django.DjangoModelFactory):
     name = factory.Faker('company')
     domain = factory.Sequence(lambda n: f'tenant{n}.sample.com')
     address = factory.Faker('address')
-    phone = factory.LazyFunction(lambda: fake.phone_number()[:20])
+    phone = factory.LazyFunction(generate_valid_phone)
     website = factory.Faker('url')
     industry = factory.Iterator(['Technology', 'Healthcare', 'Finance', 'Education', 'Retail'])
     company_size = factory.Iterator(['1-10', '11-50', '51-200', '201-1000', '1000+'])
@@ -48,7 +55,7 @@ class ClientFactory(factory.django.DjangoModelFactory):
         model = Client
     name = factory.Faker('name')
     email = factory.Faker('email')
-    phone = factory.LazyFunction(lambda: fake.phone_number()[:20])
+    phone = factory.LazyFunction(generate_valid_phone)
     status = factory.Iterator(['active', 'inactive', 'prospect'])
     tenant = factory.Iterator(Tenant.objects.all())
 
@@ -84,6 +91,7 @@ class SprintFactory(factory.django.DjangoModelFactory):
         model = Sprint
     name = factory.LazyFunction(lambda: fake.sentence(nb_words=2)[:255])
     status = factory.Iterator(['planned', 'active', 'completed'])
+    progress = factory.Faker('random_int', min=0, max=100)
     milestone = factory.Iterator(Milestone.objects.all())
     tenant = factory.SelfAttribute('milestone.tenant')
     start_date = factory.LazyAttribute(lambda obj: obj.milestone.planned_start + timedelta(days=1) if obj.milestone.planned_start else factory.Faker('date_this_year'))
