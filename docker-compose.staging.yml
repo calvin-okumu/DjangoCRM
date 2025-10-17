@@ -1,26 +1,59 @@
+version: '3.8'
+
 services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: saascrm_db
+      POSTGRES_USER: saascrm_user
+      POSTGRES_PASSWORD: saascrm_password
+    volumes:
+      - postgres_staging_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saascrm_user -d saascrm_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
   backend:
     image: ghcr.io/calvin-okumu/carlhub-erp/backend:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     restart: always
-     environment:
-       - DJANGO_ENV=staging
-       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
-       - SECRET_KEY=${SECRET_KEY}
-       - RUN_SETUP=false
+    env_file:
+      - .env.staging
+    environment:
+      - DJANGO_ENV=staging
+      - DATABASE_URL=postgresql://saascrm_user:saascrm_password@db:5432/saascrm_db
+      - SECRET_KEY=${SECRET_KEY}
+      - RUN_SETUP=false
     command: gunicorn saasCRM.wsgi:application --bind 0.0.0.0:8000
     volumes:
       - static_staging:/app/static
     ports:
       - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
 
   frontend:
     image: ghcr.io/calvin-okumu/carlhub-erp/frontend:latest
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     restart: always
     environment:
       - NODE_ENV=staging
-      - NEXT_PUBLIC_API_URL=http://staging.local:8000/api
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api
     ports:
       - "80:3000"
+    depends_on:
+      - backend
 
 volumes:
+  postgres_staging_data:
   static_staging:
