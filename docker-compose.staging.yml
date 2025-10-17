@@ -9,16 +9,18 @@ services:
 
   db:
     image: postgres:15
+    env_file:
+      - .env.staging
     environment:
-      POSTGRES_DB: saascrm_db
-      POSTGRES_USER: saascrm_user
-      POSTGRES_PASSWORD: saascrm_password
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_staging_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U saascrm_user -d saascrm_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -34,7 +36,7 @@ services:
       - .env.staging
     environment:
       - DJANGO_ENV=staging
-      - DATABASE_URL=postgresql://saascrm_user:saascrm_password@db:5432/saascrm_db
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
       - SECRET_KEY=${SECRET_KEY}
       - RUN_SETUP=false
     command: gunicorn saasCRM.wsgi:application --bind 0.0.0.0:8000
@@ -54,14 +56,14 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     restart: always
+    env_file:
+      - .env.staging
     environment:
       - NODE_ENV=staging
-      - NEXT_PUBLIC_API_URL=http://localhost:8000/api
+      - NEXT_PUBLIC_API_URL=${SITE_URL}/api
     ports:
       - "80:3000"
     depends_on:
-      redis:
-        condition: service_started
       - backend
 
 volumes:
