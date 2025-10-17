@@ -155,7 +155,8 @@ docker-up:
 	@echo "Starting development Docker services..."
 	@docker compose up -d
 	@echo "Services started:"
-	@echo "  - PostgreSQL: localhost:5433"
+	@echo "  - PostgreSQL: localhost:5432
+  - Redis: localhost:6379"
 	@echo "  - Backend: http://localhost:8000"
 	@echo "  - Frontend: http://localhost:3000"
 
@@ -164,7 +165,8 @@ docker-up-staging:
 	@echo "Starting staging Docker services..."
 	@docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
 	@echo "Staging services started:"
-	@echo "  - PostgreSQL: localhost:5433"
+	@echo "  - PostgreSQL: localhost:5432
+  - Redis: localhost:6379"
 	@echo "  - Backend: http://localhost:8000"
 	@echo "  - Frontend: http://localhost:80"
 
