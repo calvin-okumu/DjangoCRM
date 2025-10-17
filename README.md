@@ -10,7 +10,7 @@ A comprehensive multi-tenant Customer Relationship Management system with a mode
 - **Client Management**: Track clients with detailed contact information and project history
 - **Project Lifecycle Management**: Full project tracking with milestones, sprints, and tasks
 - **Agile Task Management**: Status-based task tracking with dates, estimated hours, and assignments
-- **Progress Calculation**: Automatic progress aggregation from tasks → sprints → milestones → projects
+- **Automated Progress Tracking**: Real-time progress calculation from individual tasks up to project level
 - **Date Validation**: Hierarchical date constraints ensuring logical timelines across all entities
 - **Financial Management**: Complete invoice and payment processing with client billing
 
@@ -141,6 +141,57 @@ make build
 make start-production
 ```
 
+## 📊 Progress Tracking System
+
+DjangoCRM includes sophisticated automated progress tracking that provides real-time visibility into project completion across all levels of the hierarchy.
+
+### Progress Hierarchy
+
+#### Task Level Progress
+Tasks have progress based on their current status:
+- **To Do**: 0% (not started)
+- **In Progress**: 25% (work has begun)
+- **In Review**: 50% (work completed, awaiting review)
+- **Testing**: 75% (in testing phase)
+- **Done**: 100% (completed)
+
+#### Sprint Level Progress
+Sprints use binary progress calculation:
+- **0%**: Sprint is planned or active (not yet completed)
+- **100%**: Sprint status is "completed"
+
+#### Milestone Level Progress
+Milestone progress = (Completed Sprints / Total Sprints) × 100
+
+#### Project Level Progress
+Project progress = Average of all milestone progress values
+
+### Automatic Updates
+
+Progress values update automatically through Django signals:
+- Task status changes trigger sprint completion checks
+- Sprint completions update milestone progress
+- Milestone changes update project progress
+- All updates cascade upward in real-time
+
+### Frontend Integration
+
+Progress data is available in all API responses. Frontend applications can display:
+- Real-time progress bars and charts
+- Hierarchical progress visualization
+- Automated dashboard updates
+- Progress-based project insights
+
+### Manual Refresh
+
+For data consistency, use the manual refresh endpoint:
+```bash
+curl -X POST http://localhost:8000/api/projects/{id}/refresh_project_progress/ \
+  -H "Authorization: Token YOUR_TOKEN"
+```
+
+For detailed technical documentation, see `MANUAL.md` and `backend/API_DOCUMENTATION.md`.
+
 ## 🐳 Docker Deployment
 
 ### Quick Start with Docker
@@ -155,8 +206,6 @@ docker-compose logs -f
 docker-compose down
 ```
 
-
-
 ## 🧪 Testing & Quality
 
 ### Automated Testing
@@ -170,8 +219,6 @@ make test-backend
 # Run frontend tests only
 make test-frontend
 ```
-
-
 
 ## 📖 API Documentation
 
@@ -189,6 +236,11 @@ curl -X POST http://localhost:8000/api/login/ \
 # Get clients
 curl -H "Authorization: Token YOUR_TOKEN" \
   http://localhost:8000/api/clients/
+
+# Get project with progress
+curl -H "Authorization: Token YOUR_TOKEN" \
+  http://localhost:8000/api/projects/1/
+# Returns: {"id": 1, "name": "Project Alpha", "progress": 75, ...}
 ```
 
 ## 📊 Sample Data
@@ -251,5 +303,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 **Default Superuser**: admin@example.com / admin123
 **API Base URL**: http://localhost:8000/api
-**Frontend URL**: http://localhost:3000</content>
-</xai:function_call">Create a comprehensive root README.md that covers the full stack setup and usage
+**Frontend URL**: http://localhost:3000

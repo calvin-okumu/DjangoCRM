@@ -116,179 +116,63 @@ When all tasks in an active sprint are completed, the system automatically marks
 - **Real-time Updates**: Immediate response to task status changes
 - **Error Prevention**: Prevents invalid status transitions
 
-## Installation and Setup
+## Progress Calculation
 
-### Prerequisites
-- Python 3.8+
-- PostgreSQL
-- Git
+DjangoCRM includes automated progress tracking that provides real-time visibility into project completion status. Progress is calculated hierarchically from individual tasks up to the project level, ensuring accurate and up-to-date metrics.
 
-### Installation Steps
+### Progress Hierarchy
 
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd DjangoCRM
-   ```
+#### Task Level Progress
+Tasks have progress based on their current status using predefined weights:
 
-2. **Create virtual environment:**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+- **To Do**: 0% (not started)
+- **In Progress**: 25% (work has begun)
+- **In Review**: 50% (work completed, awaiting review)
+- **Testing**: 75% (in testing phase)
+- **Done**: 100% (completed)
 
-3. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+#### Sprint Level Progress
+Sprints use binary progress calculation:
 
-4. **Environment configuration:**
-   Copy `.env.example` to `.env` and configure:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your database and OAuth credentials
-   ```
+- **0%**: Sprint is planned or active (not yet completed)
+- **100%**: Sprint status is "completed"
 
-5. **Database setup:**
-   ```bash
-   python manage.py migrate
-   python manage.py createsuperuser
-   ```
-
-6. **Generate sample data (optional):**
-   ```bash
-   python manage.py generate_sample_data
-   ```
-
-### Environment Variables
-
-Key environment variables in `.env`:
-
-- `SECRET_KEY`: Django secret key
-- `DB_NAME`: PostgreSQL database name
-- `DB_USER`: Database user
-- `DB_PASSWORD`: Database password
-- `GOOGLE_CLIENT_ID`: Google OAuth client ID
-- `GOOGLE_CLIENT_SECRET`: Google OAuth client secret
-- `GITHUB_CLIENT_ID`: GitHub OAuth client ID
-- `GITHUB_CLIENT_SECRET`: GitHub OAuth client secret
-
-## API Documentation
-
-The API is fully documented using Swagger/OpenAPI. Access the interactive documentation at:
-
-- **Swagger UI**: `http://127.0.0.1:8000/api/schema/swagger-ui/`
-- **ReDoc**: `http://127.0.0.1:8000/api/schema/redoc/`
-- **OpenAPI Schema**: `http://127.0.0.1:8000/api/schema/`
-
-### Authentication
-
-The API supports multiple authentication methods:
-
-1. **Token Authentication**: Use `Authorization: Token <token>` header
-2. **Session Authentication**: For web users (handled automatically)
-
-### Base URL
+#### Milestone Level Progress
+Milestone progress is calculated as the ratio of completed sprints:
 
 ```
-http://127.0.0.1:8000/api
+Milestone Progress = (Completed Sprints / Total Sprints) × 100
 ```
 
-For production with multi-tenancy:
+#### Project Level Progress
+Project progress is the average of all milestone progresses:
+
 ```
-http://<tenant-subdomain>.example.com/api
+Project Progress = Average of all milestone progress values
 ```
 
-### Interactive API Documentation
+### Automatic Updates
 
-The complete API documentation is available through Swagger UI:
+Progress values are automatically updated through Django signals when related objects change:
 
-- **Swagger UI**: `http://127.0.0.1:8000/api/schema/swagger-ui/`
-- **ReDoc**: `http://127.0.0.1:8000/api/schema/redoc/`
-- **OpenAPI Schema (JSON)**: `http://127.0.0.1:8000/api/schema/?format=json`
-- **OpenAPI Schema (YAML)**: `http://127.0.0.1:8000/api/schema/`
+- **Task status changes** → May trigger sprint completion → Updates milestone progress → Updates project progress
+- **Sprint status changes** → Updates milestone progress → Updates project progress
+- **Milestone progress changes** → Updates project progress
 
-### Key Endpoints
+### Manual Refresh
 
-#### Authentication Endpoints
-- `POST /api/login/` - User login with email/password
-- `POST /api/signup/` - User registration with optional tenant creation
-- `GET /api/auth-methods/` - Get available authentication methods (traditional + OAuth)
-- `POST /api/approve-member/` - Approve pending tenant member (tenant owners only)
-- `POST /api/invite-member/` - Send invitation to join tenant (tenant owners only)
+For cases where progress calculations may become inconsistent, use the manual refresh endpoint:
 
-#### CRM Data Endpoints
-- `GET /api/tenants/` - View tenant details (all tenant owners)
-- `POST /api/tenants/` - Create new tenant (during signup)
-- `PUT /api/tenants/{id}/` - Update tenant details (original creator only)
-- `DELETE /api/tenants/{id}/` - Delete tenant (original creator only)
-- `GET|POST|PUT|DELETE /api/clients/` - Client management
-- `GET|POST|PUT|DELETE /api/projects/` - Project lifecycle management
-- `GET|POST|PUT|DELETE /api/milestones/` - Project milestone tracking
-- `GET|POST|PUT|DELETE /api/sprints/` - Agile sprint management
-- `GET|POST|PUT|DELETE /api/tasks/` - Individual task management
-- `GET|POST|PUT|DELETE /api/invoices/` - Invoice and billing management
-- `GET|POST|PUT|DELETE /api/payments/` - Payment tracking
-- `GET|POST|PUT|DELETE /api/members/` - Tenant member management
-- `GET|POST|PUT|DELETE /api/invitations/` - Invitation system management
-- `GET|POST|PUT|DELETE /api/users/` - User account management
+**Endpoint:** `POST /api/projects/{id}/refresh_project_progress/`
 
-#### Sprint Task Management (Custom Actions)
-- `POST /api/sprints/{id}/create_task/` - Create task directly in sprint
-- `POST /api/sprints/{id}/assign_task/` - Assign existing task to sprint
-- `POST /api/sprints/{id}/unassign_task/` - Remove task from sprint
+This recalculates progress for all milestones and the project, ensuring data integrity.
 
-#### Bulk Operations
-- `POST /api/sprints/bulk_update_sprints/` - Bulk update multiple sprints with same status
-- `POST /api/tasks/bulk_update_tasks/` - Bulk update multiple tasks with status/sprint assignment
-- `POST /api/projects/{id}/refresh_project_progress/` - Manually recalculate project progress
+### Benefits
 
-All endpoints are fully documented in the Swagger UI with request/response schemas, authentication requirements, and interactive testing capabilities.
-
-### Signup Process
-
-The signup endpoint (`POST /api/signup/`) supports two flows:
-
-1. **New Tenant Creation**: When no `invitation_token` is provided, creates a new tenant with comprehensive company information
-2. **Invitation Acceptance**: When `invitation_token` is provided, joins an existing tenant
-
-**Required Fields (All Flows):**
-- `email`: User's email address
-- `password`: User's password
-- `first_name`: User's first name
-- `last_name`: User's last name
-
-**Required Fields for New Tenant Creation:**
-- `company_name`: Name of the company/organization
-
-**Optional Fields for New Tenant Creation:**
-- `address`: Physical address of the company
-- `phone`: Contact phone number
-- `website`: Company website URL (validated for proper URL format)
-- `industry`: Industry sector (e.g., Technology, Healthcare, Finance)
-- `company_size`: Company size category (1-10, 11-50, 51-200, 201-1000, 1000+ employees)
-
-**Fields for Invitation Acceptance:**
-- `invitation_token`: Valid and unused invitation token (required for invitation flow)
-
-**Validation Rules:**
-- Email must be unique across all users
-- For new tenants: Email domain is used to create unique tenant subdomain
-- Website URLs are validated for proper format (if provided)
-- Company name must be unique across all tenants (for new tenant creation)
-- Invitation tokens must be unused and not expired
-- Phone numbers are validated for proper format (if provided)
-
-**Automatic Group Assignment:**
-- New tenant creators are automatically assigned to "Tenant Owners" group
-- Invited users are assigned to groups based on their invitation role:
-  - 'Tenant Owner' → Tenant Owners group
-  - 'Employee' → Employees group
-  - 'Manager' → Project Managers group
-- Invited users start as unapproved and must be approved by a tenant owner before gaining access
-
-**Response:**
-Returns authentication token and user/tenant information on successful signup. For invitations, the user account is created but access is restricted until approved by a tenant owner.
+- **Real-time Visibility**: Progress updates automatically as work progresses
+- **Hierarchical Tracking**: Understand progress at multiple levels (task → sprint → milestone → project)
+- **Data Integrity**: Signals ensure progress stays synchronized
+- **Manual Override**: Ability to recalculate progress when needed
 
 ## Bulk Operations
 
@@ -404,6 +288,168 @@ Manually recalculate and update project progress based on current milestone and 
 - **Data Integrity**: Ensures progress calculations are accurate
 - **Performance**: Optimized database queries for bulk updates
 - **Reliability**: Handles edge cases and validation errors gracefully
+
+## Frontend Integration
+
+The DjangoCRM API is designed for seamless frontend integration, providing all necessary data for building comprehensive project management dashboards.
+
+### Progress Visualization
+
+Progress data is available in API responses for projects, milestones, sprints, and tasks. Frontend applications can use this data to display:
+
+#### Progress Bars and Charts
+```javascript
+// Example: Display project progress
+const project = await fetch('/api/projects/1/');
+const progress = project.progress; // 0-100
+
+// Render progress bar
+<ProgressBar value={progress} max={100} />
+```
+
+#### Hierarchical Progress Display
+```javascript
+// Fetch project with related data
+const project = await fetch('/api/projects/1/?expand=milestones');
+
+// Display nested progress
+project.milestones.forEach(milestone => {
+  console.log(`Milestone: ${milestone.name} - ${milestone.progress}%`);
+  // Render milestone progress
+});
+```
+
+#### Real-time Updates
+```javascript
+// Poll for progress updates
+setInterval(async () => {
+  const project = await fetch('/api/projects/1/');
+  updateProgressDisplay(project.progress);
+}, 30000); // Update every 30 seconds
+```
+
+### Task Management UI
+
+#### Status Updates
+```javascript
+// Update task status
+await fetch(`/api/tasks/${taskId}/`, {
+  method: 'PATCH',
+  headers: {
+    'Authorization': `Token ${token}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ status: 'in_progress' })
+});
+
+// Progress automatically updates via backend signals
+```
+
+#### Sprint Assignment
+```javascript
+// Assign task to sprint
+await fetch(`/api/tasks/${taskId}/`, {
+  method: 'PATCH',
+  body: JSON.stringify({ sprint: sprintId })
+});
+```
+
+### Dashboard Components
+
+#### Project Overview
+- Display project progress with visual indicators
+- Show milestone completion status
+- List active sprints and their progress
+
+#### Task Boards
+- Kanban-style boards with status columns
+- Drag-and-drop task movement
+- Real-time progress updates
+
+#### Sprint Burndown Charts
+- Track sprint progress over time
+- Display remaining tasks vs. time
+
+### Authentication Integration
+
+#### Token Management
+```javascript
+// Store token after login
+const response = await fetch('/api/login/', {
+  method: 'POST',
+  body: JSON.stringify({ email, password })
+});
+const { token } = await response.json();
+localStorage.setItem('authToken', token);
+```
+
+#### API Requests
+```javascript
+// Include token in all requests
+const headers = {
+  'Authorization': `Token ${localStorage.getItem('authToken')}`,
+  'Content-Type': 'application/json'
+};
+```
+
+### Error Handling
+
+#### API Error Responses
+```javascript
+try {
+  const response = await fetch('/api/projects/');
+  if (!response.ok) {
+    const error = await response.json();
+    showError(error.detail || 'Request failed');
+  }
+} catch (error) {
+  showError('Network error');
+}
+```
+
+#### Validation Errors
+```javascript
+// Handle form validation errors
+const response = await fetch('/api/projects/', {
+  method: 'POST',
+  body: JSON.stringify(projectData)
+});
+
+if (response.status === 400) {
+  const errors = await response.json();
+  displayValidationErrors(errors);
+}
+```
+
+### Performance Considerations
+
+#### Pagination
+```javascript
+// Handle large datasets
+const response = await fetch('/api/tasks/?page=1&page_size=50');
+const data = await response.json();
+// Use data.results and data.next for pagination
+```
+
+#### Selective Field Loading
+```javascript
+// Only fetch needed fields
+const response = await fetch('/api/projects/?fields=id,name,progress');
+```
+
+#### Caching
+```javascript
+// Cache frequently accessed data
+const cache = new Map();
+
+async function getProject(id) {
+  if (cache.has(id)) return cache.get(id);
+
+  const project = await fetch(`/api/projects/${id}/`);
+  cache.set(id, project);
+  return project;
+}
+```
 
 ## CORS Configuration
 
@@ -531,6 +577,39 @@ For production deployment with multi-tenancy, you may need to configure CORS to 
 
 ## Management Commands
 
+### setup_project
+Complete automated setup for DjangoCRM including database, migrations, groups, and sample data.
+
+```bash
+python manage.py setup_project
+```
+
+**Options:**
+- `--skip-sample-data`: Skip generating sample data
+- `--production`: Production mode - skip sample data and use production settings
+- `--skip-db-setup`: Skip database setup (useful if DB already exists)
+
+**What it does:**
+1. Detects environment (development/production/CI)
+2. Sets up database using `setup_db.py`
+3. Runs Django migrations
+4. Creates default user groups
+5. Generates sample data (development only)
+6. Creates default superuser (development only)
+7. Validates setup completion
+
+**Example usage:**
+```bash
+# Full development setup
+python manage.py setup_project
+
+# Production setup without sample data
+python manage.py setup_project --production
+
+# Skip database setup
+python manage.py setup_project --skip-db-setup
+```
+
 ### generate_sample_data
 Generates sample data for development and testing.
 
@@ -627,29 +706,6 @@ POST /api/projects/1/sprints/
   "start_date": "2024-01-01",
   "end_date": "2024-01-14"
 }
-```
-
-## Testing
-
-### Running Tests
-```bash
-python manage.py test
-```
-
-### Test Files
-- `accounts/tests.py`: User and tenant-related tests
-- `project/tests.py`: Project management tests
-- `test_api.py`: Basic API functionality and authentication tests
-- `test_bulk_operations.py`: Bulk operations and sprint automation tests
-- `test_progress_updates.py`: Progress calculation and automation signal tests
-- `test_*.py`: Additional test files for specific functionality
-
-### Test Coverage
-Run tests with coverage:
-```bash
-pip install coverage
-coverage run manage.py test
-coverage report
 ```
 
 ## Deployment
