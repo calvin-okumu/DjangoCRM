@@ -80,10 +80,12 @@ class Project(models.Model):
             raise ValidationError('End date must be after start date.')
 
     def calculate_progress(self):
-        milestones = self.milestones.all()
-        if not milestones:
-            return 0
-        return sum(milestone.calculate_progress() for milestone in milestones) // len(milestones)
+        """Calculate progress as average of milestone progress using database aggregation"""
+        from django.db.models import Avg
+
+        # Use database aggregation for better performance
+        result = self.milestones.aggregate(avg_progress=Avg('progress'))
+        return int(result['avg_progress'] or 0)
 
     def __str__(self):
         return self.name
@@ -129,10 +131,19 @@ class Milestone(models.Model):
             raise ValidationError('Milestone end date must be before project end date.')
 
     def calculate_progress(self):
-        sprints = self.sprints.all()
-        if not sprints:
-            return 0
-        return sum(sprint.progress for sprint in sprints) // len(sprints)
+        """Calculate progress based on completed sprints ratio using database aggregation"""
+        from django.db.models import Count, Q
+
+        # Use single query with aggregation for better performance
+        result = self.sprints.aggregate(
+            total=Count('id'),
+            completed=Count('id', filter=Q(status='completed'))
+        )
+
+        total = result['total']
+        completed = result['completed']
+
+        return 0 if total == 0 else int((completed / total) * 100)
 
     def __str__(self):
         return f"{self.name} ({self.project.name})"
@@ -155,9 +166,6 @@ class Sprint(models.Model):
     milestone = models.ForeignKey(
         Milestone, on_delete=models.CASCADE, related_name="sprints", db_index=True
     )
-    progress = models.PositiveIntegerField(
-        default=0, validators=[MinValueValidator(0), MaxValueValidator(100)]
-    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def clean(self):
@@ -169,11 +177,34 @@ class Sprint(models.Model):
         if self.milestone and self.end_date and self.milestone.due_date and self.end_date > self.milestone.due_date:
             raise ValidationError('Sprint end date must be before milestone end date.')
 
-    def calculate_progress(self):
-        tasks = self.tasks.all()
-        if not tasks:
-            return 0
-        return sum(task.progress for task in tasks) // len(tasks)
+        # Sprint completion validation
+        if self.status == 'completed':
+            incomplete_tasks = self.tasks.exclude(status='done')
+            if incomplete_tasks.exists():
+                task_titles = [task.title for task in incomplete_tasks[:3]]
+                raise ValidationError(
+                    f"Cannot complete sprint '{self.name}'. "
+                    f"{incomplete_tasks.count()} tasks are not done: {', '.join(task_titles)}"
+                )
+
+        # Status transition validation
+        if self.pk:  # Existing instance
+            old_instance = Sprint.objects.get(pk=self.pk)
+            valid_transitions = {
+                'planned': ['active', 'canceled'],
+                'active': ['completed', 'canceled'],
+                'completed': [],  # Cannot change from completed
+                'canceled': ['planned'],  # Allow restart
+            }
+            if self.status not in valid_transitions.get(old_instance.status, []):
+                raise ValidationError(
+                    f"Invalid status transition from '{old_instance.status}' to '{self.status}'"
+                )
+
+    @property
+    def progress(self):
+        """Binary progress: 0% unless completed"""
+        return 100 if self.status == 'completed' else 0
 
     def __str__(self):
         return f"{self.name} ({self.milestone.name})"
