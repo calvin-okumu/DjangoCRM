@@ -34,7 +34,7 @@ export default function MilestoneModal({ isOpen, onClose, mode, milestone, proje
         description: '',
         status: 'pending',
         planned_start: '',
-        actual_start: '',
+
         due_date: '',
         assignee: '',
     });
@@ -47,7 +47,7 @@ export default function MilestoneModal({ isOpen, onClose, mode, milestone, proje
                 description: milestone.description || '',
                 status: milestone.status,
                 planned_start: milestone.planned_start || '',
-                actual_start: milestone.actual_start || '',
+
                 due_date: milestone.due_date || '',
                 assignee: milestone.assignee?.toString() || '',
             });
@@ -57,7 +57,7 @@ export default function MilestoneModal({ isOpen, onClose, mode, milestone, proje
                 description: '',
                 status: 'planning',
                 planned_start: '',
-                actual_start: '',
+       
                 due_date: '',
                 assignee: '',
             });
@@ -102,7 +102,7 @@ export default function MilestoneModal({ isOpen, onClose, mode, milestone, proje
             status: formData.status,
             progress: 0,
             planned_start: formData.planned_start || undefined,
-            actual_start: formData.actual_start || undefined,
+
             due_date: formData.due_date || undefined,
             assignee: formData.assignee ? parseInt(formData.assignee) : undefined,
             project: projectId,
@@ -166,17 +166,7 @@ export default function MilestoneModal({ isOpen, onClose, mode, milestone, proje
                      />
                      {errors.planned_start && <p className="text-red-500 text-sm mt-1">{errors.planned_start}</p>}
                  </div>
-                <div>
-                    <label htmlFor="actual_start" className="block text-sm font-medium text-gray-700">Actual Start</label>
-                    <input
-                        type="date"
-                        id="actual_start"
-                        name="actual_start"
-                        value={formData.actual_start}
-                        onChange={handleChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    />
-                </div>
+
                  <div>
                      <label htmlFor="due_date" className="block text-sm font-medium text-gray-700">Due Date</label>
                      <input

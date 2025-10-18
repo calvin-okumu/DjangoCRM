@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { getTasks, deleteTask } from '@/api/project_mgmt';
-import { API_BASE } from '@/api';
+import { getTasks } from '@/api/project_mgmt';
 import type { Task } from '@/api/types';
 import Loader from '@/components/shared/Loader';
 import Button from '@/components/ui/Button';
 import Table from '@/components/ui/Table';
+import Card from '@/components/ui/Card';
 import { Trash2 } from 'lucide-react';
 
 interface CompletedTasksSectionProps {
@@ -81,12 +81,12 @@ export default function CompletedTasksSection({ projectId }: CompletedTasksSecti
                 </div>
             </div>
 
-            {tasks.length === 0 ? (
-                <div className="text-center py-12">
-                    <div className="text-gray-400 text-lg mb-2">No completed tasks yet</div>
-                    <p className="text-gray-500">Tasks will appear here once they are marked as completed in sprints.</p>
-                </div>
-            ) : (
+             {tasks.length === 0 ? (
+                 <Card className="text-center py-12">
+                     <div className="text-gray-400 text-lg mb-2">No completed tasks yet</div>
+                     <p className="text-gray-500">Tasks will appear here once they are marked as completed in sprints.</p>
+                 </Card>
+             ) : (
                 <Table
                     headers={['Title', 'Description', 'Sprint', 'Completed Date', 'Actions']}
                     rows={tasks.map(task => ({
