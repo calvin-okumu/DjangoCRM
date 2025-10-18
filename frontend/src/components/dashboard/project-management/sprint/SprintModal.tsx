@@ -10,7 +10,7 @@ interface SprintModalProps {
     onClose: () => void;
     mode: 'add' | 'edit';
     sprint?: Sprint;
-    projectId: number;
+
     milestones: Milestone[];
     onSave: (data: {
         name: string;
@@ -21,7 +21,7 @@ interface SprintModalProps {
     }) => void;
 }
 
-export default function SprintModal({ isOpen, onClose, mode, sprint, projectId, milestones, onSave }: SprintModalProps) {
+export default function SprintModal({ isOpen, onClose, mode, sprint, milestones, onSave }: SprintModalProps) {
     const [formData, setFormData] = useState({
         name: '',
         status: 'planned',
@@ -31,7 +31,7 @@ export default function SprintModal({ isOpen, onClose, mode, sprint, projectId, 
     });
     const [minDate, setMinDate] = useState('');
     const [maxDate, setMaxDate] = useState('');
-    const [errors, setErrors] = useState<{[key: string]: string}>({});
+    const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
     useEffect(() => {
         if (mode === 'edit' && sprint) {
@@ -156,51 +156,52 @@ export default function SprintModal({ isOpen, onClose, mode, sprint, projectId, 
                         <option value="canceled">Canceled</option>
                     </select>
                 </div>
-                 <div>
-                     <label htmlFor="start_date" className="block text-sm font-medium text-gray-700">Start Date</label>
-                     <input
-                         type="date"
-                         id="start_date"
-                         name="start_date"
-                         value={formData.start_date}
-                         onChange={handleChange}
-                         min={minDate}
-                         max={maxDate}
-                         className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${errors.start_date ? 'border-red-500' : 'border-gray-300'}`}
-                     />
-                     {errors.start_date && <p className="text-red-500 text-sm mt-1">{errors.start_date}</p>}
-                 </div>
-                 <div>
-                     <label htmlFor="end_date" className="block text-sm font-medium text-gray-700">End Date</label>
-                     <input
-                         type="date"
-                         id="end_date"
-                         name="end_date"
-                         value={formData.end_date}
-                         onChange={handleChange}
-                         min={minDate}
-                         max={maxDate}
-                         className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${errors.end_date ? 'border-red-500' : 'border-gray-300'}`}
-                     />
-                     {errors.end_date && <p className="text-red-500 text-sm mt-1">{errors.end_date}</p>}
-                 </div>
                 <div>
-                    <label htmlFor="milestone" className="block text-sm font-medium text-gray-700">Milestone *</label>
-                    <select
-                        id="milestone"
-                        name="milestone"
-                        value={formData.milestone}
+                    <div>
+                        <label htmlFor="milestone" className="block text-sm font-medium text-gray-700">Milestone *</label>
+                        <select
+                            id="milestone"
+                            name="milestone"
+                            value={formData.milestone}
+                            onChange={handleChange}
+                            required
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        >
+                            <option value="">Select Milestone</option>
+                            {milestones.map(milestone => (
+                                <option key={milestone.id} value={milestone.id}>
+                                    {milestone.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <label htmlFor="start_date" className="block text-sm font-medium text-gray-700">Start Date</label>
+                    <input
+                        type="date"
+                        id="start_date"
+                        name="start_date"
+                        value={formData.start_date}
                         onChange={handleChange}
-                        required
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    >
-                        <option value="">Select Milestone</option>
-                        {milestones.map(milestone => (
-                            <option key={milestone.id} value={milestone.id}>
-                                {milestone.name}
-                            </option>
-                        ))}
-                    </select>
+                        min={minDate}
+                        max={maxDate}
+                        className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${errors.start_date ? 'border-red-500' : 'border-gray-300'}`}
+                    />
+                    {errors.start_date && <p className="text-red-500 text-sm mt-1">{errors.start_date}</p>}
+                </div>
+                <div>
+                    <label htmlFor="end_date" className="block text-sm font-medium text-gray-700">End Date</label>
+                    <input
+                        type="date"
+                        id="end_date"
+                        name="end_date"
+                        value={formData.end_date}
+                        onChange={handleChange}
+                        min={minDate}
+                        max={maxDate}
+                        className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${errors.end_date ? 'border-red-500' : 'border-gray-300'}`}
+                    />
+                    {errors.end_date && <p className="text-red-500 text-sm mt-1">{errors.end_date}</p>}
                 </div>
                 <div className="flex justify-end space-x-3 pt-4">
                     <Button type="button" onClick={onClose} variant="outline">
