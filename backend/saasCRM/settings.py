@@ -50,7 +50,7 @@ else:
         }
 
 # Load environment variables from .env file
-load_dotenv(dotenv_path=BASE_DIR / '.env')
+load_dotenv(dotenv_path=BASE_DIR.parent / '.env')
 
 # Import logging configuration
 import importlib.util
