@@ -5,20 +5,11 @@ import Table from '@/components/ui/Table';
 import Pagination from '@/components/shared/Pagination';
 import Loader from '@/components/shared/Loader';
 import type { Project } from '@/api/types';
+import type { ProjectFormData } from '@/types/project';
 import { Edit, Plus, Trash2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import ProjectModal from '../ProjectModal';
-
-interface ProjectFormData {
-    name: string;
-    client: number;
-    status: 'active' | 'completed' | 'on-hold';
-    priority: 'high' | 'medium' | 'low';
-    start_date: string;
-    end_date: string;
-    budget?: string;
-}
 
 interface ProjectTableProps {
     projects: Project[];
