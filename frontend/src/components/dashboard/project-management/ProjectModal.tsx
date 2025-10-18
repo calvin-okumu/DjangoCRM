@@ -5,30 +5,21 @@ import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import { useClients } from '@/hooks/useClients';
 import type { Project } from '@/api/types';
-
-interface ProjectFormData {
-    name: string;
-    client: number;
-    status: 'active' | 'completed' | 'on-hold';
-    priority: 'high' | 'medium' | 'low';
-    start_date: string;
-    end_date: string;
-    budget?: string;
-}
+import type { ProjectFormData } from '@/types/project';
 
 interface ProjectModalProps {
     isOpen: boolean;
     onClose: () => void;
     mode: 'add' | 'edit';
     project?: Project;
-    onSave: (data: ProjectFormData) => void;
+    onSave: (data: ProjectFormData) => Promise<void>;
 }
 
 export default function ProjectModal({ isOpen, onClose, mode, project, onSave }: ProjectModalProps) {
     const { clients } = useClients();
     const [formData, setFormData] = useState({
         name: '',
-        client: '0',
+        client: 0,
         status: 'active' as 'active' | 'completed' | 'on-hold',
         priority: 'medium' as 'high' | 'medium' | 'low',
         start_date: '',
@@ -40,7 +31,7 @@ export default function ProjectModal({ isOpen, onClose, mode, project, onSave }:
         if (mode === 'edit' && project) {
             setFormData({
                 name: project.name,
-                client: project.client.toString(),
+                client: project.client,
                 status: project.status as 'active' | 'completed' | 'on-hold',
                 priority: project.priority as 'high' | 'medium' | 'low',
                 start_date: project.start_date,
@@ -50,7 +41,7 @@ export default function ProjectModal({ isOpen, onClose, mode, project, onSave }:
         } else {
             setFormData({
                 name: '',
-                client: clients.length > 0 ? clients[0].id.toString() : '0',
+                client: clients.length > 0 ? clients[0].id : 0,
                 status: 'active',
                 priority: 'medium',
                 start_date: '',
@@ -62,10 +53,10 @@ export default function ProjectModal({ isOpen, onClose, mode, project, onSave }:
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData(prev => ({ ...prev, [name]: name === 'client' ? parseInt(value) : value }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.name || !formData.client || !formData.start_date || !formData.end_date) return;
 
@@ -79,23 +70,23 @@ export default function ProjectModal({ isOpen, onClose, mode, project, onSave }:
             return;
         }
 
-        if (endDate < startDate) {
-            alert("End date cannot be before start date.");
+        if (endDate <= startDate) {
+            alert("End date must be after start date.");
             return;
         }
 
-        const data = {
+        await onSave({
             name: formData.name,
-            client: parseInt(formData.client),
+            client: formData.client,
             status: formData.status,
             priority: formData.priority,
             start_date: formData.start_date,
             end_date: formData.end_date,
             budget: formData.budget || undefined,
-        };
-
-        onSave(data);
+        });
     };
+
+
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={mode === 'add' ? 'Add Project' : 'Edit Project'} size="md">
@@ -117,7 +108,7 @@ export default function ProjectModal({ isOpen, onClose, mode, project, onSave }:
                     <select
                         id="client"
                         name="client"
-                        value={formData.client}
+                        value={formData.client.toString()}
                         onChange={handleChange}
                         required
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"

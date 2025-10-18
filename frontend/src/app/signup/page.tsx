@@ -6,42 +6,39 @@ import AuthLayout from "@/components/AuthLayout";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+
+type FormData = {
+    email: string;
+    password: string;
+    first_name: string;
+    last_name: string;
+    company_name: string;
+    agreeToTerms: boolean;
+};
 
 export default function SignUpPage() {
-    const [form, setForm] = useState({
-        email: "",
-        password: "",
-        first_name: "",
-        last_name: "",
-        company_name: "",
-        agreeToTerms: false,
-    });
+    const { register, handleSubmit, formState: { errors } } = useForm<FormData>();
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const onSubmit = async (data: FormData) => {
         setError("");
         setSuccess("");
-
-        if (!form.agreeToTerms) {
-            setError("You must agree to the terms and conditions.");
-            return;
-        }
 
         setLoading(true);
 
         try {
-            const data = await signup(form.email, form.password, form.first_name, form.last_name, form.company_name);
+            const result = await signup(data.email, data.password, data.first_name, data.last_name, data.company_name);
 
-            localStorage.setItem("access_token", data.token);
+            localStorage.setItem("access_token", result.token);
             localStorage.setItem("user", JSON.stringify({
-                id: data.user_id,
-                email: data.email,
-                first_name: data.first_name,
-                last_name: data.last_name,
+                id: result.user_id,
+                email: result.email,
+                first_name: result.first_name,
+                last_name: result.last_name,
             }));
 
             setSuccess("Account created successfully! Redirecting...");
@@ -70,7 +67,7 @@ export default function SignUpPage() {
                     Get started with intelligent business management!
                 </p>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                     {/* First Name */}
                     <div>
                         <label htmlFor="first_name" className="block text-sm font-semibold text-gray-700 mb-2">First Name</label>
@@ -78,13 +75,10 @@ export default function SignUpPage() {
                             id="first_name"
                             type="text"
                             placeholder="Enter your first name"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                            value={form.first_name}
-                            onChange={(e) =>
-                                setForm({ ...form, first_name: e.target.value })
-                            }
-                            required
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            {...register("first_name", { required: "First name is required" })}
                         />
+                        {errors.first_name && <p className="text-red-500 text-sm mt-1">{errors.first_name.message}</p>}
                     </div>
 
                     {/* Last Name */}
@@ -94,13 +88,10 @@ export default function SignUpPage() {
                             id="last_name"
                             type="text"
                             placeholder="Enter your last name"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                            value={form.last_name}
-                            onChange={(e) =>
-                                setForm({ ...form, last_name: e.target.value })
-                            }
-                            required
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            {...register("last_name", { required: "Last name is required" })}
                         />
+                        {errors.last_name && <p className="text-red-500 text-sm mt-1">{errors.last_name.message}</p>}
                     </div>
 
                     {/* Email */}
@@ -110,13 +101,10 @@ export default function SignUpPage() {
                             id="email"
                             type="email"
                             placeholder="Enter your email"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                            value={form.email}
-                            onChange={(e) =>
-                                setForm({ ...form, email: e.target.value })
-                            }
-                            required
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            {...register("email", { required: "Email is required", pattern: { value: /^\S+@\S+$/i, message: "Invalid email address" } })}
                         />
+                        {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
                     </div>
 
                     {/* Company Name */}
@@ -126,13 +114,10 @@ export default function SignUpPage() {
                             id="company_name"
                             type="text"
                             placeholder="Enter your company name"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                            value={form.company_name}
-                            onChange={(e) =>
-                                setForm({ ...form, company_name: e.target.value })
-                            }
-                            required
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            {...register("company_name", { required: "Company name is required" })}
                         />
+                        {errors.company_name && <p className="text-red-500 text-sm mt-1">{errors.company_name.message}</p>}
                     </div>
 
                     {/* Password */}
@@ -142,13 +127,10 @@ export default function SignUpPage() {
                             id="password"
                             type="password"
                             placeholder="Create a strong password"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                            value={form.password}
-                            onChange={(e) =>
-                                setForm({ ...form, password: e.target.value })
-                            }
-                            required
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            {...register("password", { required: "Password is required", minLength: { value: 6, message: "Password must be at least 6 characters" } })}
                         />
+                        {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
                     </div>
 
                     {/* Terms */}
@@ -156,23 +138,17 @@ export default function SignUpPage() {
                         <input
                             id="agreeToTerms"
                             type="checkbox"
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded mt-1"
-                            checked={form.agreeToTerms}
-                            onChange={(e) =>
-                                setForm({
-                                    ...form,
-                                    agreeToTerms: e.target.checked,
-                                })
-                            }
-                            required
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-1"
+                            {...register("agreeToTerms", { required: "You must agree to the terms" })}
                         />
+                        {errors.agreeToTerms && <p className="text-red-500 text-sm mt-1">{errors.agreeToTerms.message}</p>}
                         <label htmlFor="agreeToTerms" className="ml-3 text-sm text-gray-700">
                             I agree to the{" "}
-                            <a href="#" className="text-indigo-600 hover:text-indigo-500 font-medium">
+                            <a href="#" className="text-blue-600 hover:text-blue-500 font-medium">
                                 privacy policy
                             </a>{" "}
                             and{" "}
-                            <a href="#" className="text-indigo-600 hover:text-indigo-500 font-medium">
+                            <a href="#" className="text-blue-600 hover:text-blue-500 font-medium">
                                 terms of service
                             </a>
                         </label>
@@ -194,7 +170,7 @@ export default function SignUpPage() {
 
                     <button
                         type="submit"
-                        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 px-4 rounded-lg hover:from-indigo-700 hover:to-purple-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled={loading}
                     >
                         {loading ? (
@@ -244,7 +220,7 @@ export default function SignUpPage() {
 
                 <p className="mt-8 text-sm text-center text-gray-600">
                     Already have an account?{" "}
-                    <a href="/login" className="text-indigo-600 hover:text-indigo-500 font-semibold transition-colors">
+                    <a href="/login" className="text-blue-600 hover:text-blue-500 font-semibold transition-colors">
                         Sign in instead
                     </a>
                 </p>
